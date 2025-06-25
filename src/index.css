@@ -4,7 +4,8 @@
   font-weight: 400;
 
   color-scheme: light dark;
-  background-color: transparent;
+  background-color: rgb(18, 18, 18);
+  color: white;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
