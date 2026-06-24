@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import YoutubeTrailer from "../../components/youtubeTrailer/YoutubeTrailer";
 import VidPlayer from "../../components/vidPlayer/VidPlayer";
@@ -23,15 +23,14 @@ const ShowDetails = ({
   allowLinkTitle = false,
   showPlot = false,
   showProducers = false,
+  titleTriggersPlayer = false,
+  showWatchButton = true,
 }) => {
   const [contentRating, setContentRating] = useState(null);
   const [network, setNetwork] = useState(null);
+  const [isPlayerOpen, setIsPlayerOpen] = useState(false);
 
-  const {
-    isLoading,
-    hasError,
-    apiData: show,
-  } = useFetchApi(getShowDetails(showType, tmdbID), "tmdb");
+  const { apiData: show } = useFetchApi(getShowDetails(showType, tmdbID), "tmdb");
 
   const { apiData: showIds } = useFetchApi(
     getExternalIds(showType, show?.id),
@@ -42,8 +41,38 @@ const ShowDetails = ({
     "omdb"
   );
 
+  const posterUrl = show?.poster_path
+    ? `${TMDB_ASSET_BASEURL}${show.poster_path}`
+    : null;
+
+  const networkLogoUrl = network?.logo_path
+    ? `${TMDB_ASSET_BASEURL}${network.logo_path}`
+    : null;
+
+  const languageFromTmdb = useMemo(() => {
+    return (show?.spoken_languages || [])
+      .map((language) => language?.english_name || language?.name)
+      .filter(Boolean)
+      .join(", ");
+  }, [show?.spoken_languages]);
+
+  const languageText = otherDetails?.Language || languageFromTmdb || "Not available";
+
   const showTitle = show?.title || show?.name || show?.original_name;
   const networkLength = show?.networks?.length - 1;
+  const genres = show?.genres || [];
+  const seasonCount = show?.seasons?.length;
+  const hasSeriesMeta = Array.isArray(show?.seasons);
+  const seasonText =
+    hasSeriesMeta
+      ? `${seasonCount || 0} Season${(seasonCount || 0) > 1 ? "s" : ""}`
+      : "";
+
+  const shouldOpenPlayerByTitle = showType === "movie" && titleTriggersPlayer;
+
+  useEffect(() => {
+    setIsPlayerOpen(false);
+  }, [tmdbID]);
 
   useEffect(() => {
     const fetchContentRating = async () => {
@@ -55,114 +84,143 @@ const ShowDetails = ({
   }, [show]);
 
   useEffect(() => {
-    if (show?.network) setNetwork(show?.networks[networkLength]);
-  }, [show]);
+    if (show?.networks?.length) {
+      setNetwork(show?.networks[networkLength]);
+    }
+  }, [show, networkLength]);
 
   return (
     <section className="show-details">
-      {/* Title */}
-      {allowLinkTitle ? (
-        <Link to={`/${showType === "tv" ? "series" : "movie"}/${show?.id}-${convertToSlug(showTitle)}`}>
-          <h1>{showTitle}</h1>
-        </Link>
-      ) : (
-        <h1>{showTitle}</h1>
-      )}
-
       {/* Network Logo */}
-      {network && (
+      {networkLogoUrl && (
         <img
-          src={`${TMDB_ASSET_BASEURL}${network.logo_path}`}
+          src={networkLogoUrl}
           alt={network?.name}
-          className="network"
+          className="show-details__network-logo"
         />
       )}
 
-      {/* Buttons */}
-      <a
-        className="btn visit"
-        href={show?.homepage}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Visit
-      </a>
+      <div className="show-details__layout">
+        {posterUrl && (
+          <div className="show-details__poster-wrap">
+            <img className="show-details__poster" src={posterUrl} alt={showTitle} />
 
-      {/* Trailer */}
-      {show && (
-        <>
-          <YoutubeTrailer
-            showType={showType}
-            tmdbID={show?.id}
-            title={show?.name || show?.original_name}
-          />
+            {hasSeriesMeta && (
+              <div className="show-details__poster-meta">
+                <span>{seasonText}</span>
+                {show?.status && <span className="status-pill">{show?.status}</span>}
+              </div>
+            )}
+          </div>
+        )}
 
-          {showType === "movie" && (
-            <VidPlayer
-              type="movie"
-              tmdbID={show?.id}
-              imdbID={showIds?.imdb_id}
-              title={showTitle}
-              label="Watch"
-              className="btn-watch--subtle"
-            />
+        <div className="show-details__body">
+          <div className="show-details__title-row">
+            {/* Title */}
+            {shouldOpenPlayerByTitle ? (
+              <button
+                type="button"
+                className="show-details__title-button"
+                onClick={() => setIsPlayerOpen(true)}
+                aria-label={`Play ${showTitle}`}
+              >
+                <h1>{showTitle}</h1>
+              </button>
+            ) : allowLinkTitle ? (
+              <Link
+                to={`/${showType === "tv" ? "series" : "movie"}/${show?.id}-${convertToSlug(showTitle)}`}
+              >
+                <h1>{showTitle}</h1>
+              </Link>
+            ) : (
+              <h1>{showTitle}</h1>
+            )}
+          </div>
+
+          {/* Buttons */}
+          <a
+            className="btn visit"
+            href={show?.homepage}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Visit
+          </a>
+
+          {/* Trailer */}
+          {show && (
+            <>
+              <YoutubeTrailer
+                showType={showType}
+                tmdbID={show?.id}
+                title={show?.name || show?.original_name}
+              />
+
+              {showType === "movie" && (
+                <VidPlayer
+                  type="movie"
+                  tmdbID={show?.id}
+                  imdbID={showIds?.imdb_id}
+                  title={showTitle}
+                  label="Watch"
+                  className="btn-watch--subtle"
+                  showButton={showWatchButton && !shouldOpenPlayerByTitle}
+                  isOpen={shouldOpenPlayerByTitle ? isPlayerOpen : undefined}
+                  onOpenChange={shouldOpenPlayerByTitle ? setIsPlayerOpen : undefined}
+                />
+              )}
+            </>
           )}
-        </>
-      )}
 
-      <ul>
-        {/* Content Rating */}
-        {(contentRating || otherDetails) && (
-          <li>
-            <span>{contentRating || otherDetails?.Rated}</span>
-          </li>
-        )}
+          <ul>
+            {/* Content Rating */}
+            {(contentRating || otherDetails) && (
+              <li>
+                <span>{contentRating || otherDetails?.Rated}</span>
+              </li>
+            )}
 
-        {/* Movie */}
-        {showType === "movie" && (
-          <>
-            <li>{show?.status}</li>
-            <li>{show?.runtime} Runtime</li>
-          </>
-        )}
-        {/* Series */}
-        {showType === "tv" && (
-          <>
+            {/* Movie */}
+            {showType === "movie" && (
+              <>
+                <li>{show?.status}</li>
+                <li>{show?.runtime} Runtime</li>
+              </>
+            )}
+
+            {/* Date Aired */}
             <li>
-              {show?.seasons?.length} Season
-              {show?.seasons?.length > 1 && "s"}
+              {splitSlug(show?.first_air_date)[0] || formatDate(show?.release_date)}
             </li>
-          </>
-        )}
-        {/* Date Aired */}
-        <li>
-          {splitSlug(show?.first_air_date)[0] || formatDate(show?.release_date)}
-        </li>
-      </ul>
+          </ul>
 
-      {/* Summary */}
-      <p className="overview">{show?.overview}</p>
+          {/* Tagline */}
+          {show?.tagline && <p className="show-details__tagline">{show.tagline}</p>}
 
-      {/* Plot */}
-      {showPlot && <p className="plot">{otherDetails?.Plot}</p>}
+          {/* Summary */}
+          <p className="overview">{show?.overview}</p>
 
-      {/* Genre */}
-      <p className="genre">
-        {show?.genres?.map((genre, index) => {
-          return (
-            <span key={genre.name}>
-              {genre.name}
-              {index < show?.genres.length - 1 && ", "}
-            </span>
-          );
-        })}
-      </p>
+          {/* Plot */}
+          {showPlot && <p className="plot">{otherDetails?.Plot}</p>}
 
-      {/* Language */}
-      <p className="language">Language: {otherDetails?.Language}</p>
+          {/* Genre */}
+          {genres.length > 0 && (
+            <div className="genre-pills">
+              {genres.map((genre) => (
+                <span className="genre-pill" key={genre?.id}>
+                  {genre?.name}
+                </span>
+              ))}
+            </div>
+          )}
 
-      {/* Producers */}
-      {showProducers && <Producers tmdbId={show?.id} />}
+          {/* Language */}
+          <p className="language">Language: {languageText}</p>
+
+          {/* Producers */}
+          {showProducers && <Producers tmdbId={show?.id} />}
+        </div>
+      </div>
     </section>
   );
 };

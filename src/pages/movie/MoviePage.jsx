@@ -1,7 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Banner from "../../components/banner/Banner";
 import ShowDetails from "../../components/showDetails/ShowDetails";
+import Credits from "../../components/credits/Credits";
+import Recommended from "../../components/recommended/Recommended";
 // Hooks
 import { useFetchApi } from "../../hooks/useFetchApi";
 // Service
@@ -21,6 +23,8 @@ const MoviePage = () => {
     apiData: movie,
   } = useFetchApi(getShowDetails("movie", id), "tmdb");
 
+  const [recommended, hasRecommended] = useState(true);
+
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [id]);
@@ -37,8 +41,21 @@ const MoviePage = () => {
           <ShowDetails
             showType="movie"
             tmdbID={id}
+            titleTriggersPlayer={true}
             showPlot={true}
           />
+
+          <div style={{ backgroundColor: "rgba(255,255,255,3%)" }}>
+            <Credits tmdbID={id} type="movie" limit={15} />
+          </div>
+
+          {recommended && (
+            <Recommended
+              tmdbID={id}
+              type="movie"
+              hasApiResult={hasRecommended}
+            />
+          )}
         </>
       )}
     </div>

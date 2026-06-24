@@ -2,24 +2,32 @@ import React from "react";
 import CastCard from "../cards/castCard/CastCard";
 // Hooks
 import { useFetchApi } from "../../hooks/useFetchApi";
-import { getCredits } from "../../service/tmdb/requests";
+import { getCredits, getMovieCredits } from "../../service/tmdb/requests";
 import "./Credits.css";
 
-const Credits = ({ tmdbID }) => {
-  const { isLoading, hasError, apiData } = useFetchApi(
-    getCredits("tv", tmdbID),
+const Credits = ({ tmdbID, type = "tv", limit = 10 }) => {
+  const creditsUrl = type === "movie" ? getMovieCredits(tmdbID) : getCredits("tv", tmdbID);
+
+  const { apiData } = useFetchApi(
+    creditsUrl,
     "tmdb"
   );
+
+  const cast = apiData?.cast?.slice(0, limit) || [];
 
   return (
     <section className="credits">
       <h2>Casts</h2>
       <div className="casts">
-        {apiData?.cast?.slice(0, 15).map((cast) => (
+        {cast.map((castMember) => (
           <CastCard
-            key={cast?.id}
-            tmdbID={cast?.id}
-            castCharacter={cast?.roles[0].character}
+            key={castMember?.id}
+            tmdbID={castMember?.id}
+            castCharacter={
+              type === "movie"
+                ? castMember?.character
+                : castMember?.roles?.[0]?.character
+            }
           />
         ))}
       </div>

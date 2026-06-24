@@ -5,6 +5,7 @@ import "./VidPlayer.css";
 const PROGRESS_STORAGE_KEY = "cineverse-vid-progress";
 const MIN_SAVE_SECONDS = 1;
 const RESUME_BACKTRACK_SECONDS = 5;
+const IFRAME_SANDBOX = "allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock allow-presentation";
 
 const getStorageMap = () => {
   if (typeof window === "undefined") {
@@ -233,18 +234,20 @@ const VidPlayer = ({
 
       {showPlayer && (
         <div className="vid-player" onPointerDown={handleClose}>
-          <div
-            className="container"
-            onPointerDown={(event) => event.stopPropagation()}
-          >
-            <iframe
-              src={embedUrl}
-              loading="lazy"
-              title={title}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-            ></iframe>
-          </div>
+            <div
+              className="container"
+              onPointerDown={(event) => event.stopPropagation()}
+            >
+              <iframe
+                src={embedUrl}
+                loading="lazy"
+                title={title}
+                sandbox={IFRAME_SANDBOX}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerPolicy="strict-origin"
+                allowFullScreen
+              ></iframe>
+            </div>
         </div>
       )}
     </>

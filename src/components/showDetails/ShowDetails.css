@@ -2,44 +2,128 @@
     background-color: transparent;
     display: block;
     position: relative;
-    padding: .5rem;
+    padding: 1rem;
     text-align: left;
     height: auto;
     z-index: 5;
 }
 
 .show-details h1 {
-    margin: 2rem 0;
+    margin: 0;
     font-size: var(--fs-header1);
     font-weight: bold;
 }
 
-.show-details .overview .show-details .plot {
-    width: 90%;
+.show-details .overview,
+.show-details .plot {
+    width: min(100%, 62ch);
+}
+
+.show-details__layout {
+    display: block;
+    position: relative;
+}
+
+.show-details__poster-wrap {
+    display: block;
+    margin: 0 auto 1rem;
+    width: fit-content;
+}
+
+.show-details__poster {
+    display: block;
+    width: 12.5rem;
+    aspect-ratio: 2 / 3;
+    border-radius: 0.7rem;
+    object-fit: cover;
+}
+
+.show-details__poster-meta {
+    margin-top: 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-size: 0.88rem;
+    color: #cfd7e2;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    text-align: center;
+}
+
+.show-details__body {
+    position: relative;
+}
+
+.show-details__network-logo {
+    position: absolute;
+    top: -24rem;
+    left: auto;
+    right: 0.8rem;
+    z-index: 7;
+    width: 7.5rem;
+    max-width: 32vw;
+    height: auto;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
+    pointer-events: none;
+}
+
+.show-details__title-button {
+    all: unset;
+    display: block;
+    width: fit-content;
+    text-align: left;
+    cursor: pointer;
+}
+
+.show-details__title-row {
+    margin: 2rem 0 0.5rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem 0.9rem;
+    flex-wrap: wrap;
+}
+
+.show-details__title-button:focus-visible {
+    outline: 2px solid #ffffff;
+    outline-offset: 4px;
+}
+
+.show-details__tagline {
+    margin: 0 0 1rem;
+    font-size: 0.95rem;
+    font-style: italic;
+    color: #cfd7e2;
 }
 
 .show-details ul {
     list-style: none;
-    margin: 3rem 0 2rem;
+    margin: 2.5rem 0 1.8rem;
     padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem 1rem;
 }
 
 .show-details ul li {
     font-size: var(--fs-default);
-    display: inline;
-    padding: 0rem 1rem;
-    border-left: 1px solid #ffffff40;
-}
-
-.show-details ul li:first-child {
-    padding-left: 0;
-    border: none;
+    display: inline-flex;
+    align-items: center;
 }
 
 .show-details ul li span {
     font-size: .8rem;
     border: 2px solid white;
     padding: 4px 8px;
+}
+
+.status-pill {
+    font-size: .75rem;
+    border: 1px solid #ffffff;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
 }
 
 .show-details .btn {
@@ -57,31 +141,35 @@
     border: 2px solid #ce3824;
 }
 
-.show-details P {
+.show-details p {
     font-size: var(--fs-default);
     line-height: 1.8em;
 }
 
-.homepage .show-details img,
-.movie-list .show-details img,
-.series-list .show-details img {
-    position: absolute;
-    top: -12rem;
-    left: 4px;
-    width: 10rem;
+.show-details .genre-pills {
+    margin: 1.4rem 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
 }
 
-.movie-page .show-details img,
-.series-page .show-details img {
-    position: absolute;
-    top: -24rem;
-    left: 4px;
-    width: 10rem;
+.show-details .genre-pill {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid #ffffff;
+    border-radius: 999px;
+    padding: 0.3rem 0.8rem;
+    font-size: 0.76rem;
 }
 
+@media (min-width: 480px) {
+    .show-details__network-logo {
+        width: 8.2rem;
+        right: 0.8rem;
+    }
+}
 
 /* Custom page uses */
-
 
 .movie-list .show-details,
 .series-list .show-details {
@@ -101,9 +189,38 @@
     .series-page .show-details {
         margin: -24rem auto 1rem;
     }
+
+    .show-details__network-logo {
+        top: -24rem;
+    }
 }
 
-@media (min-width: 768px) {}
+@media (min-width: 768px) {
+    .show-details__layout {
+        display: flex;
+        gap: 1.5rem;
+        align-items: flex-start;
+    }
+
+    .show-details__poster-wrap {
+        flex: 0 0 14rem;
+        margin: 0;
+        width: auto;
+    }
+
+    .show-details__body {
+        flex: 1;
+    }
+
+    .show-details__poster {
+        width: 14rem;
+    }
+
+    .show-details__network-logo {
+        right: 1rem;
+        width: 9rem;
+    }
+}
 
 @media (min-width: 1024px) {
 
@@ -112,6 +229,19 @@
     .movie-page .show-details,
     .series-page .show-details {
         margin: -24rem auto 1rem;
+    }
+
+    .show-details__poster-wrap {
+        flex: 0 0 16rem;
+    }
+
+    .show-details__poster {
+        width: 16rem;
+    }
+
+    .show-details .overview,
+    .show-details .plot {
+        width: min(100%, 68ch);
     }
 }
 

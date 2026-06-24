@@ -82,13 +82,17 @@ export const getCredits = (type, id) => {
   return `/${type}/${id}/aggregate_credits?language=en-US`;
 }
 
+export const getMovieCredits = (id) => {
+  return `/movie/${id}/credits?language=en-US`;
+}
+
 export const getGenres = (type) => {
   return `genre/${type}/list?language=en`;
 }
 
 // Person
 export const getCast = (id) => {
-  return `/person/${id}?language=en-US'`;
+  return `/person/${id}?language=en-US`;
 }
 
 // Other Queries

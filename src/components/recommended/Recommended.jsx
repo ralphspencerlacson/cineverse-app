@@ -3,14 +3,26 @@ import RowContainer from "../containers/RowContainer";
 import { getRecommended } from "../../service/tmdb/requests";
 import "./Recommended.css";
 
-const Recommended = ({ type, tmbdID, hasApiResult = null }) => {
+const Recommended = ({
+  type,
+  tmdbID,
+  tmbdID,
+  hasApiResult = null,
+  showType,
+}) => {
+  const resolvedTmdbID = tmdbID || tmbdID;
+
+  if (!resolvedTmdbID) {
+    return null;
+  }
+
   return (
     <section className="recommended">
       <RowContainer
         title="More like this"
-        reqUrl={getRecommended(type, tmbdID)}
+        reqUrl={getRecommended(type, resolvedTmdbID)}
         cardType="poster"
-        showType="tv"
+        showType={showType || type}
         hasApiResult={hasApiResult}
       />
     </section>
