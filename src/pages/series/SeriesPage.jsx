@@ -9,7 +9,7 @@ import Comments from "../../components/comments/Comments";
 // Hooks
 import { useFetchApi } from "../../hooks/useFetchApi";
 // Service
-import { getShowDetails } from "../../service/tmdb/requests";
+import { getShowDetails, getExternalIds } from "../../service/tmdb/requests";
 // Utils
 import { splitSlug } from "../../utils/StringUtils";
 // CSS
@@ -24,6 +24,11 @@ const SeriesPage = () => {
     hasError,
     apiData: show,
   } = useFetchApi(getShowDetails("tv", id), "tmdb");
+
+  const { apiData: showIds } = useFetchApi(
+    getExternalIds("tv", show?.id),
+    "tmdb"
+  );
 
   const [recommended, hasRecommended] = useState(true);
 
@@ -45,7 +50,12 @@ const SeriesPage = () => {
             showProducers={true}
           />
 
-          <SeasonList tmdbID={id} seasons={show?.seasons} />
+          <SeasonList
+            tmdbID={id}
+            seasons={show?.seasons}
+            showTitle={show?.name || show?.original_name}
+            imdbID={showIds?.imdb_id}
+          />
 
           <div style={{ backgroundColor: "rgba(255,255,255,3%)" }}>
             <Credits tmdbID={id} />

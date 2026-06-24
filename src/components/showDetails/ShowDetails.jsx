@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import YoutubeTrailer from "../../components/youtubeTrailer/YoutubeTrailer";
+import VidPlayer from "../../components/vidPlayer/VidPlayer";
 import Producers from "../producers/Producers";
 import { useFetchApi } from "../../hooks/useFetchApi";
 import {
@@ -89,11 +90,24 @@ const ShowDetails = ({
 
       {/* Trailer */}
       {show && (
-        <YoutubeTrailer
-          showType={showType}
-          tmdbID={show?.id}
-          title={show?.name || show?.original_name}
-        />
+        <>
+          <YoutubeTrailer
+            showType={showType}
+            tmdbID={show?.id}
+            title={show?.name || show?.original_name}
+          />
+
+          {showType === "movie" && (
+            <VidPlayer
+              type="movie"
+              tmdbID={show?.id}
+              imdbID={showIds?.imdb_id}
+              title={showTitle}
+              label="Watch"
+              className="btn-watch--subtle"
+            />
+          )}
+        </>
       )}
 
       <ul>

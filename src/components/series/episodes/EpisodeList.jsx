@@ -6,7 +6,7 @@ import "./EpisodeList.css";
 
 const EpisodeCard = lazy(() => import("../../cards/episodeCard/EpisodeCard"));
 
-const EpisodeList = ({ containerID, tmdbID, season }) => {
+const EpisodeList = ({ containerID, tmdbID, season, showTitle, imdbID }) => {
   const {
     isLoading,
     hasError,
@@ -22,6 +22,10 @@ const EpisodeList = ({ containerID, tmdbID, season }) => {
               key={episode?.episode_number}
               episode={episode}
               defaultImage={seasonDetails?.poster_path}
+              tmdbID={tmdbID}
+              season={season}
+              showTitle={showTitle}
+              imdbID={imdbID}
             />
           ))}
         </div>

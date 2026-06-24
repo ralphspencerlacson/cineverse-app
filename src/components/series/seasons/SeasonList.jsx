@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import EpisodeList from "../episodes/EpisodeList";
 import "./SeasonList.css";
 
-const SeasonList = ({ tmdbID, seasons }) => {
+const SeasonList = ({ tmdbID, seasons, showTitle, imdbID }) => {
   const [curSeason, setCurSeason] = useState(1);
 
   useEffect(() => {
@@ -37,6 +37,8 @@ const SeasonList = ({ tmdbID, seasons }) => {
         containerID={"episodes"}
         tmdbID={tmdbID}
         season={curSeason}
+        showTitle={showTitle}
+        imdbID={imdbID}
       />
     </section>
   );

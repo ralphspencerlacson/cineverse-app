@@ -1,0 +1,7 @@
+.movie-page {
+    position: relative;
+}
+
+.movie-page .show-details {
+    margin: -24rem auto 0rem;
+}
