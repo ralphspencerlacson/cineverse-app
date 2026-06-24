@@ -3,7 +3,8 @@ import { getEmbedUrl } from "../../service/vidapi/requests";
 import "./VidPlayer.css";
 
 const PROGRESS_STORAGE_KEY = "cineverse-vid-progress";
-const MIN_SAVE_SECONDS = 10;
+const MIN_SAVE_SECONDS = 1;
+const RESUME_BACKTRACK_SECONDS = 5;
 
 const getStorageMap = () => {
   if (typeof window === "undefined") {
@@ -24,18 +25,28 @@ const getStorageMap = () => {
 };
 
 const getStoredProgress = (key) => {
-  if (!key) {
+  const keys = Array.isArray(key) ? key : [key];
+
+  if (!keys.length) {
     return 0;
   }
 
   const map = getStorageMap();
-  const progress = Number(map[key]);
 
-  return Number.isFinite(progress) && progress > 0 ? Math.floor(progress) : 0;
+  for (const currentKey of keys) {
+    const progress = Number(map[currentKey]);
+    if (Number.isFinite(progress) && progress > 0) {
+      return Math.floor(progress);
+    }
+  }
+
+  return 0;
 };
 
 const setStoredProgress = (key, seconds) => {
-  if (!key || typeof window === "undefined") {
+  const keys = Array.isArray(key) ? key : [key];
+
+  if (!keys.length || typeof window === "undefined") {
     return;
   }
 
@@ -45,7 +56,10 @@ const setStoredProgress = (key, seconds) => {
   }
 
   const map = getStorageMap();
-  map[key] = Math.floor(progress);
+
+  for (const currentKey of keys) {
+    map[currentKey] = Math.floor(progress);
+  }
 
   try {
     window.localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(map));
@@ -54,20 +68,30 @@ const setStoredProgress = (key, seconds) => {
   }
 };
 
-const buildProgressKey = ({ type, tmdbID, imdbID, season, episode }) => {
-  const id = imdbID || tmdbID;
+const buildProgressKeys = ({ type, tmdbID, imdbID, season, episode }) => {
+  const ids = [];
 
-  if (!id) {
-    return "";
+  if (imdbID) {
+    ids.push(String(imdbID));
   }
 
-  const normalizedId = String(id);
-
-  if (type === "tv" && season != null && episode != null) {
-    return `${type}:${normalizedId}:s${season}:e${episode}`;
+  if (tmdbID) {
+    ids.push(String(tmdbID));
   }
 
-  return `${type}:${normalizedId}`;
+  if (ids.length === 0) {
+    return [];
+  }
+
+  const keys = ids.map((id) => {
+    if (type === "tv" && season != null && episode != null) {
+      return `${type}:${id}:s${season}:e${episode}`;
+    }
+
+    return `${type}:${id}`;
+  });
+
+  return Array.from(new Set(keys));
 };
 
 const VidPlayer = ({
@@ -84,9 +108,9 @@ const VidPlayer = ({
   onOpenChange,
 }) => {
   const [internalShowPlayer, setInternalShowPlayer] = useState(false);
-  const progressKey = useMemo(
+  const progressKeys = useMemo(
     () =>
-      buildProgressKey({
+      buildProgressKeys({
         type,
         tmdbID,
         imdbID,
@@ -104,7 +128,14 @@ const VidPlayer = ({
   const isControlled = typeof isOpen === "boolean";
   const showPlayer = isControlled ? isOpen : internalShowPlayer;
 
-  const resumeAt = progressKey ? getStoredProgress(progressKey) : 0;
+  const resumeAt = useMemo(() => {
+    if (!progressKeys.length) {
+      return 0;
+    }
+
+    const storedProgress = getStoredProgress(progressKeys);
+    return Math.max(0, storedProgress - RESUME_BACKTRACK_SECONDS);
+  }, [progressKeys]);
 
   const updateOpen = (value) => {
     if (isControlled) {
@@ -118,7 +149,7 @@ const VidPlayer = ({
   const handleClose = () => updateOpen(false);
 
   const saveProgress = useCallback(() => {
-    if (!showPlayer || !progressKey || !sessionStartRef.current) {
+    if (!showPlayer || !progressKeys.length || !sessionStartRef.current) {
       return;
     }
 
@@ -126,11 +157,11 @@ const VidPlayer = ({
       baseProgressRef.current +
       Math.floor((Date.now() - sessionStartRef.current) / 1000);
 
-    setStoredProgress(progressKey, playedSeconds);
-  }, [showPlayer, progressKey]);
+    setStoredProgress(progressKeys, playedSeconds);
+  }, [showPlayer, progressKeys]);
 
   useEffect(() => {
-    if (!showPlayer || !progressKey) {
+    if (!showPlayer) {
       return;
     }
 
@@ -141,7 +172,7 @@ const VidPlayer = ({
       const playedSeconds =
         baseProgressRef.current +
         Math.floor((Date.now() - sessionStartRef.current) / 1000);
-      setStoredProgress(progressKey, playedSeconds);
+      setStoredProgress(progressKeys, playedSeconds);
     }, 10000);
 
     visibilityHandlerRef.current = () => {
@@ -151,6 +182,7 @@ const VidPlayer = ({
     };
 
     window.addEventListener("beforeunload", saveProgress);
+    window.addEventListener("pagehide", saveProgress);
     document.addEventListener("visibilitychange", visibilityHandlerRef.current);
 
     return () => {
@@ -160,6 +192,7 @@ const VidPlayer = ({
       }
 
       window.removeEventListener("beforeunload", saveProgress);
+      window.removeEventListener("pagehide", saveProgress);
 
       if (visibilityHandlerRef.current) {
         document.removeEventListener(
@@ -172,7 +205,7 @@ const VidPlayer = ({
       saveProgress();
       sessionStartRef.current = null;
     };
-  }, [showPlayer, progressKey, saveProgress, resumeAt]);
+  }, [showPlayer, progressKeys, saveProgress, resumeAt]);
 
   const embedUrl = getEmbedUrl({
     type,
@@ -199,10 +232,10 @@ const VidPlayer = ({
       )}
 
       {showPlayer && (
-        <div className="vid-player" onMouseDown={handleClose}>
+        <div className="vid-player" onPointerDown={handleClose}>
           <div
             className="container"
-            onMouseDown={(event) => event.stopPropagation()}
+            onPointerDown={(event) => event.stopPropagation()}
           >
             <iframe
               src={embedUrl}
