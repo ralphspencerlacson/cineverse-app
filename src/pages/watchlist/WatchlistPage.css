@@ -119,6 +119,19 @@
   background: #ce3824;
 }
 
+.watchlist-continue-link {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 1rem;
+  border: 1px solid #ce3824;
+  border-radius: 4px;
+  background: #ce3824;
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 0.6rem 0.9rem;
+}
+
 .watchlist-controls {
   display: flex;
   align-items: flex-end;

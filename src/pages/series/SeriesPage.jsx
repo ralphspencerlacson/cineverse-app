@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import Banner from "../../components/banner/Banner";
 import ShowDetails from "../../components/showDetails/ShowDetails";
 import SeasonList from "../../components/series/seasons/SeasonList";
@@ -17,7 +17,11 @@ import "./SeriesPage.css";
 
 const SeriesPage = () => {
   const { slug } = useParams();
+  const [searchParams] = useSearchParams();
   const [id] = splitSlug(slug);
+  const continueSeason = Number(searchParams.get("season"));
+  const continueEpisode = Number(searchParams.get("episode"));
+  const shouldAutoplay = searchParams.get("autoplay") === "1";
 
   const {
     isLoading,
@@ -55,6 +59,8 @@ const SeriesPage = () => {
             seasons={show?.seasons}
             showTitle={show?.name || show?.original_name}
             imdbID={showIds?.imdb_id}
+            autoPlaySeason={shouldAutoplay ? continueSeason : null}
+            autoPlayEpisode={shouldAutoplay ? continueEpisode : null}
           />
 
           <div style={{ backgroundColor: "rgba(255,255,255,3%)" }}>

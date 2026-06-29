@@ -6,7 +6,14 @@ import "./EpisodeList.css";
 
 const EpisodeCard = lazy(() => import("../../cards/episodeCard/EpisodeCard"));
 
-const EpisodeList = ({ containerID, tmdbID, season, showTitle, imdbID }) => {
+const EpisodeList = ({
+  containerID,
+  tmdbID,
+  season,
+  showTitle,
+  imdbID,
+  autoPlayEpisode,
+}) => {
   const {
     isLoading,
     hasError,
@@ -26,6 +33,7 @@ const EpisodeList = ({ containerID, tmdbID, season, showTitle, imdbID }) => {
               season={season}
               showTitle={showTitle}
               imdbID={imdbID}
+              autoPlay={Number(autoPlayEpisode) === Number(episode?.episode_number)}
             />
           ))}
         </div>

@@ -1,73 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getEmbedUrl } from "../../service/vidapi/requests";
+import {
+  getStoredVideoProgress,
+  setStoredVideoProgress,
+} from "../../utils/VideoProgressStorage";
 import "./VidPlayer.css";
 
-const PROGRESS_STORAGE_KEY = "cineverse-vid-progress";
-const MIN_SAVE_SECONDS = 1;
 const RESUME_BACKTRACK_SECONDS = 5;
+const DEFAULT_COMPLETION_THRESHOLD = 0.9;
 const IFRAME_SANDBOX = "allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock allow-presentation";
-
-const getStorageMap = () => {
-  if (typeof window === "undefined") {
-    return {};
-  }
-
-  try {
-    const raw = window.localStorage.getItem(PROGRESS_STORAGE_KEY);
-    if (!raw) {
-      return {};
-    }
-
-    const parsed = JSON.parse(raw);
-    return typeof parsed === "object" && parsed !== null ? parsed : {};
-  } catch {
-    return {};
-  }
-};
-
-const getStoredProgress = (key) => {
-  const keys = Array.isArray(key) ? key : [key];
-
-  if (!keys.length) {
-    return 0;
-  }
-
-  const map = getStorageMap();
-
-  for (const currentKey of keys) {
-    const progress = Number(map[currentKey]);
-    if (Number.isFinite(progress) && progress > 0) {
-      return Math.floor(progress);
-    }
-  }
-
-  return 0;
-};
-
-const setStoredProgress = (key, seconds) => {
-  const keys = Array.isArray(key) ? key : [key];
-
-  if (!keys.length || typeof window === "undefined") {
-    return;
-  }
-
-  const progress = Number(seconds);
-  if (!Number.isFinite(progress) || progress < MIN_SAVE_SECONDS) {
-    return;
-  }
-
-  const map = getStorageMap();
-
-  for (const currentKey of keys) {
-    map[currentKey] = Math.floor(progress);
-  }
-
-  try {
-    window.localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(map));
-  } catch {
-    return;
-  }
-};
 
 const buildProgressKeys = ({ type, tmdbID, imdbID, season, episode }) => {
   const ids = [];
@@ -107,6 +48,10 @@ const VidPlayer = ({
   showButton = true,
   isOpen,
   onOpenChange,
+  runtimeMinutes,
+  completionThreshold = DEFAULT_COMPLETION_THRESHOLD,
+  onComplete,
+  progressMetadata,
 }) => {
   const [internalShowPlayer, setInternalShowPlayer] = useState(false);
   const progressKeys = useMemo(
@@ -125,6 +70,7 @@ const VidPlayer = ({
   const baseProgressRef = useRef(0);
   const progressIntervalRef = useRef(null);
   const visibilityHandlerRef = useRef(null);
+  const completionMarkedRef = useRef(false);
 
   const isControlled = typeof isOpen === "boolean";
   const showPlayer = isControlled ? isOpen : internalShowPlayer;
@@ -134,9 +80,14 @@ const VidPlayer = ({
       return 0;
     }
 
-    const storedProgress = getStoredProgress(progressKeys);
+    const storedProgress = getStoredVideoProgress(progressKeys);
     return Math.max(0, storedProgress - RESUME_BACKTRACK_SECONDS);
   }, [progressKeys]);
+
+  const runtimeSeconds = useMemo(() => {
+    const runtime = Number(runtimeMinutes);
+    return Number.isFinite(runtime) && runtime > 0 ? runtime * 60 : 0;
+  }, [runtimeMinutes]);
 
   const updateOpen = (value) => {
     if (isControlled) {
@@ -149,17 +100,48 @@ const VidPlayer = ({
   const handleOpen = () => updateOpen(true);
   const handleClose = () => updateOpen(false);
 
+  const getPlayedSeconds = useCallback(() => {
+    if (!sessionStartRef.current) {
+      return baseProgressRef.current;
+    }
+
+    return (
+      baseProgressRef.current +
+      Math.floor((Date.now() - sessionStartRef.current) / 1000)
+    );
+  }, []);
+
   const saveProgress = useCallback(() => {
     if (!showPlayer || !progressKeys.length || !sessionStartRef.current) {
       return;
     }
 
-    const playedSeconds =
-      baseProgressRef.current +
-      Math.floor((Date.now() - sessionStartRef.current) / 1000);
+    const playedSeconds = getPlayedSeconds();
 
-    setStoredProgress(progressKeys, playedSeconds);
-  }, [showPlayer, progressKeys]);
+    setStoredVideoProgress(progressKeys, playedSeconds, progressMetadata);
+  }, [getPlayedSeconds, progressKeys, progressMetadata, showPlayer]);
+
+  const maybeMarkComplete = useCallback(() => {
+    if (
+      completionMarkedRef.current ||
+      !runtimeSeconds ||
+      !sessionStartRef.current
+    ) {
+      return;
+    }
+
+    const playedSeconds = getPlayedSeconds();
+    if (playedSeconds < runtimeSeconds * completionThreshold) {
+      return;
+    }
+
+    completionMarkedRef.current = true;
+    onComplete?.({ playedSeconds, runtimeSeconds });
+  }, [completionThreshold, getPlayedSeconds, onComplete, runtimeSeconds]);
+
+  useEffect(() => {
+    completionMarkedRef.current = false;
+  }, [type, tmdbID, imdbID, season, episode, runtimeSeconds]);
 
   useEffect(() => {
     if (!showPlayer) {
@@ -170,15 +152,15 @@ const VidPlayer = ({
     sessionStartRef.current = Date.now();
 
     progressIntervalRef.current = window.setInterval(() => {
-      const playedSeconds =
-        baseProgressRef.current +
-        Math.floor((Date.now() - sessionStartRef.current) / 1000);
-      setStoredProgress(progressKeys, playedSeconds);
+      const playedSeconds = getPlayedSeconds();
+      setStoredVideoProgress(progressKeys, playedSeconds, progressMetadata);
+      maybeMarkComplete();
     }, 10000);
 
     visibilityHandlerRef.current = () => {
       if (document.visibilityState === "hidden") {
         saveProgress();
+        maybeMarkComplete();
       }
     };
 
@@ -204,9 +186,10 @@ const VidPlayer = ({
       }
 
       saveProgress();
+      maybeMarkComplete();
       sessionStartRef.current = null;
     };
-  }, [showPlayer, progressKeys, saveProgress, resumeAt]);
+  }, [getPlayedSeconds, maybeMarkComplete, progressKeys, progressMetadata, saveProgress, showPlayer, resumeAt]);
 
   const embedUrl = getEmbedUrl({
     type,

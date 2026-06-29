@@ -7,6 +7,7 @@ import {
   removeFromWatchlist,
   updateWatchlistItem,
 } from "../../utils/WatchlistStorage";
+import { getVideoProgressEntries } from "../../utils/VideoProgressStorage";
 import { formatDate } from "../../utils/DateUtils";
 import "./WatchlistPage.css";
 
@@ -23,6 +24,23 @@ const formatStoredDate = (date) => {
   } catch {
     return "-";
   }
+};
+
+const formatProgressTime = (seconds) => {
+  const totalSeconds = Number(seconds);
+  if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) {
+    return "0:00";
+  }
+
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const remainingSeconds = Math.floor(totalSeconds % 60);
+
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
+  }
+
+  return `${minutes}:${String(remainingSeconds).padStart(2, "0")}`;
 };
 
 const WatchlistPage = () => {
@@ -42,12 +60,12 @@ const WatchlistPage = () => {
     const completedSeries = series.filter(
       (item) => item.progressStatus === "Completed"
     ).length;
-    const lastWatched = [...items]
-      .filter((item) => item.progressStatus && item.progressStatus !== "Planned")
+    const lastVideoWatched = getVideoProgressEntries()
+      .filter((entry) => entry.metadata?.title)
       .sort(
         (a, b) =>
-          new Date(b.updatedAt || b.addedAt || 0) -
-          new Date(a.updatedAt || a.addedAt || 0)
+          new Date(b.updatedAt || 0) -
+          new Date(a.updatedAt || 0)
       )[0];
 
     return {
@@ -57,7 +75,7 @@ const WatchlistPage = () => {
       completedSeries,
       moviePercent: movies.length ? (completedMovies / movies.length) * 100 : 0,
       seriesPercent: series.length ? (completedSeries / series.length) * 100 : 0,
-      lastWatched,
+      lastVideoWatched,
     };
   }, [items]);
 
@@ -210,13 +228,21 @@ const WatchlistPage = () => {
         </article>
 
         <article className="watchlist-stat-card watchlist-stat-card--wide">
-          <span>Last Show Watched</span>
-          <strong>{dashboardStats.lastWatched?.title || "-"}</strong>
+          <span>Last Video Watched</span>
+          <strong>{dashboardStats.lastVideoWatched?.metadata?.title || "-"}</strong>
           <p>
-            {dashboardStats.lastWatched
-              ? `${dashboardStats.lastWatched.progressStatus} · ${formatStoredDate(dashboardStats.lastWatched.updatedAt)}`
-              : "Start watching or update a title to show it here."}
+            {dashboardStats.lastVideoWatched
+              ? `${formatProgressTime(dashboardStats.lastVideoWatched.seconds)} watched · ${formatStoredDate(dashboardStats.lastVideoWatched.updatedAt)}`
+              : "Open a movie or episode to show it here."}
           </p>
+          {dashboardStats.lastVideoWatched?.metadata?.detailPath && (
+            <Link
+              className="watchlist-continue-link"
+              to={dashboardStats.lastVideoWatched.metadata.detailPath}
+            >
+              Continue Watching
+            </Link>
+          )}
         </article>
       </section>
 

@@ -2,15 +2,25 @@ import { useEffect, useState } from "react";
 import EpisodeList from "../episodes/EpisodeList";
 import "./SeasonList.css";
 
-const SeasonList = ({ tmdbID, seasons, showTitle, imdbID }) => {
+const SeasonList = ({
+  tmdbID,
+  seasons,
+  showTitle,
+  imdbID,
+  autoPlaySeason,
+  autoPlayEpisode,
+}) => {
   const [curSeason, setCurSeason] = useState(1);
 
   useEffect(() => {
     // Update the current season when seasons is not empty
     if (seasons?.length > 0) {
-      setCurSeason(seasons[0]?.season_number);
+      const hasAutoPlaySeason = seasons.some(
+        (season) => season?.season_number === Number(autoPlaySeason)
+      );
+      setCurSeason(hasAutoPlaySeason ? Number(autoPlaySeason) : seasons[0]?.season_number);
     }
-  }, [seasons]);
+  }, [autoPlaySeason, seasons]);
 
   return (
     <section className="season-list">
@@ -39,6 +49,7 @@ const SeasonList = ({ tmdbID, seasons, showTitle, imdbID }) => {
         season={curSeason}
         showTitle={showTitle}
         imdbID={imdbID}
+        autoPlayEpisode={Number(autoPlaySeason) === Number(curSeason) ? autoPlayEpisode : null}
       />
     </section>
   );

@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useCallback, useMemo, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import YoutubeTrailer from "../../components/youtubeTrailer/YoutubeTrailer";
 import VidPlayer from "../../components/vidPlayer/VidPlayer";
@@ -18,6 +18,7 @@ import {
   addToWatchlist,
   isInWatchlist,
   removeFromWatchlist,
+  updateWatchlistItem,
 } from "../../utils/WatchlistStorage";
 
 const TMDB_ASSET_BASEURL = import.meta.env.VITE_TMDB_ASSET_BASEURL;
@@ -30,6 +31,7 @@ const ShowDetails = ({
   showProducers = false,
   titleTriggersPlayer = false,
   showWatchButton = true,
+  autoPlay = false,
 }) => {
   const [contentRating, setContentRating] = useState(null);
   const [network, setNetwork] = useState(null);
@@ -76,6 +78,17 @@ const ShowDetails = ({
 
   const shouldOpenPlayerByTitle = showType === "movie" && titleTriggersPlayer;
   const watchlistID = show?.id ? `${showType}:${show.id}` : null;
+  const detailPath = show?.id
+    ? `/${showType === "tv" ? "series" : "movie"}/${show.id}-${convertToSlug(showTitle)}`
+    : null;
+
+  const handleMovieComplete = useCallback(() => {
+    if (!watchlistID || !isInWatchlist(watchlistID)) {
+      return;
+    }
+
+    updateWatchlistItem(watchlistID, { progressStatus: "Completed" });
+  }, [watchlistID]);
 
   const handleToggleWatchlist = () => {
     if (!show || !watchlistID) {
@@ -103,7 +116,7 @@ const ShowDetails = ({
       totalSeasons,
       totalEpisodes,
       nextEpisodeDate: show?.next_episode_to_air?.air_date || null,
-      detailPath: `/${showType === "tv" ? "series" : "movie"}/${show.id}-${convertToSlug(showTitle)}`,
+      detailPath,
     });
     setIsSavedToWatchlist(true);
   };
@@ -111,6 +124,12 @@ const ShowDetails = ({
   useEffect(() => {
     setIsPlayerOpen(false);
   }, [tmdbID]);
+
+  useEffect(() => {
+    if (autoPlay && showType === "movie" && show?.id) {
+      setIsPlayerOpen(true);
+    }
+  }, [autoPlay, show?.id, showType]);
 
   useEffect(() => {
     setIsSavedToWatchlist(watchlistID ? isInWatchlist(watchlistID) : false);
@@ -225,6 +244,13 @@ const ShowDetails = ({
                   showButton={showWatchButton && !shouldOpenPlayerByTitle}
                   isOpen={shouldOpenPlayerByTitle ? isPlayerOpen : undefined}
                   onOpenChange={shouldOpenPlayerByTitle ? setIsPlayerOpen : undefined}
+                  runtimeMinutes={show?.runtime}
+                  onComplete={handleMovieComplete}
+                  progressMetadata={{
+                    type: "movie",
+                    title: showTitle,
+                    detailPath: detailPath ? `${detailPath}?autoplay=1` : null,
+                  }}
                 />
               )}
             </>

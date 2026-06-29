@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import Banner from "../../components/banner/Banner";
 import ShowDetails from "../../components/showDetails/ShowDetails";
 import Credits from "../../components/credits/Credits";
@@ -15,7 +15,9 @@ import "./MoviePage.css";
 
 const MoviePage = () => {
   const { slug } = useParams();
+  const [searchParams] = useSearchParams();
   const [id] = splitSlug(slug);
+  const shouldAutoplay = searchParams.get("autoplay") === "1";
 
   const {
     isLoading,
@@ -43,6 +45,7 @@ const MoviePage = () => {
             tmdbID={id}
             titleTriggersPlayer={true}
             showPlot={true}
+            autoPlay={shouldAutoplay}
           />
 
           <div style={{ backgroundColor: "rgba(255,255,255,3%)" }}>
