@@ -14,7 +14,11 @@ import { getSeriesMoreInfo } from "../../service/omdb/requests";
 import { splitSlug, convertToSlug } from "../../utils/StringUtils";
 import "./ShowDetails.css";
 import { formatDate } from "../../utils/DateUtils";
-import { addToWatchlist, isInWatchlist } from "../../utils/WatchlistStorage";
+import {
+  addToWatchlist,
+  isInWatchlist,
+  removeFromWatchlist,
+} from "../../utils/WatchlistStorage";
 
 const TMDB_ASSET_BASEURL = import.meta.env.VITE_TMDB_ASSET_BASEURL;
 
@@ -73,8 +77,14 @@ const ShowDetails = ({
   const shouldOpenPlayerByTitle = showType === "movie" && titleTriggersPlayer;
   const watchlistID = show?.id ? `${showType}:${show.id}` : null;
 
-  const handleAddToWatchlist = () => {
-    if (!show || !watchlistID || isSavedToWatchlist) {
+  const handleToggleWatchlist = () => {
+    if (!show || !watchlistID) {
+      return;
+    }
+
+    if (isSavedToWatchlist) {
+      removeFromWatchlist(watchlistID);
+      setIsSavedToWatchlist(false);
       return;
     }
 
@@ -194,8 +204,8 @@ const ShowDetails = ({
           <button
             type="button"
             className={`show-details__wishlist-button ${isSavedToWatchlist ? "saved" : ""}`}
-            onClick={handleAddToWatchlist}
-            disabled={!show || isSavedToWatchlist}
+            onClick={handleToggleWatchlist}
+            disabled={!show}
           >
             <span aria-hidden="true">{isSavedToWatchlist ? "♥" : "♡"}</span>
             {isSavedToWatchlist ? "Wishlisted" : "Add to Wishlist"}

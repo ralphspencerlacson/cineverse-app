@@ -220,11 +220,17 @@
   font-weight: 700;
 }
 
-.watchlist-title-cell span,
-.watchlist-progress-controls span {
+.watchlist-title-cell span {
   display: block;
   color: #cfd7e2;
   font-size: 0.82rem;
+}
+
+.watchlist-progress-controls span {
+  display: block;
+  color: #cfd7e2;
+  font-size: 0.68rem;
+  line-height: 1.35;
 }
 
 .watchlist-table select,
