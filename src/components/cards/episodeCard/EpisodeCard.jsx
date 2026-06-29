@@ -1,5 +1,6 @@
 import { useState } from "react";
 import NoImagePlaceholder from "../../../assets/png/no_image_placeholder.png";
+import { getWatchlist } from "../../../utils/WatchlistStorage";
 import VidPlayer from "../../vidPlayer/VidPlayer";
 import "./EpisodeCard.css";
 
@@ -14,6 +15,16 @@ const EpisodeCard = ({
   imdbID,
 }) => {
   const [isPlayerOpen, setIsPlayerOpen] = useState(false);
+  const watchlistItem = getWatchlist().find(
+    (item) => item.id === `tv:${tmdbID}` || item.tmdbID === Number(tmdbID)
+  );
+  const currentSeason = Number(watchlistItem?.currentSeason || 0);
+  const currentEpisode = Number(watchlistItem?.currentEpisode || 0);
+  const isWatched =
+    watchlistItem?.progressStatus === "Completed" ||
+    currentSeason > Number(season) ||
+    (currentSeason === Number(season) &&
+      currentEpisode >= Number(episode.episode_number));
 
   const getCoverUrl = () => {
     const episodeCover =
@@ -26,7 +37,7 @@ const EpisodeCard = ({
   return (
     <div
       key={episode.episode_number}
-      className="episode-card"
+      className={`episode-card ${isWatched ? "watched" : ""}`}
       role="button"
       tabIndex={0}
       onClick={() => setIsPlayerOpen(true)}
@@ -42,6 +53,7 @@ const EpisodeCard = ({
       }}
     >
       <div className="overlay">
+        {isWatched && <span className="watched-checkmark">✓</span>}
         <h4 className="number">{episode.episode_number}</h4>
         <p className="title">{episode.name}</p>
         <p className="overview">{episode.overview}</p>

@@ -34,6 +34,42 @@
     );
 }
 
+.episode-card.watched .overlay {
+    background-image: linear-gradient(
+        180deg,
+        rgba(0, 0, 0, 0.42),
+        rgba(0, 0, 0, 0.78),
+        rgb(7, 7, 7)
+    );
+}
+
+.episode-card.watched::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 1px solid rgba(206, 56, 36, 0.45);
+    border-radius: inherit;
+    pointer-events: none;
+}
+
+.episode-card .watched-checkmark {
+    position: absolute;
+    top: 0.85rem;
+    right: 0.85rem;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 999px;
+    background: #ce3824;
+    color: #ffffff;
+    font-size: 1rem;
+    font-weight: 800;
+    box-shadow: 0 0.4rem 1rem rgba(0, 0, 0, 0.35);
+}
+
 .episode-card .overlay h4.number {
     display: inline;
     position: absolute;
