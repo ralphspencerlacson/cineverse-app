@@ -48,37 +48,36 @@ const ShowCard = ({ show, cardType, showType }) => {
   };
 
   return (
-    <div
-      className={`card ${cardType}`}
-      style={{
-        backgroundImage:
-          show &&
-          `url(${TMDB_ASSET_BASEURL}${cardType === "poster" ? show.poster_path : show.backdrop_path
-          })`,
-        backgroundSize: "cover",
-        backgroundPosition: "center center",
-      }}
-    >
-      <Link className="card__link" to={detailPath} aria-label={`Open ${title}`}>
-        <div className="overlay">
-          <div className="description">
-            <h4 className="title">{title}</h4>
-            <p className="summary">{show.overview}</p>
-            {/* <p className="genre">{genre}</p> */}
-          </div>
-        </div>
-      </Link>
-
-      <button
-        type="button"
-        className={`card__wishlist ${isSavedToWatchlist ? "saved" : ""}`}
-        onClick={handleWishlistClick}
-        aria-label={isSavedToWatchlist ? `${title} is wishlisted` : `Add ${title} to wishlist`}
-        title={isSavedToWatchlist ? "Wishlisted" : "Add to Wishlist"}
+    <article className={`show-card ${cardType}`}>
+      <div
+        className="card"
+        style={{
+          backgroundImage:
+            show &&
+            `url(${TMDB_ASSET_BASEURL}${cardType === "poster" ? show.poster_path : show.backdrop_path
+            })`,
+          backgroundSize: "cover",
+          backgroundPosition: "center center",
+        }}
       >
-        {isSavedToWatchlist ? "♥" : "♡"}
-      </button>
-    </div>
+        <Link className="card__link" to={detailPath} aria-label={`Open ${title}`} />
+
+        <button
+          type="button"
+          className={`card__wishlist ${isSavedToWatchlist ? "saved" : ""}`}
+          onClick={handleWishlistClick}
+          aria-label={isSavedToWatchlist ? `${title} is wishlisted` : `Add ${title} to wishlist`}
+          title={isSavedToWatchlist ? "Wishlisted" : "Add to Wishlist"}
+        >
+          {isSavedToWatchlist ? "♥" : "♡"}
+        </button>
+      </div>
+
+      <Link className="show-card__details" to={detailPath}>
+        <h4>{title}</h4>
+        {show.overview && <p>{show.overview}</p>}
+      </Link>
+    </article>
   );
 };
 

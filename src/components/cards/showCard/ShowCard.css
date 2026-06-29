@@ -1,17 +1,54 @@
-.card {
-    position: relative;
-    margin: 1rem 0;
+.show-card {
     flex-shrink: 0;
     text-align: left;
+}
+
+.show-card.poster {
+    width: 13.5rem;
+}
+
+.show-card.backdrop {
+    width: 24rem;
+}
+
+.card {
+    position: relative;
+    width: 100%;
+    margin: 1rem 0 0;
     border-radius: .6rem;
     overflow: hidden;
     cursor: pointer;
+    background-color: #171717;
+}
+
+.show-card.poster .card {
+    aspect-ratio: 9 / 16;
+}
+
+.show-card.backdrop .card {
+    height: 14rem;
+}
+
+.card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(180deg, transparent 55%, rgba(0, 0, 0, 0.55));
+    opacity: 0;
+    transition: opacity 160ms ease;
+}
+
+.show-card:hover .card::after,
+.show-card:focus-within .card::after {
+    opacity: 1;
 }
 
 .card__link {
     position: absolute;
     inset: 0;
-    z-index: 1;
+    z-index: 2;
     display: block;
 }
 
@@ -37,8 +74,8 @@
     transition: opacity 160ms ease, transform 160ms ease, background 160ms ease, color 160ms ease;
 }
 
-.card:hover .card__wishlist,
-.card:focus-within .card__wishlist,
+.show-card:hover .card__wishlist,
+.show-card:focus-within .card__wishlist,
 .card__wishlist.saved {
     opacity: 1;
     transform: translateY(0);
@@ -51,86 +88,35 @@
     color: #ffffff;
 }
 
-.card .overlay {
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background-image: linear-gradient(180deg,
-            transparent,
-            rgba(37, 37, 37, 0.60),
-            rgb(22, 22, 22));
-}
-
-.card:hover .overlay {
-    overflow: hidden;
-    border-radius: inherit;
-    background-image: linear-gradient(180deg,
-            rgba(19, 19, 19, 0.4),
-            #000000);
-}
-
-.card .overlay .description {
-    color: white;
-    position: absolute;
-    bottom: 0;
-}
-
-.card.poster {
-    width: 13.5rem;
-    aspect-ratio: 9 / 16;
-}
-
-.card.backdrop {
-    height: 14rem;
-    width: 24rem;
-}
-
-/* ----- START POSTER CARDS ----- */
-.card.poster .overlay .description {
-    display: none;
-}
-
-.card:hover.poster .overlay .description {
+.show-card__details {
     display: block;
+    padding: 0.75rem 0 0;
 }
 
-/* ----- END POSTER CARDS ----- */
-
-/* ----- START BACKDROP CARD ----- */
-.card.backdrop .overlay .description h4.title {
-    display: block;
-}
-
-.card:hover.backdrop .overlay .description h4.title {
-    display: none;
-}
-
-.card.backdrop .overlay .description p {
-    display: none;
-}
-
-.card:hover.backdrop .overlay .description p {
-    display: block;
-}
-
-/* ----- END BACKDROP CARD ----- */
-
-
-.card .overlay .description h4 {
-    margin: .5rem 1rem;
-    padding: 0;
-}
-
-.card:hover .overlay .description p {
-    font-size: .8rem;
-    margin: .5rem 1rem;
-    padding: 0;
-}
-
-.card:hover .overlay .description p.summary {
+.show-card__details h4 {
+    margin: 0;
+    color: #ffffff;
+    font-size: 0.95rem;
+    line-height: 1.35;
     overflow: hidden;
     display: -webkit-box;
-    line-clamp: 3;
-    -webkit-line-clamp: 3;
+    line-clamp: 2;
+    -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
+}
+
+.show-card__details p {
+    margin: 0.35rem 0 0;
+    color: #cfd7e2;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    overflow: hidden;
+    display: -webkit-box;
+    line-clamp: 2;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.show-card__details:hover h4 {
+    color: #ce3824;
 }
