@@ -14,6 +14,7 @@ import { getSeriesMoreInfo } from "../../service/omdb/requests";
 import { splitSlug, convertToSlug } from "../../utils/StringUtils";
 import "./ShowDetails.css";
 import { formatDate } from "../../utils/DateUtils";
+import { addToWatchlist, isInWatchlist } from "../../utils/WatchlistStorage";
 
 const TMDB_ASSET_BASEURL = import.meta.env.VITE_TMDB_ASSET_BASEURL;
 
@@ -29,6 +30,7 @@ const ShowDetails = ({
   const [contentRating, setContentRating] = useState(null);
   const [network, setNetwork] = useState(null);
   const [isPlayerOpen, setIsPlayerOpen] = useState(false);
+  const [isSavedToWatchlist, setIsSavedToWatchlist] = useState(false);
 
   const { apiData: show } = useFetchApi(getShowDetails(showType, tmdbID), "tmdb");
 
@@ -69,10 +71,40 @@ const ShowDetails = ({
       : "";
 
   const shouldOpenPlayerByTitle = showType === "movie" && titleTriggersPlayer;
+  const watchlistID = show?.id ? `${showType}:${show.id}` : null;
+
+  const handleAddToWatchlist = () => {
+    if (!show || !watchlistID || isSavedToWatchlist) {
+      return;
+    }
+
+    const totalEpisodes = show?.number_of_episodes || null;
+    const totalSeasons = show?.number_of_seasons || null;
+
+    addToWatchlist({
+      id: watchlistID,
+      tmdbID: show.id,
+      type: showType,
+      title: showTitle,
+      posterPath: show.poster_path || null,
+      backdropPath: show.backdrop_path || null,
+      releaseDate: show.first_air_date || show.release_date || null,
+      tmdbStatus: show.status || null,
+      totalSeasons,
+      totalEpisodes,
+      nextEpisodeDate: show?.next_episode_to_air?.air_date || null,
+      detailPath: `/${showType === "tv" ? "series" : "movie"}/${show.id}-${convertToSlug(showTitle)}`,
+    });
+    setIsSavedToWatchlist(true);
+  };
 
   useEffect(() => {
     setIsPlayerOpen(false);
   }, [tmdbID]);
+
+  useEffect(() => {
+    setIsSavedToWatchlist(watchlistID ? isInWatchlist(watchlistID) : false);
+  }, [watchlistID]);
 
   useEffect(() => {
     const fetchContentRating = async () => {
@@ -138,24 +170,40 @@ const ShowDetails = ({
           </div>
 
           {/* Buttons */}
-          <a
-            className="btn visit"
-            href={show?.homepage}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Visit
-          </a>
+          <div className="show-details__actions">
+            {show?.homepage && (
+              <a
+                className="btn visit"
+                href={show?.homepage}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Visit
+              </a>
+            )}
 
-          {/* Trailer */}
-          {show && (
-            <>
+            {show && (
               <YoutubeTrailer
                 showType={showType}
                 tmdbID={show?.id}
                 title={show?.name || show?.original_name}
               />
+            )}
+          </div>
 
+          <button
+            type="button"
+            className={`show-details__wishlist-button ${isSavedToWatchlist ? "saved" : ""}`}
+            onClick={handleAddToWatchlist}
+            disabled={!show || isSavedToWatchlist}
+          >
+            <span aria-hidden="true">{isSavedToWatchlist ? "♥" : "♡"}</span>
+            {isSavedToWatchlist ? "Wishlisted" : "Add to Wishlist"}
+          </button>
+
+          {/* Trailer */}
+          {show && (
+            <>
               {showType === "movie" && (
                 <VidPlayer
                   type="movie"

@@ -90,6 +90,13 @@
     outline-offset: 4px;
 }
 
+.show-details__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
 .show-details__tagline {
     margin: 0 0 1rem;
     font-size: 0.95rem;
@@ -139,6 +146,49 @@
     background-color: #ce3824;
     color: white;
     border: 2px solid #ce3824;
+}
+
+.show-details .btn.watchlist {
+    background-color: transparent;
+    color: white;
+    border: 2px solid white;
+}
+
+.show-details .btn.watchlist.saved {
+    border-color: #ce3824;
+    color: #cfd7e2;
+    cursor: default;
+    opacity: 0.75;
+}
+
+.show-details__wishlist-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin: 0.95rem 0 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #ffffff;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.show-details__wishlist-button span {
+    color: #ce3824;
+    font-size: 1.35rem;
+    line-height: 1;
+}
+
+.show-details__wishlist-button.saved {
+    color: #cfd7e2;
+    cursor: default;
+}
+
+.show-details__wishlist-button:disabled {
+    opacity: 0.8;
 }
 
 .show-details p {

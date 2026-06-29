@@ -38,6 +38,9 @@ const Navbar = () => {
         <Link to={"/series"}>
           <h4>Series</h4>
         </Link>
+        <Link to={"/watchlist"}>
+          <h4>Watchlist</h4>
+        </Link>
         <Link to={"/blogs"}>
           <h4>Blogs</h4>
         </Link>
