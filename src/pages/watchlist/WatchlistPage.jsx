@@ -69,7 +69,7 @@ const WatchlistPage = () => {
   const [message, setMessage] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [nextEpisodeFilter, setNextEpisodeFilter] = useState("all");
-  const [sortBy, setSortBy] = useState("updated");
+  const [sortBy, setSortBy] = useState("customSort");
   const fileInputRef = useRef(null);
 
   const dashboardStats = useMemo(() => {
@@ -126,6 +126,25 @@ const WatchlistPage = () => {
         const aDate = a.nextEpisodeDate ? new Date(a.nextEpisodeDate).getTime() : Infinity;
         const bDate = b.nextEpisodeDate ? new Date(b.nextEpisodeDate).getTime() : Infinity;
         return aDate - bDate;
+      }
+
+      if (sortBy === "customSort") {
+        const customSort = (a.customSort || a.franchise || "zzz").localeCompare(
+          b.customSort || b.franchise || "zzz"
+        );
+
+        if (customSort !== 0) {
+          return customSort;
+        }
+
+        const aDate = a.releaseDate ? new Date(a.releaseDate).getTime() : Infinity;
+        const bDate = b.releaseDate ? new Date(b.releaseDate).getTime() : Infinity;
+
+        if (aDate !== bDate) {
+          return aDate - bDate;
+        }
+
+        return a.title.localeCompare(b.title);
       }
 
       return (
@@ -308,6 +327,7 @@ const WatchlistPage = () => {
               <select value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
                 <option value="updated">Recently updated</option>
                 <option value="title">Title A-Z</option>
+                <option value="customSort">Custom Sort</option>
                 <option value="nextEpisode">Next episode date</option>
               </select>
             </label>
@@ -319,6 +339,7 @@ const WatchlistPage = () => {
                 <tr>
                   <th>Title</th>
                   <th>Type</th>
+                  <th>Custom Sort</th>
                   <th>Watch Status</th>
                   <th>Progress</th>
                   <th>Release Status</th>
@@ -345,6 +366,17 @@ const WatchlistPage = () => {
                       </div>
                     </td>
                     <td>{item.type === "tv" ? "Series" : "Movie"}</td>
+                    <td>
+                      <input
+                        className="watchlist-custom-sort-input"
+                        type="text"
+                        value={item.customSort || item.franchise || ""}
+                        placeholder="e.g. Marvel"
+                        onChange={(event) =>
+                          handleUpdate(item, { customSort: event.target.value })
+                        }
+                      />
+                    </td>
                     <td>
                       <select
                         value={item.progressStatus || "Planned"}
