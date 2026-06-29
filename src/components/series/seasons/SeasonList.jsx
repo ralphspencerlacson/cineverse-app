@@ -7,7 +7,7 @@ const SeasonList = ({
   seasons,
   showTitle,
   imdbID,
-  autoPlaySeason,
+  initialSeason,
   autoPlayEpisode,
 }) => {
   const [curSeason, setCurSeason] = useState(1);
@@ -15,12 +15,12 @@ const SeasonList = ({
   useEffect(() => {
     // Update the current season when seasons is not empty
     if (seasons?.length > 0) {
-      const hasAutoPlaySeason = seasons.some(
-        (season) => season?.season_number === Number(autoPlaySeason)
+      const hasInitialSeason = seasons.some(
+        (season) => season?.season_number === Number(initialSeason)
       );
-      setCurSeason(hasAutoPlaySeason ? Number(autoPlaySeason) : seasons[0]?.season_number);
+      setCurSeason(hasInitialSeason ? Number(initialSeason) : seasons[0]?.season_number);
     }
-  }, [autoPlaySeason, seasons]);
+  }, [initialSeason, seasons]);
 
   return (
     <section className="season-list">
@@ -49,7 +49,7 @@ const SeasonList = ({
         season={curSeason}
         showTitle={showTitle}
         imdbID={imdbID}
-        autoPlayEpisode={Number(autoPlaySeason) === Number(curSeason) ? autoPlayEpisode : null}
+        autoPlayEpisode={autoPlayEpisode}
       />
     </section>
   );

@@ -43,6 +43,27 @@ const formatProgressTime = (seconds) => {
   return `${minutes}:${String(remainingSeconds).padStart(2, "0")}`;
 };
 
+const getItemDetailPath = (item) => {
+  if (!item?.detailPath) {
+    return "/";
+  }
+
+  if (item.type !== "tv") {
+    return item.detailPath;
+  }
+
+  const params = new URLSearchParams();
+  if (item.currentSeason) {
+    params.set("season", item.currentSeason);
+  }
+  if (item.currentEpisode) {
+    params.set("episode", item.currentEpisode);
+  }
+
+  const query = params.toString();
+  return query ? `${item.detailPath}?${query}` : item.detailPath;
+};
+
 const WatchlistPage = () => {
   const [items, setItems] = useState(() => getWatchlist());
   const [message, setMessage] = useState("");
@@ -318,7 +339,7 @@ const WatchlistPage = () => {
                       <div className="watchlist-title-cell">
                         {posterUrl && <img src={posterUrl} alt={item.title} />}
                         <div>
-                          <Link to={item.detailPath || "/"}>{item.title}</Link>
+                          <Link to={getItemDetailPath(item)}>{item.title}</Link>
                           <span>{formatStoredDate(item.releaseDate)}</span>
                         </div>
                       </div>
@@ -387,7 +408,7 @@ const WatchlistPage = () => {
                     <td>{formatStoredDate(item.updatedAt)}</td>
                     <td>
                       <div className="watchlist-actions">
-                        <Link to={item.detailPath || "/"}>Open</Link>
+                        <Link to={getItemDetailPath(item)}>Open</Link>
                         <button type="button" onClick={() => handleRemove(item)}>
                           Remove
                         </button>

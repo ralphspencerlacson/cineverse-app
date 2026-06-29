@@ -19,7 +19,7 @@ const SeriesPage = () => {
   const { slug } = useParams();
   const [searchParams] = useSearchParams();
   const [id] = splitSlug(slug);
-  const continueSeason = Number(searchParams.get("season"));
+  const selectedSeason = Number(searchParams.get("season"));
   const continueEpisode = Number(searchParams.get("episode"));
   const shouldAutoplay = searchParams.get("autoplay") === "1";
 
@@ -59,7 +59,7 @@ const SeriesPage = () => {
             seasons={show?.seasons}
             showTitle={show?.name || show?.original_name}
             imdbID={showIds?.imdb_id}
-            autoPlaySeason={shouldAutoplay ? continueSeason : null}
+            initialSeason={selectedSeason}
             autoPlayEpisode={shouldAutoplay ? continueEpisode : null}
           />
 
