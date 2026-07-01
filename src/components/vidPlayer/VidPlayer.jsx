@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { getEmbedUrl } from "../../service/vidapi/requests";
+import { getEmbedUrl } from "../../service/videasy/requests";
 import {
   getStoredVideoProgress,
   setStoredVideoProgress,
@@ -8,8 +8,6 @@ import "./VidPlayer.css";
 
 const RESUME_BACKTRACK_SECONDS = 5;
 const DEFAULT_COMPLETION_THRESHOLD = 0.9;
-const IFRAME_SANDBOX = "allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock allow-presentation";
-
 const buildProgressKeys = ({ type, tmdbID, imdbID, season, episode }) => {
   const ids = [];
 
@@ -225,7 +223,6 @@ const VidPlayer = ({
                 src={embedUrl}
                 loading="lazy"
                 title={title}
-                sandbox={IFRAME_SANDBOX}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 referrerPolicy="strict-origin"
                 allowFullScreen

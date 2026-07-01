@@ -1,4 +1,4 @@
-const VID_BASEURL = import.meta.env.VITE_VID_BASEURL;
+const VIDAPI_BASEURL = import.meta.env.VITE_VIDAPI_BASEURL;
 
 const isNumericId = (value) => /^\d+$/.test(String(value || ""));
 const isNumericValue = (value) => /^\d+$/.test(String(value));
@@ -26,27 +26,29 @@ export const getEmbedUrl = ({
   episode,
   resumeAt,
 }) => {
-  if (!VID_BASEURL) {
+  if (!VIDAPI_BASEURL) {
     return null;
   }
+
+  const baseUrl = VIDAPI_BASEURL.replace(/\/+$/, "");
 
   if (type === "movie") {
     if (imdbID) {
       return appendAutoplay(
-        `${VID_BASEURL}/embed/movie?imdb=${imdbID}`,
+        `${baseUrl}/embed/movie?imdb=${imdbID}`,
         resumeAt
       );
     }
 
     if (isNumericId(tmdbID)) {
-      return appendAutoplay(`${VID_BASEURL}/embed/movie/${tmdbID}`, resumeAt);
+      return appendAutoplay(`${baseUrl}/embed/movie/${tmdbID}`, resumeAt);
     }
   }
 
   if (type === "tv") {
     if (imdbID && isNumericValue(season) && isNumericValue(episode)) {
       return appendAutoplay(
-        `${VID_BASEURL}/embed/tv?imdb=${imdbID}&season=${season}&episode=${episode}`,
+        `${baseUrl}/embed/tv?imdb=${imdbID}&season=${season}&episode=${episode}`,
         resumeAt
       );
     }
@@ -57,11 +59,10 @@ export const getEmbedUrl = ({
       isNumericValue(episode)
     ) {
       return appendAutoplay(
-        `${VID_BASEURL}/embed/tv/${tmdbID}/${season}/${episode}`,
+        `${baseUrl}/embed/tv/${tmdbID}/${season}/${episode}`,
         resumeAt
       );
     }
-
   }
 
   return null;
