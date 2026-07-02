@@ -17,12 +17,14 @@ const PreviewSlider = () => {
   const [slideData, setSlideData] = useState([]);
 
   const handleIntroMouseMove = (event) => {
-    const bounds = event.currentTarget.getBoundingClientRect();
-    event.currentTarget.style.setProperty(
+    const headline = event.currentTarget.querySelector("h2");
+    const bounds = headline.getBoundingClientRect();
+
+    headline.style.setProperty(
       "--home-glow-x",
       `${event.clientX - bounds.left}px`
     );
-    event.currentTarget.style.setProperty(
+    headline.style.setProperty(
       "--home-glow-y",
       `${event.clientY - bounds.top}px`
     );
