@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { getEmbedUrl } from "../../service/videasy/requests";
+import { getEmbedUrl as getVideasyEmbedUrl } from "../../service/videasy/requests";
+import { getEmbedUrl as getVidapiEmbedUrl } from "../../service/vidapi/requests";
 import {
   getStoredVideoProgress,
   setStoredVideoProgress,
@@ -8,6 +9,20 @@ import "./VidPlayer.css";
 
 const RESUME_BACKTRACK_SECONDS = 5;
 const DEFAULT_COMPLETION_THRESHOLD = 0.9;
+const PLAYER_LOAD_TIMEOUT_MS = 9000;
+const PLAYER_PROVIDERS = [
+  {
+    key: "videasy",
+    label: "Videasy",
+    getEmbedUrl: getVideasyEmbedUrl,
+  },
+  {
+    key: "vidapi",
+    label: "VidAPI",
+    getEmbedUrl: getVidapiEmbedUrl,
+  },
+];
+
 const buildProgressKeys = ({ type, tmdbID, imdbID, season, episode }) => {
   const ids = [];
 
@@ -52,6 +67,8 @@ const VidPlayer = ({
   progressMetadata,
 }) => {
   const [internalShowPlayer, setInternalShowPlayer] = useState(false);
+  const [activeProviderIndex, setActiveProviderIndex] = useState(0);
+  const [isPlayerLoading, setIsPlayerLoading] = useState(false);
   const progressKeys = useMemo(
     () =>
       buildProgressKeys({
@@ -69,6 +86,7 @@ const VidPlayer = ({
   const progressIntervalRef = useRef(null);
   const visibilityHandlerRef = useRef(null);
   const completionMarkedRef = useRef(false);
+  const playerLoadTimeoutRef = useRef(null);
 
   const isControlled = typeof isOpen === "boolean";
   const showPlayer = isControlled ? isOpen : internalShowPlayer;
@@ -81,6 +99,24 @@ const VidPlayer = ({
     const storedProgress = getStoredVideoProgress(progressKeys);
     return Math.max(0, storedProgress - RESUME_BACKTRACK_SECONDS);
   }, [progressKeys]);
+
+  const playerOptions = useMemo(() => {
+    return PLAYER_PROVIDERS.map((provider) => ({
+      ...provider,
+      embedUrl: provider.getEmbedUrl({
+        type,
+        tmdbID,
+        imdbID,
+        season,
+        episode,
+        resumeAt,
+      }),
+    })).filter((provider) => provider.embedUrl);
+  }, [episode, imdbID, resumeAt, season, tmdbID, type]);
+
+  const activeProvider =
+    playerOptions[activeProviderIndex] || playerOptions[0] || null;
+  const canSwitchPlayer = playerOptions.length > 1;
 
   const runtimeSeconds = useMemo(() => {
     const runtime = Number(runtimeMinutes);
@@ -97,6 +133,28 @@ const VidPlayer = ({
 
   const handleOpen = () => updateOpen(true);
   const handleClose = () => updateOpen(false);
+
+  const clearPlayerLoadTimeout = useCallback(() => {
+    if (playerLoadTimeoutRef.current) {
+      window.clearTimeout(playerLoadTimeoutRef.current);
+      playerLoadTimeoutRef.current = null;
+    }
+  }, []);
+
+  const switchPlayer = useCallback(() => {
+    if (!canSwitchPlayer) {
+      return;
+    }
+
+    setActiveProviderIndex((currentIndex) =>
+      (currentIndex + 1) % playerOptions.length
+    );
+  }, [canSwitchPlayer, playerOptions.length]);
+
+  const handlePlayerLoad = () => {
+    clearPlayerLoadTimeout();
+    setIsPlayerLoading(false);
+  };
 
   const getPlayedSeconds = useCallback(() => {
     if (!sessionStartRef.current) {
@@ -140,6 +198,37 @@ const VidPlayer = ({
   useEffect(() => {
     completionMarkedRef.current = false;
   }, [type, tmdbID, imdbID, season, episode, runtimeSeconds]);
+
+  useEffect(() => {
+    setActiveProviderIndex(0);
+  }, [type, tmdbID, imdbID, season, episode]);
+
+  useEffect(() => {
+    if (activeProviderIndex >= playerOptions.length) {
+      setActiveProviderIndex(0);
+    }
+  }, [activeProviderIndex, playerOptions.length]);
+
+  useEffect(() => {
+    if (!showPlayer || !activeProvider) {
+      setIsPlayerLoading(false);
+      return;
+    }
+
+    setIsPlayerLoading(true);
+
+    clearPlayerLoadTimeout();
+    playerLoadTimeoutRef.current = window.setTimeout(() => {
+      playerLoadTimeoutRef.current = null;
+      setIsPlayerLoading(false);
+
+      if (canSwitchPlayer) {
+        switchPlayer();
+      }
+    }, PLAYER_LOAD_TIMEOUT_MS);
+
+    return clearPlayerLoadTimeout;
+  }, [activeProvider, canSwitchPlayer, clearPlayerLoadTimeout, showPlayer, switchPlayer]);
 
   useEffect(() => {
     if (!showPlayer) {
@@ -189,16 +278,7 @@ const VidPlayer = ({
     };
   }, [getPlayedSeconds, maybeMarkComplete, progressKeys, progressMetadata, saveProgress, showPlayer, resumeAt]);
 
-  const embedUrl = getEmbedUrl({
-    type,
-    tmdbID,
-    imdbID,
-    season,
-    episode,
-    resumeAt,
-  });
-
-  if (!embedUrl) {
+  if (!activeProvider) {
     return null;
   }
 
@@ -219,10 +299,22 @@ const VidPlayer = ({
               className="container"
               onPointerDown={(event) => event.stopPropagation()}
             >
+              {canSwitchPlayer && (
+                <button
+                  type="button"
+                  className="vid-player__switch"
+                  onClick={switchPlayer}
+                >
+                  {isPlayerLoading ? "Trying" : "Switch to"}{" "}
+                  {playerOptions[(activeProviderIndex + 1) % playerOptions.length]?.label}
+                </button>
+              )}
               <iframe
-                src={embedUrl}
+                key={activeProvider.key}
+                src={activeProvider.embedUrl}
                 loading="lazy"
                 title={title}
+                onLoad={handlePlayerLoad}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 referrerPolicy="strict-origin"
                 allowFullScreen
