@@ -2,7 +2,6 @@ export const WATCHLIST_STORAGE_KEY = "cineverse-watchlist";
 
 export const WATCH_STATUS_OPTIONS = [
   "Planned",
-  "Watching",
   "Ongoing",
   "Completed",
   "Dropped",
@@ -95,6 +94,43 @@ export const updateWatchlistItem = (id, updates) => {
   );
 
   return saveWatchlist(items);
+};
+
+export const syncWatchlistItemMetadata = (id, metadata) => {
+  if (!id || !metadata) {
+    return getWatchlist();
+  }
+
+  let didChange = false;
+  const items = getWatchlist().map((item) => {
+    if (item.id !== id) {
+      return item;
+    }
+
+    const currentTotalSeasons = Number(item.totalSeasons || 0);
+    const currentTotalEpisodes = Number(item.totalEpisodes || 0);
+    const nextTotalSeasons = Number(metadata.totalSeasons || currentTotalSeasons);
+    const nextTotalEpisodes = Number(metadata.totalEpisodes || currentTotalEpisodes);
+    const hasNewSeriesContent =
+      item.type === "tv" &&
+      item.progressStatus === "Completed" &&
+      (nextTotalSeasons > currentTotalSeasons || nextTotalEpisodes > currentTotalEpisodes);
+
+    const nextItem = {
+      ...item,
+      ...metadata,
+      ...(hasNewSeriesContent ? { progressStatus: "Planned" } : {}),
+    };
+
+    didChange =
+      didChange ||
+      hasNewSeriesContent ||
+      Object.keys(metadata).some((key) => item[key] !== metadata[key]);
+
+    return nextItem;
+  });
+
+  return didChange ? saveWatchlist(items) : getWatchlist();
 };
 
 export const mergeWatchlist = (incomingItems) => {

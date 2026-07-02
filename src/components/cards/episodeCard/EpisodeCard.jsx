@@ -51,7 +51,7 @@ const EpisodeCard = ({
 
     if (
       !isAheadOfSavedProgress &&
-      ["Watching", "Completed"].includes(currentWatchlistItem.progressStatus)
+      ["Ongoing", "Completed"].includes(currentWatchlistItem.progressStatus)
     ) {
       return;
     }
@@ -66,7 +66,7 @@ const EpisodeCard = ({
       progressStatus:
         currentWatchlistItem.progressStatus === "Completed"
           ? "Completed"
-          : "Watching",
+          : "Ongoing",
     });
   }, [episode.episode_number, season, tmdbID]);
 
