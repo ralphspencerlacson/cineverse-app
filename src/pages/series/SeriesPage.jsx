@@ -6,6 +6,7 @@ import SeasonList from "../../components/series/seasons/SeasonList";
 import Credits from "../../components/credits/Credits";
 import Recommended from "../../components/recommended/Recommended";
 import Comments from "../../components/comments/Comments";
+import { DetailPageSkeleton } from "../../components/loading/PageSkeleton";
 // Hooks
 import { useFetchApi } from "../../hooks/useFetchApi";
 // Service
@@ -40,9 +41,10 @@ const SeriesPage = () => {
 
   return (
     <div className="series-page">
-      {hasError && <p>Error fetching data. Please try again later</p>}
-      {isLoading ? (
-        <p className="loading">Loading.....</p>
+      {hasError ? (
+        <p>Error fetching data. Please try again later</p>
+      ) : isLoading || !show ? (
+        <DetailPageSkeleton />
       ) : (
         <>
           <Banner
@@ -55,6 +57,7 @@ const SeriesPage = () => {
           <ShowDetails
             showType="tv"
             tmdbID={id}
+            showData={show}
             showPlot={true}
             showProducers={true}
           />

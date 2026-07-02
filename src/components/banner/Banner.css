@@ -11,11 +11,14 @@
     top: 50%;
     left: 50%;
     z-index: 0;
-    width: max(100%, 177.78vh);
-    height: max(100%, 56.25vw);
+    display: block;
+    width: 100vw;
+    height: 56.25vw;
+    min-width: 177.78vh;
+    min-height: 100%;
     border: 0;
     pointer-events: none;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%) scale(1.16);
     opacity: 0;
     transition: opacity 900ms ease;
 }

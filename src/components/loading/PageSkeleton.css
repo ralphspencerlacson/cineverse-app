@@ -1,0 +1,130 @@
+.page-skeleton {
+    min-height: 100vh;
+    background: #101010;
+}
+
+.page-skeleton__banner {
+    position: relative;
+    height: 100vh;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 24% 28%, rgba(206, 56, 36, 0.22), transparent 28rem),
+        linear-gradient(135deg, #171717, #0a0a0a 72%);
+}
+
+.page-skeleton__banner::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0;
+    height: 34rem;
+    background: linear-gradient(180deg, transparent, rgba(20, 20, 20, 0.7), #121212);
+}
+
+.page-skeleton__details {
+    display: grid;
+    grid-template-columns: minmax(0, 14rem) minmax(0, 1fr);
+    gap: 1.5rem;
+    width: min(100% - 2rem, 96rem);
+    margin: -24rem auto 4rem;
+    position: relative;
+    z-index: 2;
+    text-align: left;
+}
+
+.page-skeleton__details.compact {
+    margin: 0;
+    width: 100%;
+}
+
+.page-skeleton__poster {
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    border-radius: 0.8rem;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.page-skeleton__body {
+    display: grid;
+    align-content: start;
+    gap: 1rem;
+    padding-top: 0.4rem;
+}
+
+.page-skeleton__pill,
+.page-skeleton__button {
+    height: 2.2rem;
+    border-radius: 999px;
+}
+
+.page-skeleton__pill {
+    width: 12rem;
+}
+
+.page-skeleton__title {
+    width: min(100%, 38rem);
+    height: clamp(3rem, 8vw, 5.2rem);
+    border-radius: 0.9rem;
+}
+
+.page-skeleton__actions,
+.page-skeleton__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.page-skeleton__button {
+    width: 8.5rem;
+}
+
+.page-skeleton__meta {
+    width: min(100%, 22rem);
+    height: 1.5rem;
+    border-radius: 999px;
+}
+
+.page-skeleton__line {
+    width: min(100%, 42rem);
+    height: 1rem;
+    border-radius: 999px;
+}
+
+.page-skeleton__line.short {
+    width: min(82%, 34rem);
+}
+
+.page-skeleton__chips span {
+    width: 6rem;
+    height: 1.8rem;
+    border-radius: 999px;
+}
+
+.shimmer {
+    background:
+        linear-gradient(110deg, transparent 0%, rgba(255, 255, 255, 0.08) 35%, rgba(206, 56, 36, 0.24) 48%, rgba(255, 179, 168, 0.2) 54%, rgba(255, 255, 255, 0.08) 62%, transparent 100%),
+        rgba(255, 255, 255, 0.07);
+    background-size: 240% 100%;
+    animation: skeletonGlow 1.45s linear infinite;
+    box-shadow: 0 0 1.8rem rgba(206, 56, 36, 0.08);
+}
+
+@keyframes skeletonGlow {
+    from {
+        background-position: 220% 0;
+    }
+
+    to {
+        background-position: -120% 0;
+    }
+}
+
+@media (max-width: 760px) {
+    .page-skeleton__details {
+        grid-template-columns: 1fr;
+    }
+
+    .page-skeleton__poster {
+        width: min(13rem, 56vw);
+        margin: 0 auto;
+    }
+}

@@ -4,6 +4,7 @@ import Banner from "../../components/banner/Banner";
 import ShowDetails from "../../components/showDetails/ShowDetails";
 import Credits from "../../components/credits/Credits";
 import Recommended from "../../components/recommended/Recommended";
+import { DetailPageSkeleton } from "../../components/loading/PageSkeleton";
 // Hooks
 import { useFetchApi } from "../../hooks/useFetchApi";
 // Service
@@ -33,9 +34,10 @@ const MoviePage = () => {
 
   return (
     <div className="movie-page">
-      {hasError && <p>Error fetching data. Please try again later</p>}
-      {isLoading ? (
-        <p className="loading">Loading.....</p>
+      {hasError ? (
+        <p>Error fetching data. Please try again later</p>
+      ) : isLoading || !movie ? (
+        <DetailPageSkeleton />
       ) : (
         <>
           <Banner
@@ -48,6 +50,7 @@ const MoviePage = () => {
           <ShowDetails
             showType="movie"
             tmdbID={id}
+            showData={movie}
             titleTriggersPlayer={true}
             showPlot={true}
             autoPlay={shouldAutoplay}

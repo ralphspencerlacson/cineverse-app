@@ -1,4 +1,3 @@
-import React from "react";
 import Copyright from "./sub/Copyright";
 import Sitemap from "./sub/Sitemap";
 import "./Footer.css";

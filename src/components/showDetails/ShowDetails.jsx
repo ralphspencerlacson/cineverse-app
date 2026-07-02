@@ -14,6 +14,7 @@ import { getSeriesMoreInfo } from "../../service/omdb/requests";
 import { splitSlug, convertToSlug } from "../../utils/StringUtils";
 import "./ShowDetails.css";
 import { formatDate } from "../../utils/DateUtils";
+import { ShowDetailsSkeleton } from "../loading/PageSkeleton";
 import {
   addToWatchlist,
   isInWatchlist,
@@ -32,13 +33,19 @@ const ShowDetails = ({
   titleTriggersPlayer = false,
   showWatchButton = true,
   autoPlay = false,
+  showData = null,
 }) => {
   const [contentRating, setContentRating] = useState(null);
   const [network, setNetwork] = useState(null);
   const [isPlayerOpen, setIsPlayerOpen] = useState(false);
   const [isSavedToWatchlist, setIsSavedToWatchlist] = useState(false);
 
-  const { apiData: show } = useFetchApi(getShowDetails(showType, tmdbID), "tmdb");
+  const { isLoading: isShowLoading, apiData: fetchedShow } = useFetchApi(
+    showData ? null : getShowDetails(showType, tmdbID),
+    "tmdb"
+  );
+
+  const show = showData || fetchedShow;
 
   const { apiData: showIds } = useFetchApi(
     getExternalIds(showType, show?.id),
@@ -149,6 +156,10 @@ const ShowDetails = ({
       setNetwork(show?.networks[networkLength]);
     }
   }, [show, networkLength]);
+
+  if (isShowLoading || !show) {
+    return <ShowDetailsSkeleton />;
+  }
 
   return (
     <section className="show-details">

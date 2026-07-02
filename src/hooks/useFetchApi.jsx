@@ -3,18 +3,22 @@ import tmdbInstance from "../service/tmdb/tmdb";
 import omdbInstance from "../service/omdb/omdb";
 
 export const useFetchApi = (url, requestFrom) => {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(Boolean(url));
   const [hasError, setHasError] = useState(null);
   const [apiData, setApiData] = useState(null);
 
   useEffect(() => {
+    if (!url || url.includes("undefined")) {
+      setIsLoading(false);
+      setApiData(null);
+      setHasError(null);
+      return;
+    }
+
     setIsLoading(true);
+    setHasError(null);
 
     const fetchData = async () => {
-      if (!url || url.includes("undefined")) {
-        return;
-      }
-
       try {
         let res;
         if (requestFrom === "tmdb") {

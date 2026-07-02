@@ -14,7 +14,10 @@ const Navbar = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState(false);
+  const [isNavbarHovered, setIsNavbarHovered] = useState(false);
+  const [chargedNav, setChargedNav] = useState("");
   const searchInputRef = useRef(null);
+  const chargeTimeoutRef = useRef(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -33,6 +36,14 @@ const Navbar = () => {
       searchInputRef.current?.focus();
     }
   }, [isSearchOpen]);
+
+  useEffect(() => {
+    return () => {
+      if (chargeTimeoutRef.current) {
+        window.clearTimeout(chargeTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const query = searchQuery.trim();
@@ -101,30 +112,65 @@ const Navbar = () => {
   const getNavLinkClass = ({ isActive }) =>
     `nav-link ${isActive ? "active" : ""}`;
 
+  const handleNavbarMouseMove = (event) => {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    event.currentTarget.style.setProperty(
+      "--nav-glow-x",
+      `${event.clientX - bounds.left}px`
+    );
+    event.currentTarget.style.setProperty(
+      "--nav-glow-y",
+      `${event.clientY - bounds.top}px`
+    );
+  };
+
+  const handleNavClick = (navKey) => {
+    closeSearch();
+    setChargedNav("");
+
+    window.requestAnimationFrame(() => {
+      setChargedNav(navKey);
+    });
+
+    if (chargeTimeoutRef.current) {
+      window.clearTimeout(chargeTimeoutRef.current);
+    }
+
+    chargeTimeoutRef.current = window.setTimeout(() => {
+      setChargedNav("");
+      chargeTimeoutRef.current = null;
+    }, 760);
+  };
+
   return (
     <>
-      <nav className={`nav ${navbarClass || isSearchOpen ? "bg_black" : ""}`}>
+      <nav
+        className={`nav ${navbarClass || isSearchOpen || isNavbarHovered ? "bg_black" : ""} ${isNavbarHovered ? "hovered" : ""}`}
+        onMouseEnter={() => setIsNavbarHovered(true)}
+        onMouseLeave={() => setIsNavbarHovered(false)}
+        onMouseMove={handleNavbarMouseMove}
+      >
         <Link to={"/"} className="logo-link" onClick={closeSearch}>
           <img className="logo" src={CineverseLogo} alt="cineverse_logo" />
         </Link>
 
         <div className="links">
-          <NavLink to={"/"} end className={getNavLinkClass} onClick={closeSearch}>
+          <NavLink to={"/"} end className={({ isActive }) => `${getNavLinkClass({ isActive })} ${chargedNav === "home" ? "charging" : ""}`} onClick={() => handleNavClick("home")}>
             <h4>Home</h4>
           </NavLink>
-          <NavLink to={"/movies"} className={getNavLinkClass} onClick={closeSearch}>
+          <NavLink to={"/movies"} className={({ isActive }) => `${getNavLinkClass({ isActive })} ${chargedNav === "movies" ? "charging" : ""}`} onClick={() => handleNavClick("movies")}>
             <h4>Movies</h4>
           </NavLink>
-          <NavLink to={"/series"} className={getNavLinkClass} onClick={closeSearch}>
+          <NavLink to={"/series"} className={({ isActive }) => `${getNavLinkClass({ isActive })} ${chargedNav === "series" ? "charging" : ""}`} onClick={() => handleNavClick("series")}>
             <h4>Series</h4>
           </NavLink>
-          <NavLink to={"/watchlist"} className={getNavLinkClass} onClick={closeSearch}>
+          <NavLink to={"/watchlist"} className={({ isActive }) => `${getNavLinkClass({ isActive })} ${chargedNav === "watchlist" ? "charging" : ""}`} onClick={() => handleNavClick("watchlist")}>
             <h4>Watchlist</h4>
           </NavLink>
-          <NavLink to={"/blogs"} className={getNavLinkClass} onClick={closeSearch}>
+          <NavLink to={"/blogs"} className={({ isActive }) => `${getNavLinkClass({ isActive })} ${chargedNav === "blogs" ? "charging" : ""}`} onClick={() => handleNavClick("blogs")}>
             <h4>Blogs</h4>
           </NavLink>
-          <NavLink to={"/news"} className={getNavLinkClass} onClick={closeSearch}>
+          <NavLink to={"/news"} className={({ isActive }) => `${getNavLinkClass({ isActive })} ${chargedNav === "news" ? "charging" : ""}`} onClick={() => handleNavClick("news")}>
             <h4>News</h4>
           </NavLink>
         </div>
