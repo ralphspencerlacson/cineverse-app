@@ -1,10 +1,19 @@
 .movie-list .listing {
     width: min(100% - 2rem, 96rem);
     margin: 0 auto 4rem;
+    box-sizing: border-box;
 }
 
 .movie-list .genre-picker {
-    width: min(100%, 72rem);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.movie-list .grid,
+.movie-list .row,
+.movie-list .row-title {
+    width: 100%;
+    box-sizing: border-box;
 }
 
 @media (max-width: 640px) {

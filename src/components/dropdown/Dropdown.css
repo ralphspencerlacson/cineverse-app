@@ -2,6 +2,7 @@
     width: min(100%, 72rem);
     margin: 2.5rem auto 1.25rem;
     padding: 1.2rem;
+    box-sizing: border-box;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 1.2rem;
     background:

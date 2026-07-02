@@ -66,8 +66,8 @@ const ShowCard = ({ show, cardType, showType }) => {
           type="button"
           className={`card__wishlist ${isSavedToWatchlist ? "saved" : ""}`}
           onClick={handleWishlistClick}
-          aria-label={isSavedToWatchlist ? `${title} is wishlisted` : `Add ${title} to wishlist`}
-          title={isSavedToWatchlist ? "Wishlisted" : "Add to Wishlist"}
+          aria-label={isSavedToWatchlist ? `${title} is watchlisted` : `Add ${title} to watchlist`}
+          title={isSavedToWatchlist ? "Watchlisted" : "Add to Watchlist"}
         >
           {isSavedToWatchlist ? "♥" : "♡"}
         </button>

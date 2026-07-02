@@ -152,15 +152,6 @@ const ShowDetails = ({
 
   return (
     <section className="show-details">
-      {/* Network Logo */}
-      {networkLogoUrl && (
-        <img
-          src={networkLogoUrl}
-          alt={network?.name}
-          className="show-details__network-logo"
-        />
-      )}
-
       <div className="show-details__layout">
         {posterUrl && (
           <div className="show-details__poster-wrap">
@@ -176,6 +167,17 @@ const ShowDetails = ({
         )}
 
         <div className="show-details__body">
+          {networkLogoUrl && (
+            <div className="show-details__network-badge" aria-label={`Available on ${network?.name}`}>
+              <span>Available on</span>
+              <img
+                src={networkLogoUrl}
+                alt={network?.name}
+                className="show-details__network-logo"
+              />
+            </div>
+          )}
+
           <div className="show-details__title-row">
             {/* Title */}
             {shouldOpenPlayerByTitle ? (
@@ -227,7 +229,7 @@ const ShowDetails = ({
             disabled={!show}
           >
             <span aria-hidden="true">{isSavedToWatchlist ? "♥" : "♡"}</span>
-            {isSavedToWatchlist ? "Wishlisted" : "Add to Wishlist"}
+            {isSavedToWatchlist ? "Watchlisted" : "Add to Watchlist"}
           </button>
 
           {/* Trailer */}

@@ -1,27 +1,44 @@
 .grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    padding: 0.4rem;
+    padding: 0;
     margin: 1rem auto;
     height: auto;
-    justify-content: center;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .grid .wrapper {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 1rem;
-    width: auto;
+    width: 100%;
+    box-sizing: border-box;
 }
 
-.grid>.wrapper>.card {
-    flex: 1 0 20%;
-    max-width: 20%;
-    background-color: #f0f0f0;
-    padding: 1rem;
-    margin-bottom: 1rem;
-    box-sizing: border-box;
+.grid .show-card {
+    width: 100%;
+    min-width: 0;
+}
+
+@media (max-width: 1180px) {
+    .grid .wrapper {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 880px) {
+    .grid .wrapper {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .grid .wrapper {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 430px) {
+    .grid .wrapper {
+        grid-template-columns: 1fr;
+    }
 }

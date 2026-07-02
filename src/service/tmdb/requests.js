@@ -4,6 +4,8 @@ import instance from './tmdb.js';
 export const requests = {
   'getTrending': `/trending/tv/week?language=en-US`,
   'getTopRated': `/discover/tv?include_adult=false&language=en-US&page=1&sort_by=vote_average.desc&vote_count.gte=200`,
+  'getMovieTrending': `/trending/movie/week?language=en-US`,
+  'getMovieTopRated': `/discover/movie?include_adult=false&include_video=false&language=en-US&page=1&sort_by=vote_average.desc&vote_count.gte=500`,
 };
 
 // Movies

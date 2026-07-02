@@ -55,18 +55,32 @@
     position: relative;
 }
 
+.show-details__network-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.7rem;
+    width: fit-content;
+    margin: 0 0 0.85rem;
+    padding: 0.45rem 0.65rem 0.45rem 0.8rem;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 999px;
+    background-color: rgba(0, 0, 0, 0.42);
+    color: rgba(255, 255, 255, 0.68);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
 .show-details__network-logo {
-    position: absolute;
-    top: -24rem;
-    left: auto;
-    right: 0.8rem;
-    z-index: 7;
-    width: 7.5rem;
-    max-width: 32vw;
-    height: auto;
+    display: block;
+    width: auto;
+    max-width: 5.8rem;
+    height: 1.65rem;
     object-fit: contain;
-    filter: brightness(0) invert(1);
-    pointer-events: none;
+    border-radius: 999px;
+    background-color: rgba(255, 255, 255, 0.94);
+    padding: 0.32rem 0.55rem;
 }
 
 .show-details__title-button {
@@ -83,6 +97,10 @@
     align-items: baseline;
     gap: 0.5rem 0.9rem;
     flex-wrap: wrap;
+}
+
+.show-details__network-badge + .show-details__title-row {
+    margin-top: 0;
 }
 
 .show-details__title-button:focus-visible {
@@ -212,13 +230,6 @@
     font-size: 0.76rem;
 }
 
-@media (min-width: 480px) {
-    .show-details__network-logo {
-        width: 8.2rem;
-        right: 0.8rem;
-    }
-}
-
 /* Custom page uses */
 
 .movie-list .show-details,
@@ -238,10 +249,6 @@
     .movie-page .show-details,
     .series-page .show-details {
         margin: -24rem auto 1rem;
-    }
-
-    .show-details__network-logo {
-        top: -24rem;
     }
 }
 
@@ -264,11 +271,6 @@
 
     .show-details__poster {
         width: 14rem;
-    }
-
-    .show-details__network-logo {
-        right: 1rem;
-        width: 9rem;
     }
 }
 
