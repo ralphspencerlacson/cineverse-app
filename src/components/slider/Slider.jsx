@@ -10,16 +10,20 @@ const DRAG_BUFFER = 50;
 const Slider = ({ slideData, delay = 5000 }) => {
   const [slideIndex, setSlideIndex] = useState(0);
   const [isDrag, setIsDrag] = useState(false);
-  const slideDataLength = slideData?.length - 1;
+  const slideDataLength = (slideData?.length || 0) - 1;
   const dragX = useMotionValue(0);
 
   useEffect(() => {
+    if (slideDataLength < 1) {
+      return;
+    }
+
     const interval = setInterval(() => {
       setSlideIndex((index) => (index === slideDataLength ? 0 : index + 1));
     }, delay);
 
     return () => clearInterval(interval);
-  });
+  }, [delay, slideDataLength]);
 
   const onDragStart = () => {
     setIsDrag(true);
@@ -53,25 +57,33 @@ const Slider = ({ slideData, delay = 5000 }) => {
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
       >
-        {slideData?.map((data, index) => (
-          <SlideItem showType="tv" key={data?.id} data={data} />
+        {slideData?.map((data) => (
+          <SlideItem
+            showType={data?.mediaType || "tv"}
+            key={`${data?.mediaType || "tv"}-${data?.id}`}
+            data={data}
+          />
         ))}
       </motion.section>
 
-      <Dots
-        slideData={slideData}
-        currentIndex={slideIndex}
-        setCurrentIndex={setSlideIndex}
-      />
+      {slideDataLength > 0 && (
+        <Dots
+          slideData={slideData}
+          currentIndex={slideIndex}
+          setCurrentIndex={setSlideIndex}
+        />
+      )}
 
-      <Arrows
-        prevSlide={() =>
-          setSlideIndex(slideIndex <= 1 ? slideDataLength : slideIndex - 1)
-        }
-        nextSlide={() =>
-          setSlideIndex(slideIndex === slideDataLength ? 0 : slideIndex + 1)
-        }
-      />
+      {slideDataLength > 0 && (
+        <Arrows
+          prevSlide={() =>
+            setSlideIndex(slideIndex <= 0 ? slideDataLength : slideIndex - 1)
+          }
+          nextSlide={() =>
+            setSlideIndex(slideIndex === slideDataLength ? 0 : slideIndex + 1)
+          }
+        />
+      )}
     </>
   );
 };

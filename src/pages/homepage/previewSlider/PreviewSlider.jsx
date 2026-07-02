@@ -1,28 +1,72 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Slider from "../../../components/slider/Slider";
 import Newsletter from "../../../components/newsletter/Newsletter";
 import networks from "../../../service/networks";
 import instance from "../../../service/tmdb/tmdb";
 import "./PreviewSlider.css";
 
+const getRandomResult = (results = []) => {
+  if (!results.length) {
+    return null;
+  }
+
+  return results[Math.floor(Math.random() * Math.min(results.length, 20))];
+};
+
 const PreviewSlider = () => {
   const [slideData, setSlideData] = useState([]);
+
+  const handleIntroMouseMove = (event) => {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    event.currentTarget.style.setProperty(
+      "--home-glow-x",
+      `${event.clientX - bounds.left}px`
+    );
+    event.currentTarget.style.setProperty(
+      "--home-glow-y",
+      `${event.clientY - bounds.top}px`
+    );
+  };
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const promises = Object.entries(networks).map(
-          async ([network, networkId]) => {
+        const seriesPromises = Object.entries(networks).slice(0, 4).map(
+          async ([networkName, networkId]) => {
             const url = `/discover/tv?include_adult=false&include_null_first_air_dates=false&language=en-US&page=1&sort_by=popularity.desc&with_networks=${networkId}`;
             const res = await instance.get(url);
-            const data = await res.data;
+            const show = getRandomResult(res.data?.results);
 
-            return data.results[Math.floor(Math.random() * 21)];
+            return show
+              ? {
+                  ...show,
+                  mediaType: "tv",
+                  kicker: networkName,
+                }
+              : null;
           }
         );
 
-        const results = await Promise.all(promises);
-        setSlideData(results);
+        const moviePromise = instance
+          .get("/trending/movie/week?language=en-US")
+          .then((res) =>
+            (res.data?.results || []).slice(0, 4).map((movie) => ({
+              ...movie,
+              mediaType: "movie",
+              kicker: "Trending Movie",
+            }))
+          );
+
+        const [seriesResults, movieResults] = await Promise.all([
+          Promise.all(seriesPromises),
+          moviePromise,
+        ]);
+
+        const mixedResults = [...seriesResults.filter(Boolean), ...movieResults]
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 8);
+
+        setSlideData(mixedResults);
       } catch (error) {
         console.error(error);
       }
@@ -33,6 +77,11 @@ const PreviewSlider = () => {
 
   return (
     <div className="preview-slider">
+      <div className="preview-slider__intro" onMouseMove={handleIntroMouseMove}>
+        <p>Movies and series in one orbit</p>
+        <h2>Discover what to watch before you even search.</h2>
+      </div>
+
       <Slider slideData={slideData} />
 
       <Newsletter />

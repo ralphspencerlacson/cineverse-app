@@ -280,8 +280,8 @@ const ShowDetails = ({
             {/* Movie */}
             {showType === "movie" && (
               <>
-                <li>{show?.status}</li>
-                <li>{show?.runtime} Runtime</li>
+                {show?.status && <li>{show.status}</li>}
+                {show?.runtime && <li>{show.runtime} Runtime</li>}
               </>
             )}
 

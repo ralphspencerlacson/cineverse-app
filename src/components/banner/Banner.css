@@ -12,13 +12,12 @@
     left: 50%;
     z-index: 0;
     display: block;
-    width: 100vw;
-    height: 56.25vw;
-    min-width: 177.78vh;
-    min-height: 100%;
+    width: max(180vw, 320vh);
+    aspect-ratio: 16 / 9;
+    height: auto;
     border: 0;
     pointer-events: none;
-    transform: translate(-50%, -50%) scale(1.16);
+    transform: translate(-50%, -50%);
     opacity: 0;
     transition: opacity 900ms ease;
 }
