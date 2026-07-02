@@ -1,38 +1,121 @@
-.networks {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 2rem;
-    margin: 1rem auto 0;
-    overflow-y: hidden;
-    overflow-x: scroll;
+.network-picker {
+    width: min(100%, 72rem);
+    margin: 2.5rem auto 1.25rem;
+    padding: 1.2rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 1.2rem;
+    background:
+        radial-gradient(circle at top right, rgba(206, 56, 36, 0.22), transparent 32rem),
+        rgba(12, 12, 12, 0.82);
+    box-shadow: 0 1.2rem 3rem rgba(0, 0, 0, 0.28);
+}
 
+.network-picker__header {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: flex-end;
+    margin-bottom: 1rem;
+    text-align: left;
+}
+
+.network-picker__eyebrow {
+    margin: 0 0 0.25rem;
+    color: #ce3824;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.network-picker__header h2 {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.96);
+    font-size: clamp(1.35rem, 3vw, 2rem);
+    line-height: 1.1;
+}
+
+.network-picker__current {
+    flex: 0 0 auto;
+    color: rgba(255, 255, 255, 0.68);
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.network-picker__rail {
+    display: flex;
+    justify-content: flex-start;
+    gap: 0.65rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    padding: 0.15rem 0 0.35rem;
+    scroll-padding-inline: 1rem;
     -ms-overflow-style: none;
     scrollbar-width: none;
 }
 
-.networks::-webkit-scrollbar {
+.network-picker__rail::-webkit-scrollbar {
     display: none;
-    /* Safari and Chrome */
 }
 
-.networks .network-item {
+.network-picker__chip {
+    flex: 0 0 auto;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 0.9rem;
+    background-color: rgba(255, 255, 255, 0.07);
+    color: rgba(255, 255, 255, 0.86);
     cursor: pointer;
-}
-
-.networks .network-item.active {
-    border-bottom: 2px solid #ce3824;
-}
-
-.networks .network-item h3 {
+    font-size: 0.9rem;
+    font-weight: 700;
+    min-width: 7.5rem;
+    padding: 0.8rem 1rem;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
     white-space: nowrap;
 }
 
-.networks .network-item img {
-    aspect-ratio: 16/9;
-    height: 3rem;
-    display: block;
-    cursor: pointer;
-    -webkit-filter: drop-shadow(5px 5px 5px #1b1b1b);
-    filter: drop-shadow(5px 5px 5px #1b1b1b);
+.network-picker__chip:hover,
+.network-picker__chip:focus-visible {
+    border-color: rgba(206, 56, 36, 0.72);
+    background-color: rgba(206, 56, 36, 0.2);
+    color: #ffffff;
+    outline: none;
+    transform: translateY(-1px);
+}
+
+.network-picker__chip.active {
+    border-color: #ce3824;
+    background-color: #ce3824;
+    color: #ffffff;
+    box-shadow: 0 0.7rem 1.6rem rgba(206, 56, 36, 0.25);
+}
+
+@media (max-width: 640px) {
+    .network-picker {
+        margin-top: 1.5rem;
+        padding: 1rem;
+        border-radius: 1rem;
+    }
+
+    .network-picker__header {
+        display: block;
+        text-align: center;
+    }
+
+    .network-picker__current {
+        display: inline-block;
+        margin-top: 0.45rem;
+    }
+
+    .network-picker__chip {
+        font-size: 0.82rem;
+        min-width: auto;
+        padding: 0.7rem 0.9rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .network-picker__rail {
+        justify-content: center;
+    }
 }

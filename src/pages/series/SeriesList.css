@@ -1,3 +1,19 @@
 .series-list .content {
     margin: 5rem 1rem;
 }
+
+.series-list .listing {
+    width: min(100% - 2rem, 96rem);
+    margin: 0 auto 4rem;
+}
+
+.series-list .genre-picker,
+.series-list .network-picker {
+    width: min(100%, 72rem);
+}
+
+@media (max-width: 640px) {
+    .series-list .listing {
+        width: min(100% - 1rem, 96rem);
+    }
+}

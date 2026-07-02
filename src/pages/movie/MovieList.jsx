@@ -28,8 +28,9 @@ const MovieList = () => {
       Math.floor(Math.random() * trendingData?.results.length)
       ]
     );
-    setGenre(genreList?.genres[0])
   }, [trendingData]);
+
+  const selectedGenreName = genre?.name || "Popular Movies";
 
   return (
     <div className="movie-list">
@@ -53,9 +54,11 @@ const MovieList = () => {
           options={genreList?.genres}
           selectedOption={genre}
           onChangeOption={setGenre}
+          label="Find a Movie Mood"
+          allLabel="Popular"
         />
         <GridContainer
-          title={`${capitalizeFirstLetter(genre?.name)}`}
+          title={`${capitalizeFirstLetter(selectedGenreName)}`}
           hideTitle={true}
           reqUrl={getMovieList(1, null, null, genre?.id)}
           cardType="poster"

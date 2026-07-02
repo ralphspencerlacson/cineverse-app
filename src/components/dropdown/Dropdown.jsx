@@ -1,38 +1,51 @@
-import { useState } from "react";
 import "./Dropdown.css";
 
-const Dropdown = ({ options, selectedOption, onChangeOption }) => {
-  const [isOpen, setIsOpen] = useState(false);
+const Dropdown = ({
+  options = [],
+  selectedOption,
+  onChangeOption,
+  label = "Browse by Genre",
+  allLabel = "All Genres",
+}) => {
+  const selectedId = selectedOption?.id || null;
 
   const onSelectOption = (option) => {
-    onChangeOption(option)
-    toggleDropdown();
-  }
-
-  const toggleDropdown = () => {
-    setIsOpen(!isOpen);
+    onChangeOption(option?.id === selectedId ? "" : option);
   };
 
   return (
-    <div className='dropdown' onMouseEnter={toggleDropdown} onMouseLeave={toggleDropdown}>
-      <div className='header'>
-        {selectedOption ? selectedOption.name : "Select a Genre"}
-        <i className={`arrow ${isOpen ? 'up' : 'down'}`} />
+    <section className="genre-picker" aria-label={label}>
+      <div className="genre-picker__header">
+        <div>
+          <p className="genre-picker__eyebrow">Categories</p>
+          <h2>{label}</h2>
+        </div>
+        <span className="genre-picker__current">
+          {selectedOption?.name || allLabel}
+        </span>
       </div>
-      {isOpen && (
-        <ul className="options">
-          {options.map(({ name, id }) => (
-            <li
-              key={name}
-              className={`option ${id === selectedOption?.id ? 'selected' : ''}`}
-              onClick={() => onSelectOption(id === selectedOption?.id ? '' : { id, name })}
-            >
-              {name}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+
+      <div className="genre-picker__rail" role="list">
+        <button
+          type="button"
+          className={`genre-picker__chip ${!selectedId ? "selected" : ""}`}
+          onClick={() => onChangeOption("")}
+        >
+          {allLabel}
+        </button>
+
+        {options.map(({ name, id }) => (
+          <button
+            type="button"
+            key={id}
+            className={`genre-picker__chip ${id === selectedId ? "selected" : ""}`}
+            onClick={() => onSelectOption({ id, name })}
+          >
+            {name}
+          </button>
+        ))}
+      </div>
+    </section>
   );
 };
 

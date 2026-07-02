@@ -67,10 +67,12 @@ const SeriesList = () => {
           options={genreList?.genres}
           selectedOption={genre}
           onChangeOption={setGenre}
+          label="Tune by Genre"
+          allLabel="All Shows"
         />
         <RowContainer
-          title={`${capitalizeFirstLetter(genre.name)}`}
-          reqUrl={getSeriesList(1, network, null, null, genre.id)}
+          title={`${capitalizeFirstLetter(genre?.name || `${network} Shows`)}`}
+          reqUrl={getSeriesList(1, network, null, null, genre?.id)}
           hideTitle={true}
           cardType="poster"
           showType="tv"
