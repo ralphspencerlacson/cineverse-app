@@ -45,7 +45,12 @@ const SeriesPage = () => {
         <p className="loading">Loading.....</p>
       ) : (
         <>
-          <Banner imageUrl={show?.backdrop_path} size="lg" />
+          <Banner
+            imageUrl={show?.backdrop_path}
+            size="lg"
+            showType="tv"
+            tmdbID={id}
+          />
 
           <ShowDetails
             showType="tv"

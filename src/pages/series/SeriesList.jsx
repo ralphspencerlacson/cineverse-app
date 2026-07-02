@@ -42,6 +42,8 @@ const SeriesList = () => {
       <Banner
         imageUrl={bannerShow?.backdrop_path}
         size="sm"
+        showType="tv"
+        tmdbID={bannerShow?.id}
         allowLinkTitle={true}
       />
 

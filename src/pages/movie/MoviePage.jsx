@@ -38,7 +38,12 @@ const MoviePage = () => {
         <p className="loading">Loading.....</p>
       ) : (
         <>
-          <Banner imageUrl={movie?.backdrop_path} size="lg" />
+          <Banner
+            imageUrl={movie?.backdrop_path}
+            size="lg"
+            showType="movie"
+            tmdbID={id}
+          />
 
           <ShowDetails
             showType="movie"

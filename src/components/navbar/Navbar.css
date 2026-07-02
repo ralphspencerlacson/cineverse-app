@@ -18,9 +18,67 @@
     background-color: #111;
 }
 
+.nav .logo-link {
+    position: relative;
+    display: inline-grid;
+    place-items: center;
+    width: 3.8rem;
+    height: 3rem;
+    isolation: isolate;
+}
+
+.nav .logo-link::before,
+.nav .logo-link::after {
+    content: "";
+    position: absolute;
+    border-radius: 999px;
+    pointer-events: none;
+}
+
+.nav .logo-link::before {
+    inset: -0.35rem -0.55rem;
+    z-index: -2;
+    background: linear-gradient(115deg, transparent 0%, rgba(206, 56, 36, 0.18) 38%, rgba(255, 179, 168, 0.28) 50%, rgba(206, 56, 36, 0.18) 62%, transparent 100%);
+    background-size: 230% 100%;
+    filter: blur(10px);
+    opacity: 0.95;
+    animation: logoGlowSweep 3.2s linear infinite;
+}
+
+.nav .logo-link::after {
+    inset: 0.15rem 0.05rem;
+    z-index: -1;
+    border: 1px solid rgba(206, 56, 36, 0.22);
+    box-shadow: 0 0 1.25rem rgba(206, 56, 36, 0.32);
+    opacity: 0.75;
+}
+
+.nav .logo-link:hover::before,
+.nav .logo-link:focus-visible::before {
+    opacity: 1;
+    filter: blur(12px);
+}
+
+.nav .logo-link:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.82);
+    outline-offset: 0.35rem;
+    border-radius: 999px;
+}
+
 .nav .logo {
     width: 3.4rem;
     object-fit: contain;
+    filter: drop-shadow(0 0 0.55rem rgba(206, 56, 36, 0.8));
+}
+
+@keyframes logoGlowSweep {
+    from {
+        background-position: 230% 0;
+    }
+
+    to {
+        background-position: -130% 0;
+    }
 }
 
 .nav .links {
@@ -30,9 +88,74 @@
     gap: 3rem;
 }
 
+.nav .nav-link {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    padding: 0.45rem 0.1rem;
+    color: rgba(255, 255, 255, 0.82);
+    isolation: isolate;
+    transition: color 180ms ease, text-shadow 180ms ease;
+}
+
+.nav .nav-link::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: 0.15rem;
+    z-index: -1;
+    width: 0;
+    height: 2px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, transparent, #ff6a52, #ce3824, #ffb3a8, transparent);
+    box-shadow: 0 0 1rem rgba(206, 56, 36, 0.72);
+    transform: translateX(-50%);
+    opacity: 0;
+    transition: width 220ms ease, opacity 220ms ease;
+}
+
+.nav .nav-link::after {
+    content: "";
+    position: absolute;
+    inset: 0.1rem -0.65rem;
+    z-index: -2;
+    border-radius: 999px;
+    background: linear-gradient(110deg, transparent 0%, rgba(206, 56, 36, 0.2) 42%, rgba(255, 179, 168, 0.22) 52%, transparent 68%);
+    background-size: 220% 100%;
+    filter: blur(8px);
+    opacity: 0;
+}
+
+.nav .nav-link:hover,
+.nav .nav-link.active {
+    color: #ffffff;
+    text-shadow: 0 0 0.9rem rgba(206, 56, 36, 0.75);
+}
+
+.nav .nav-link.active::before {
+    width: 100%;
+    opacity: 1;
+}
+
+.nav .nav-link.active::after {
+    opacity: 1;
+    animation: navGlowSweep 2.8s linear infinite;
+}
+
+@keyframes navGlowSweep {
+    from {
+        background-position: 220% 0;
+    }
+
+    to {
+        background-position: -120% 0;
+    }
+}
 
 .nav .links h4 {
+    position: relative;
     font-weight: 500;
+    margin: 0;
 }
 
 .nav-search-toggle {

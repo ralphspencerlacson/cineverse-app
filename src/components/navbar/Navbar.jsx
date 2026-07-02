@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import CineverseLogo from "../../assets/png/cineverse-hd-logo-transparent.png";
 import tmdbInstance from "../../service/tmdb/tmdb";
 import { convertToSlug } from "../../utils/StringUtils";
@@ -98,32 +98,35 @@ const Navbar = () => {
     return `/${typePath}/${result.id}-${convertToSlug(getResultTitle(result))}`;
   };
 
+  const getNavLinkClass = ({ isActive }) =>
+    `nav-link ${isActive ? "active" : ""}`;
+
   return (
     <>
       <nav className={`nav ${navbarClass || isSearchOpen ? "bg_black" : ""}`}>
-        <Link to={"/"} onClick={closeSearch}>
+        <Link to={"/"} className="logo-link" onClick={closeSearch}>
           <img className="logo" src={CineverseLogo} alt="cineverse_logo" />
         </Link>
 
         <div className="links">
-          <Link to={"/"} onClick={closeSearch}>
+          <NavLink to={"/"} end className={getNavLinkClass} onClick={closeSearch}>
             <h4>Home</h4>
-          </Link>
-          <Link to={"/movies"} onClick={closeSearch}>
+          </NavLink>
+          <NavLink to={"/movies"} className={getNavLinkClass} onClick={closeSearch}>
             <h4>Movies</h4>
-          </Link>
-          <Link to={"/series"} onClick={closeSearch}>
+          </NavLink>
+          <NavLink to={"/series"} className={getNavLinkClass} onClick={closeSearch}>
             <h4>Series</h4>
-          </Link>
-          <Link to={"/watchlist"} onClick={closeSearch}>
+          </NavLink>
+          <NavLink to={"/watchlist"} className={getNavLinkClass} onClick={closeSearch}>
             <h4>Watchlist</h4>
-          </Link>
-          <Link to={"/blogs"} onClick={closeSearch}>
+          </NavLink>
+          <NavLink to={"/blogs"} className={getNavLinkClass} onClick={closeSearch}>
             <h4>Blogs</h4>
-          </Link>
-          <Link to={"/news"} onClick={closeSearch}>
+          </NavLink>
+          <NavLink to={"/news"} className={getNavLinkClass} onClick={closeSearch}>
             <h4>News</h4>
-          </Link>
+          </NavLink>
         </div>
 
         <button

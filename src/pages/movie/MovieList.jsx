@@ -38,6 +38,8 @@ const MovieList = () => {
       <Banner
         imageUrl={bannerShow?.backdrop_path}
         size="sm"
+        showType="movie"
+        tmdbID={bannerShow?.id}
         allowLinkTitle={true}
       />
 
