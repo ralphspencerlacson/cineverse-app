@@ -30,6 +30,7 @@ const selectBestTrailer = (videos = []) => {
 
 const ShowBanner = ({ imageUrl, size, showType, tmdbID }) => {
   const [isVideoReady, setIsVideoReady] = useState(false);
+  const [isPlayerOpen, setIsPlayerOpen] = useState(false);
   const iframeRef = useRef(null);
   const canFetchTrailer = Boolean(showType && tmdbID);
   const { apiData: trailer } = useFetchApi(
@@ -48,6 +49,16 @@ const ShowBanner = ({ imageUrl, size, showType, tmdbID }) => {
   useEffect(() => {
     setIsVideoReady(false);
   }, [trailerUrl]);
+
+  useEffect(() => {
+    const handlePlayerState = (event) => {
+      setIsPlayerOpen(Boolean(event.detail?.isOpen));
+    };
+
+    window.addEventListener("cineverse-player-state", handlePlayerState);
+
+    return () => window.removeEventListener("cineverse-player-state", handlePlayerState);
+  }, []);
 
   useEffect(() => {
     if (!trailerUrl) {
@@ -101,7 +112,7 @@ const ShowBanner = ({ imageUrl, size, showType, tmdbID }) => {
         backgroundPosition: size === "sm" ? "top center" : "center center",
       }}
     >
-      {trailerUrl && (
+      {trailerUrl && !isPlayerOpen && (
         <iframe
           ref={iframeRef}
           className={`banner__video ${isVideoReady ? "ready" : ""}`}

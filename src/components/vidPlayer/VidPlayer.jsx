@@ -49,6 +49,66 @@ const buildProgressKeys = ({ type, tmdbID, imdbID, season, episode }) => {
   return Array.from(new Set(keys));
 };
 
+const parseMaybeJson = (value) => {
+  if (typeof value !== "string") {
+    return value;
+  }
+
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+};
+
+const findNumericField = (value, fieldNames) => {
+  const parsedValue = parseMaybeJson(value);
+
+  if (!parsedValue || typeof parsedValue !== "object") {
+    return null;
+  }
+
+  for (const [key, currentValue] of Object.entries(parsedValue)) {
+    if (fieldNames.includes(key)) {
+      const numberValue = Number(currentValue);
+      if (Number.isFinite(numberValue) && numberValue > 0) {
+        return numberValue;
+      }
+    }
+  }
+
+  for (const currentValue of Object.values(parsedValue)) {
+    const nestedValue = findNumericField(currentValue, fieldNames);
+    if (nestedValue) {
+      return nestedValue;
+    }
+  }
+
+  return null;
+};
+
+const getEpisodeChangeFromMessage = (message) => {
+  const parsedMessage = parseMaybeJson(message);
+  const nextSeason = findNumericField(parsedMessage, [
+    "season",
+    "seasonNumber",
+    "currentSeason",
+    "s",
+  ]);
+  const nextEpisode = findNumericField(parsedMessage, [
+    "episode",
+    "episodeNumber",
+    "currentEpisode",
+    "e",
+  ]);
+
+  if (!nextSeason || !nextEpisode) {
+    return null;
+  }
+
+  return { season: nextSeason, episode: nextEpisode };
+};
+
 const VidPlayer = ({
   type,
   tmdbID,
@@ -64,7 +124,9 @@ const VidPlayer = ({
   runtimeMinutes,
   completionThreshold = DEFAULT_COMPLETION_THRESHOLD,
   onComplete,
+  onEpisodeChange,
   progressMetadata,
+  getProgressMetadata,
 }) => {
   const [internalShowPlayer, setInternalShowPlayer] = useState(false);
   const [activeProviderIndex, setActiveProviderIndex] = useState(0);
@@ -87,6 +149,7 @@ const VidPlayer = ({
   const visibilityHandlerRef = useRef(null);
   const completionMarkedRef = useRef(false);
   const playerLoadTimeoutRef = useRef(null);
+  const lastReportedEpisodeRef = useRef(null);
 
   const isControlled = typeof isOpen === "boolean";
   const showPlayer = isControlled ? isOpen : internalShowPlayer;
@@ -124,6 +187,10 @@ const VidPlayer = ({
   }, [runtimeMinutes]);
 
   const updateOpen = (value) => {
+    window.dispatchEvent(
+      new CustomEvent("cineverse-player-state", { detail: { isOpen: value } })
+    );
+
     if (isControlled) {
       onOpenChange?.(value);
     } else {
@@ -197,7 +264,60 @@ const VidPlayer = ({
 
   useEffect(() => {
     completionMarkedRef.current = false;
+    lastReportedEpisodeRef.current = `${season}:${episode}`;
   }, [type, tmdbID, imdbID, season, episode, runtimeSeconds]);
+
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent("cineverse-player-state", { detail: { isOpen: showPlayer } })
+    );
+  }, [showPlayer]);
+
+  useEffect(() => {
+    if (!showPlayer || type !== "tv") {
+      return;
+    }
+
+    const handleMessage = (event) => {
+      const episodeChange = getEpisodeChangeFromMessage(event.data);
+      if (!episodeChange) {
+        return;
+      }
+
+      const nextEpisodeKey = `${episodeChange.season}:${episodeChange.episode}`;
+      if (nextEpisodeKey === lastReportedEpisodeRef.current) {
+        return;
+      }
+
+      lastReportedEpisodeRef.current = nextEpisodeKey;
+
+      const nextProgressKeys = buildProgressKeys({
+        type,
+        tmdbID,
+        imdbID,
+        season: episodeChange.season,
+        episode: episodeChange.episode,
+      });
+
+      if (nextProgressKeys.length) {
+        const nextMetadata = getProgressMetadata?.(episodeChange) || {
+          ...progressMetadata,
+          season: episodeChange.season,
+          episode: episodeChange.episode,
+        };
+
+        setStoredVideoProgress(nextProgressKeys, 1, nextMetadata);
+      }
+
+      onEpisodeChange?.(episodeChange);
+    };
+
+    window.addEventListener("message", handleMessage);
+
+    return () => {
+      window.removeEventListener("message", handleMessage);
+    };
+  }, [getProgressMetadata, imdbID, onEpisodeChange, progressMetadata, showPlayer, tmdbID, type]);
 
   useEffect(() => {
     setActiveProviderIndex(0);
@@ -237,6 +357,10 @@ const VidPlayer = ({
 
     baseProgressRef.current = resumeAt;
     sessionStartRef.current = Date.now();
+
+    if (progressKeys.length) {
+      setStoredVideoProgress(progressKeys, Math.max(1, resumeAt || 1), progressMetadata);
+    }
 
     progressIntervalRef.current = window.setInterval(() => {
       const playedSeconds = getPlayedSeconds();

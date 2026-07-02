@@ -5,6 +5,7 @@ import {
   getWatchlist,
   mergeWatchlist,
   removeFromWatchlist,
+  syncWatchlistItemMetadata,
   updateWatchlistItem,
 } from "../../utils/WatchlistStorage";
 import { getVideoProgressEntries } from "../../utils/VideoProgressStorage";
@@ -168,6 +169,7 @@ const WatchlistPage = () => {
   const [previewSide, setPreviewSide] = useState("right");
   const [previewMuted, setPreviewMuted] = useState(false);
   const [seasonEpisodeCounts, setSeasonEpisodeCounts] = useState({});
+  const [videoProgressVersion, setVideoProgressVersion] = useState(0);
   const fileInputRef = useRef(null);
   const previewCloseTimeoutRef = useRef(null);
 
@@ -197,7 +199,7 @@ const WatchlistPage = () => {
       seriesPercent: series.length ? (completedSeries / series.length) * 100 : 0,
       lastVideoWatched,
     };
-  }, [items]);
+  }, [items, videoProgressVersion]);
 
   const visibleItems = useMemo(() => {
     const normalizedTitleFilter = titleFilter.trim().toLowerCase();
@@ -265,6 +267,20 @@ const WatchlistPage = () => {
   }, [rowsPerPage, statusFilter, titleFilter, typeFilter]);
 
   useEffect(() => {
+    const handleVideoProgress = () => {
+      setVideoProgressVersion((version) => version + 1);
+    };
+
+    window.addEventListener("cineverse-video-progress", handleVideoProgress);
+    window.addEventListener("storage", handleVideoProgress);
+
+    return () => {
+      window.removeEventListener("cineverse-video-progress", handleVideoProgress);
+      window.removeEventListener("storage", handleVideoProgress);
+    };
+  }, []);
+
+  useEffect(() => {
     return () => {
       if (previewCloseTimeoutRef.current) {
         window.clearTimeout(previewCloseTimeoutRef.current);
@@ -313,6 +329,14 @@ const WatchlistPage = () => {
         }
 
         const trailer = selectBestTrailer(trailerResponse.data?.results);
+        const syncedItems = syncWatchlistItemMetadata(hoveredItem.id, {
+          tmdbStatus: detailsResponse.data?.status || null,
+          totalSeasons: detailsResponse.data?.number_of_seasons || hoveredItem.totalSeasons,
+          totalEpisodes: detailsResponse.data?.number_of_episodes || hoveredItem.totalEpisodes,
+          nextEpisodeDate: detailsResponse.data?.next_episode_to_air?.air_date || null,
+        });
+
+        setItems(syncedItems);
 
         setPreviewCache((currentCache) => ({
           ...currentCache,

@@ -93,6 +93,11 @@ export const setStoredVideoProgress = (key, seconds, metadata = null) => {
 
   try {
     window.localStorage.setItem(VIDEO_PROGRESS_STORAGE_KEY, JSON.stringify(map));
+    window.dispatchEvent(
+      new CustomEvent("cineverse-video-progress", {
+        detail: { keys, seconds: Math.floor(progress), metadata },
+      })
+    );
   } catch {
     return;
   }

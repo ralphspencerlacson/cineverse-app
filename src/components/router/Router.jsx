@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 // Components
 import Layout from "../../Layout";
+import { CineverseLoader } from "../loading/PageSkeleton";
 
 // Lazy-load your pages/components
 const HomePage = lazy(() => import("../../pages/homepage/HomePage"));
@@ -16,7 +17,7 @@ const NotFound = lazy(() => import("../../pages/notfound/NotFound"));
 const Router = () => {
   return (
     <BrowserRouter>
-      <Suspense fallback={<section>Loading Components...</section>}>
+      <Suspense fallback={<CineverseLoader label="Loading Cineverse" className="mask" />}>
         <Routes>
           <Route path="/" element={<Layout />}>
             <Route index element={<HomePage />} />

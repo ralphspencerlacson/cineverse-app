@@ -17,6 +17,7 @@ export const useFetchApi = (url, requestFrom) => {
 
     setIsLoading(true);
     setHasError(null);
+    let isCancelled = false;
 
     const fetchData = async () => {
       try {
@@ -29,11 +30,15 @@ export const useFetchApi = (url, requestFrom) => {
 
         const data = res?.data;
 
-        setApiData(data);
-        setIsLoading(false);
+        if (!isCancelled) {
+          setApiData(data);
+          setIsLoading(false);
+        }
       } catch (error) {
-        setHasError(error);
-        setIsLoading(false);
+        if (!isCancelled) {
+          setHasError(error);
+          setIsLoading(false);
+        }
       }
     };
 
@@ -41,7 +46,7 @@ export const useFetchApi = (url, requestFrom) => {
 
     // Cleanup function to handle component unmounting
     return () => {
-      // You might want to cancel any ongoing requests here
+      isCancelled = true;
     };
   }, [url, requestFrom]); // Include requestFrom in the dependency array
 

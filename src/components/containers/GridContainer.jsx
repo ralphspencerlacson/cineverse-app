@@ -1,5 +1,6 @@
 import { useFetchApi } from '../../hooks/useFetchApi';
 import ShowCard from '../cards/showCard/ShowCard';
+import { CardSkeleton } from '../loading/PageSkeleton';
 import "./GridContainer.css";
 
 const ScrollableCollumn = ({
@@ -18,7 +19,7 @@ const ScrollableCollumn = ({
         {hasError && <p>Error fetching data. Please try again later</p>}
         {
           isLoading ? (
-            <p>Loading...</p>
+            <CardSkeleton count={10} layout="grid" />
           ) : (
             <div className='wrapper'>
               {shows?.results?.map((show) => (

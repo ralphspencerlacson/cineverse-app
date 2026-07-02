@@ -50,6 +50,7 @@ const SeasonList = ({
         showTitle={showTitle}
         imdbID={imdbID}
         autoPlayEpisode={autoPlayEpisode}
+        totalSeasons={seasons?.filter((season) => season?.air_date !== null).length}
       />
     </section>
   );

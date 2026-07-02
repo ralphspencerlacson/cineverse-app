@@ -1,5 +1,6 @@
 import React, { Suspense, lazy, useEffect } from "react";
 import { getSeriesSeasons } from "../../../service/tmdb/requests";
+import { CineverseLoader } from "../../loading/PageSkeleton";
 // Hooks
 import { useFetchApi } from "../../../hooks/useFetchApi";
 import "./EpisodeList.css";
@@ -13,6 +14,7 @@ const EpisodeList = ({
   showTitle,
   imdbID,
   autoPlayEpisode,
+  totalSeasons,
 }) => {
   const {
     isLoading,
@@ -22,7 +24,7 @@ const EpisodeList = ({
 
   return (
     <>
-      <Suspense fallback={<div>Loading Components...</div>}>
+      <Suspense fallback={<CineverseLoader label="Loading episodes" />}>
         <div key={containerID} className="episode-list">
           {seasonDetails?.episodes?.map((episode) => (
             <EpisodeCard
@@ -34,6 +36,8 @@ const EpisodeList = ({
               showTitle={showTitle}
               imdbID={imdbID}
               autoPlay={Number(autoPlayEpisode) === Number(episode?.episode_number)}
+              seasonEpisodeCount={seasonDetails?.episodes?.length}
+              totalSeasons={totalSeasons}
             />
           ))}
         </div>

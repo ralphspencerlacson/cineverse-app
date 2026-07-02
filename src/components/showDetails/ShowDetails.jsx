@@ -19,6 +19,7 @@ import {
   addToWatchlist,
   isInWatchlist,
   removeFromWatchlist,
+  syncWatchlistItemMetadata,
   updateWatchlistItem,
 } from "../../utils/WatchlistStorage";
 
@@ -141,6 +142,19 @@ const ShowDetails = ({
   useEffect(() => {
     setIsSavedToWatchlist(watchlistID ? isInWatchlist(watchlistID) : false);
   }, [watchlistID]);
+
+  useEffect(() => {
+    if (!watchlistID || showType !== "tv" || !show || !isInWatchlist(watchlistID)) {
+      return;
+    }
+
+    syncWatchlistItemMetadata(watchlistID, {
+      tmdbStatus: show.status || null,
+      totalSeasons: show?.number_of_seasons || null,
+      totalEpisodes: show?.number_of_episodes || null,
+      nextEpisodeDate: show?.next_episode_to_air?.air_date || null,
+    });
+  }, [show, showType, watchlistID]);
 
   useEffect(() => {
     const fetchContentRating = async () => {

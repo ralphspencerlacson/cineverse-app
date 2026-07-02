@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import ShowCard from "../cards/showCard/ShowCard.jsx";
+import { CardSkeleton } from "../loading/PageSkeleton.jsx";
 // Hooks
 import { useFetchApi } from "../../hooks/useFetchApi.jsx";
 // CSS
@@ -31,9 +32,7 @@ const ScrollableRow = ({
             <p>{`Currently, there are no shows available in the "${title}" category on this network. Please check back later or explore other categories.`}</p>
           </div>
         ) : isLoading ? (
-          <div>
-            <p>Loading...</p>
-          </div>
+          <CardSkeleton count={10} layout="row" />
         ) : (
           shows?.results?.map((show) => (
             <ShowCard key={show.id} show={show} cardType={cardType} showType={showType} />
