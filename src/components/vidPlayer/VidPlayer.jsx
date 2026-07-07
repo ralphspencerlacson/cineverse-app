@@ -5,6 +5,7 @@ import {
   getStoredVideoProgress,
   setStoredVideoProgress,
 } from "../../utils/VideoProgressStorage";
+import { useAuth } from "../../context/AuthContext";
 import "./VidPlayer.css";
 
 const RESUME_BACKTRACK_SECONDS = 5;
@@ -128,6 +129,7 @@ const VidPlayer = ({
   progressMetadata,
   getProgressMetadata,
 }) => {
+  const { isLoggedIn } = useAuth();
   const [internalShowPlayer, setInternalShowPlayer] = useState(false);
   const [activeProviderIndex, setActiveProviderIndex] = useState(0);
   const [isPlayerLoading, setIsPlayerLoading] = useState(false);
@@ -152,7 +154,8 @@ const VidPlayer = ({
   const lastReportedEpisodeRef = useRef(null);
 
   const isControlled = typeof isOpen === "boolean";
-  const showPlayer = isControlled ? isOpen : internalShowPlayer;
+  const requestedShowPlayer = isControlled ? isOpen : internalShowPlayer;
+  const showPlayer = isLoggedIn && requestedShowPlayer;
 
   const resumeAt = useMemo(() => {
     if (!progressKeys.length) {
@@ -198,8 +201,26 @@ const VidPlayer = ({
     }
   };
 
-  const handleOpen = () => updateOpen(true);
+  const handleOpen = () => {
+    if (!isLoggedIn) {
+      return;
+    }
+
+    updateOpen(true);
+  };
   const handleClose = () => updateOpen(false);
+
+  useEffect(() => {
+    if (isLoggedIn || !requestedShowPlayer) {
+      return;
+    }
+
+    if (isControlled) {
+      onOpenChange?.(false);
+    } else {
+      setInternalShowPlayer(false);
+    }
+  }, [isControlled, isLoggedIn, onOpenChange, requestedShowPlayer]);
 
   const clearPlayerLoadTimeout = useCallback(() => {
     if (playerLoadTimeoutRef.current) {
@@ -409,12 +430,13 @@ const VidPlayer = ({
   return (
     <>
       {showButton && (
-        <a
+        <button
+          type="button"
           className={`btn btn-watch ${className}`}
           onClick={handleOpen}
         >
           {label}
-        </a>
+        </button>
       )}
 
       {showPlayer && (

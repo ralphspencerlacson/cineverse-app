@@ -37,7 +37,9 @@ const SeriesPage = () => {
 
   const [recommended, hasRecommended] = useState(true);
 
-  useEffect(() => window.scrollTo({ top: 0, behavior: "smooth" }), [id]);
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [id]);
 
   return (
     <div className="series-page">

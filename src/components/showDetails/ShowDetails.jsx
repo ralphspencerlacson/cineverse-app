@@ -22,6 +22,7 @@ import {
   syncWatchlistItemMetadata,
   updateWatchlistItem,
 } from "../../utils/WatchlistStorage";
+import { useAuth } from "../../context/AuthContext";
 
 const TMDB_ASSET_BASEURL = import.meta.env.VITE_TMDB_ASSET_BASEURL;
 
@@ -36,6 +37,7 @@ const ShowDetails = ({
   autoPlay = false,
   showData = null,
 }) => {
+  const { isLoggedIn } = useAuth();
   const [contentRating, setContentRating] = useState(null);
   const [network, setNetwork] = useState(null);
   const [isPlayerOpen, setIsPlayerOpen] = useState(false);
@@ -103,6 +105,18 @@ const ShowDetails = ({
       return;
     }
 
+    if (!isLoggedIn) {
+      window.dispatchEvent(
+        new CustomEvent("cineverse-login-request", {
+          detail: {
+            message: "Login to add this title to your watchlist.",
+            feature: "Watchlist access keeps your saved movies, series, progress, and continue-watching links together.",
+          },
+        })
+      );
+      return;
+    }
+
     if (isSavedToWatchlist) {
       removeFromWatchlist(watchlistID);
       setIsSavedToWatchlist(false);
@@ -134,10 +148,10 @@ const ShowDetails = ({
   }, [tmdbID]);
 
   useEffect(() => {
-    if (autoPlay && showType === "movie" && show?.id) {
+    if (isLoggedIn && autoPlay && showType === "movie" && show?.id) {
       setIsPlayerOpen(true);
     }
-  }, [autoPlay, show?.id, showType]);
+  }, [autoPlay, isLoggedIn, show?.id, showType]);
 
   useEffect(() => {
     setIsSavedToWatchlist(watchlistID ? isInWatchlist(watchlistID) : false);
@@ -209,7 +223,11 @@ const ShowDetails = ({
               <button
                 type="button"
                 className="show-details__title-button"
-                onClick={() => setIsPlayerOpen(true)}
+                onClick={() => {
+                  if (isLoggedIn) {
+                    setIsPlayerOpen(true);
+                  }
+                }}
                 aria-label={`Play ${showTitle}`}
               >
                 <h1>{showTitle}</h1>

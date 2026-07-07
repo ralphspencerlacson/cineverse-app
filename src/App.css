@@ -9,6 +9,23 @@
 body {
   margin: 0;
   min-width: 400px;
+  caret-color: transparent;
+  user-select: none;
+}
+
+input,
+textarea,
+select,
+[contenteditable="true"] {
+  caret-color: auto;
+  user-select: text;
+}
+
+img,
+button,
+a {
+  -webkit-user-drag: none;
+  user-select: none;
 }
 
 .loading {

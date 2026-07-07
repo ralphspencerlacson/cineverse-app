@@ -51,7 +51,6 @@ const MoviePage = () => {
             showType="movie"
             tmdbID={id}
             showData={movie}
-            titleTriggersPlayer={true}
             showPlot={true}
             autoPlay={shouldAutoplay}
           />

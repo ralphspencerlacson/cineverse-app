@@ -3,6 +3,7 @@ import NoImagePlaceholder from "../../../assets/png/no_image_placeholder.png";
 import { getWatchlist, updateWatchlistItem } from "../../../utils/WatchlistStorage";
 import { convertToSlug } from "../../../utils/StringUtils";
 import { setStoredVideoProgress } from "../../../utils/VideoProgressStorage";
+import { useAuth } from "../../../context/AuthContext";
 import VidPlayer from "../../vidPlayer/VidPlayer";
 import "./EpisodeCard.css";
 
@@ -19,6 +20,7 @@ const EpisodeCard = ({
   seasonEpisodeCount = 0,
   totalSeasons = 0,
 }) => {
+  const { isLoggedIn } = useAuth();
   const [isPlayerOpen, setIsPlayerOpen] = useState(false);
   const [isAutoWatched, setIsAutoWatched] = useState(false);
   const autoNextFallbackRef = useRef(null);
@@ -127,13 +129,17 @@ const EpisodeCard = ({
   );
 
   useEffect(() => {
-    if (autoPlay) {
+    if (isLoggedIn && autoPlay) {
       setIsPlayerOpen(true);
       markEpisodeActive();
     }
-  }, [autoPlay, markEpisodeActive]);
+  }, [autoPlay, isLoggedIn, markEpisodeActive]);
 
   const openEpisodePlayer = () => {
+    if (!isLoggedIn) {
+      return;
+    }
+
     setIsPlayerOpen(true);
     markEpisodeActive();
   };
@@ -212,7 +218,7 @@ const EpisodeCard = ({
           isOpen={isPlayerOpen}
           onOpenChange={(isOpen) => {
             setIsPlayerOpen(isOpen);
-            if (isOpen) {
+            if (isLoggedIn && isOpen) {
               markEpisodeActive();
             }
           }}

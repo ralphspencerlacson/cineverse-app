@@ -12,6 +12,7 @@ import { getVideoProgressEntries } from "../../utils/VideoProgressStorage";
 import { formatDate } from "../../utils/DateUtils";
 import instance from "../../service/tmdb/tmdb";
 import { getSeriesSeasons, getSeriesTrailers, getShowDetails } from "../../service/tmdb/requests";
+import { useAuth } from "../../context/AuthContext";
 import "./WatchlistPage.css";
 
 const TMDB_ASSET_BASEURL = import.meta.env.VITE_TMDB_ASSET_BASEURL;
@@ -154,6 +155,7 @@ const getItemDetailPath = (item) => {
 };
 
 const WatchlistPage = () => {
+  const { isLoggedIn } = useAuth();
   const [items, setItems] = useState(() => getWatchlist());
   const [message, setMessage] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -624,6 +626,36 @@ const WatchlistPage = () => {
       event.target.value = "";
     }
   };
+
+  if (!isLoggedIn) {
+    return (
+      <main className="watchlist-page">
+        <section className="watchlist-teaser">
+          <p className="watchlist-page__eyebrow">Private watchlist</p>
+          <h1>Build your Cineverse watch hub</h1>
+          <p>
+            Login to unlock your saved movies, series progress, continue-watching links,
+            exports, imports, and status tracking in one dashboard.
+          </p>
+          <div className="watchlist-teaser__grid" aria-label="Watchlist benefits">
+            <article>
+              <strong>Track progress</strong>
+              <span>See what is planned, ongoing, completed, or dropped.</span>
+            </article>
+            <article>
+              <strong>Resume faster</strong>
+              <span>Continue movies and episodes from your latest saved progress.</span>
+            </article>
+            <article>
+              <strong>Keep control</strong>
+              <span>Export and import your local watchlist whenever you need.</span>
+            </article>
+          </div>
+          <p className="watchlist-teaser__hint">Use Login in the top navigation to access it.</p>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="watchlist-page">

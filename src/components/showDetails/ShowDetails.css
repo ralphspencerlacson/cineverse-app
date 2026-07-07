@@ -12,6 +12,10 @@
     margin: 0;
     font-size: var(--fs-header1);
     font-weight: bold;
+    max-width: min(100%, 18ch);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .show-details .overview,
