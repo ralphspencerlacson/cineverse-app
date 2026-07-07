@@ -199,6 +199,7 @@
 }
 
 .show-details__wishlist-button span {
+    display: inline-flex;
     color: #ce3824;
     font-size: 1.35rem;
     line-height: 1;

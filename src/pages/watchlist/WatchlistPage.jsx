@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
+  FaArrowUpRightFromSquare,
+  FaTrash,
+  FaVolumeHigh,
+  FaVolumeXmark,
+} from "react-icons/fa6";
+import {
   WATCH_STATUS_OPTIONS,
   getWatchlist,
   mergeWatchlist,
@@ -893,16 +899,9 @@ const WatchlistPage = () => {
                                 aria-label={previewMuted ? "Unmute preview" : "Mute preview"}
                               >
                                 {previewMuted ? (
-                                  <svg aria-hidden="true" viewBox="0 0 24 24">
-                                    <path d="M4 9h4l5-4v14l-5-4H4V9z" />
-                                    <path d="M17 9l4 4m0-4l-4 4" />
-                                  </svg>
+                                  <FaVolumeXmark aria-hidden="true" />
                                 ) : (
-                                  <svg aria-hidden="true" viewBox="0 0 24 24">
-                                    <path d="M4 9h4l5-4v14l-5-4H4V9z" />
-                                    <path d="M16 8c1.5 1.2 1.5 6.8 0 8" />
-                                    <path d="M19 5c3 3.2 3 10.8 0 14" />
-                                  </svg>
+                                  <FaVolumeHigh aria-hidden="true" />
                                 )}
                               </button>
                             </div>
@@ -1018,7 +1017,7 @@ const WatchlistPage = () => {
                             aria-label={`Open ${item.title}`}
                             title="Open"
                           >
-                            <span aria-hidden="true">↗</span>
+                            <FaArrowUpRightFromSquare aria-hidden="true" />
                           </Link>
                           <button
                             type="button"
@@ -1027,7 +1026,7 @@ const WatchlistPage = () => {
                             aria-label={`Remove ${item.title}`}
                             title="Remove"
                           >
-                            <span aria-hidden="true">×</span>
+                            <FaTrash aria-hidden="true" />
                           </button>
                         </div>
                       </td>

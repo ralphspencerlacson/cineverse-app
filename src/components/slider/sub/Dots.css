@@ -1,31 +1,47 @@
 .dots {
-    content: "";
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
     position: absolute;
-    top: 25%;
-    right: 0;
-    padding: 1rem;
-    margin: 0 2rem 0 auto;
-
-    z-index: 10;
+    left: 50%;
+    bottom: 1.15rem;
+    z-index: 12;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.36);
+    box-shadow: 0 1rem 2.5rem rgba(0, 0, 0, 0.3), 0 0 1.2rem rgba(206, 56, 36, 0.12);
+    backdrop-filter: blur(10px);
+    padding: 0.45rem 0.55rem;
+    transform: translateX(-50%);
 }
 
 .dots .circle {
-    padding: .2rem;
+    position: relative;
+    width: 1.75rem;
+    height: 0.55rem;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.28);
     cursor: pointer;
-    border-radius: 50%;
-    border: solid 2px white;
+    padding: 0;
+    transition: width 180ms ease, background 180ms ease, box-shadow 180ms ease;
 }
 
 .dots .circle .dot {
-    background-color: white;
-    height: 10px;
-    width: 10px;
-    border-radius: 50%;
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #ce3824, #ff6a52);
+    box-shadow: 0 0 0.85rem rgba(206, 56, 36, 0.72);
 }
 
-.dots .circle:is(:hover) {
-    border: solid 2px #ce3824;
+.dots .circle.active {
+    width: 2.75rem;
+    background: rgba(206, 56, 36, 0.28);
+}
+
+.dots .circle:is(:hover),
+.dots .circle:focus-visible {
+    background: rgba(255, 255, 255, 0.45);
+    outline: none;
 }

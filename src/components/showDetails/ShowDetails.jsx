@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { FaHeart, FaRegHeart } from "react-icons/fa6";
 import YoutubeTrailer from "../../components/youtubeTrailer/YoutubeTrailer";
 import VidPlayer from "../../components/vidPlayer/VidPlayer";
 import Producers from "../producers/Producers";
@@ -271,7 +272,9 @@ const ShowDetails = ({
             onClick={handleToggleWatchlist}
             disabled={!show}
           >
-            <span aria-hidden="true">{isSavedToWatchlist ? "♥" : "♡"}</span>
+            <span aria-hidden="true">
+              {isSavedToWatchlist ? <FaHeart /> : <FaRegHeart />}
+            </span>
             {isSavedToWatchlist ? "Watchlisted" : "Add to Watchlist"}
           </button>
 

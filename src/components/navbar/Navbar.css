@@ -647,7 +647,10 @@
 
 .search-view-more {
     grid-column: 1 / -1;
+    display: inline-flex;
+    align-items: center;
     justify-self: center;
+    gap: 0.45rem;
     border: 1px solid rgba(206, 56, 36, 0.72);
     border-radius: 999px;
     background: rgba(206, 56, 36, 0.14);
@@ -658,6 +661,14 @@
     font-weight: 800;
     padding: 0.65rem 1.15rem;
     transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.search-view-more svg {
+    font-size: 0.76rem;
+}
+
+.search-view-more__down {
+    transform: rotate(180deg);
 }
 
 .search-view-more:hover,

@@ -1,3 +1,9 @@
+  .slider-frame {
+    position: relative;
+    height: 100vh;
+    overflow: hidden;
+  }
+
 .slider {
     position: relative;
     display: flex;
@@ -5,7 +11,7 @@
     align-items: center;
     
     width: 100%;
-    height: 100vh;
+    height: 100%;
     cursor: grab;
   }
   
@@ -96,4 +102,59 @@
     letter-spacing: 0.14em;
     padding: 0.42rem 0.7rem;
     text-transform: uppercase;
+  }
+
+  .slider-timer {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 12;
+    display: grid;
+    padding: 0;
+    color: rgba(255, 255, 255, 0.84);
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-align: center;
+    text-transform: uppercase;
+    pointer-events: none;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+
+  .slider-timer__track {
+    height: 0.28rem;
+    overflow: hidden;
+    border-radius: 0;
+    background: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 -0.7rem 2rem rgba(0, 0, 0, 0.34);
+  }
+
+  .slider-timer__track span {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #ce3824, #ff6a52, #ffb3a8);
+    box-shadow: 0 0 1.2rem rgba(206, 56, 36, 0.72);
+    transform-origin: left;
+    animation: sliderTimerDrain linear forwards;
+  }
+
+  @keyframes sliderTimerDrain {
+    from {
+      transform: scaleX(1);
+    }
+
+    to {
+      transform: scaleX(0);
+    }
   }

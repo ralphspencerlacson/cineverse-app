@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
+import { FaChevronUp, FaMagnifyingGlass, FaXmark } from "react-icons/fa6";
 import CineverseLogo from "../../assets/png/cineverse-hd-logo-transparent.png";
 import tmdbInstance from "../../service/tmdb/tmdb";
 import { convertToSlug } from "../../utils/StringUtils";
@@ -243,7 +244,7 @@ const Navbar = () => {
             aria-label={isSearchOpen ? "Close search" : "Open search"}
             onClick={() => setIsSearchOpen((currentValue) => !currentValue)}
           >
-            <span></span>
+            {isSearchOpen ? <FaXmark aria-hidden="true" /> : <FaMagnifyingGlass aria-hidden="true" />}
           </button>
 
           <div className="nav-auth">
@@ -283,7 +284,7 @@ const Navbar = () => {
               onClick={closeLogin}
               aria-label="Close login"
             >
-              x
+              <FaXmark aria-hidden="true" />
             </button>
             <p className="login-mockup__eyebrow">Members only</p>
             <h2 id="login-title">Login to watch</h2>
@@ -380,7 +381,15 @@ const Navbar = () => {
                 className="search-view-more"
                 onClick={() => setIsSearchExpanded((currentValue) => !currentValue)}
               >
-                {isSearchExpanded ? "Show less" : "Show all >"}
+                {isSearchExpanded ? (
+                  <>
+                    Show less <FaChevronUp aria-hidden="true" />
+                  </>
+                ) : (
+                  <>
+                    Show all <FaChevronUp className="search-view-more__down" aria-hidden="true" />
+                  </>
+                )}
               </button>
             )}
           </div>

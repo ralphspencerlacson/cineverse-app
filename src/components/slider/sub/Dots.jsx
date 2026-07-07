@@ -6,10 +6,13 @@ const Dots = ({ slideData, currentIndex, setCurrentIndex }) => {
   return (
     <div className="dots">
       {slideData?.map((data, index) => (
-        <motion.span
+        <motion.button
+          type="button"
           key={data?.id}
-          className="circle"
+          className={`circle ${currentIndex === index ? "active" : ""}`}
           onClick={() => setCurrentIndex(index)}
+          aria-label={`Go to slide ${index + 1}`}
+          aria-current={currentIndex === index ? "true" : undefined}
         >
           <motion.div
             className="dot"
@@ -17,7 +20,7 @@ const Dots = ({ slideData, currentIndex, setCurrentIndex }) => {
             animate={{ scale: currentIndex === index ? 1 : 0 }}
             transition={{ type: "spring", stiffness: 300 }}
           ></motion.div>
-        </motion.span>
+        </motion.button>
       ))}
     </div>
   );

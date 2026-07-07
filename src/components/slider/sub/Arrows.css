@@ -1,25 +1,49 @@
 .arrows {
-    position: relative;
+    position: absolute;
+    inset: 0;
+    z-index: 12;
+    pointer-events: none;
 }
 
 .arrows .left-arrow,
 .arrows .right-arrow {
     position: absolute;
-    top: -8rem;
-    font-size: 4rem;
+    top: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: clamp(2.8rem, 5vw, 4rem);
+    height: clamp(2.8rem, 5vw, 4rem);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.34);
+    box-shadow: 0 1rem 2.5rem rgba(0, 0, 0, 0.32), 0 0 1.4rem rgba(206, 56, 36, 0.12);
+    backdrop-filter: blur(10px);
+    color: rgba(255, 255, 255, 0.86);
+    font: inherit;
+    font-size: clamp(1.1rem, 2vw, 1.55rem);
     font-weight: 700;
     cursor: pointer;
+    pointer-events: auto;
+    translate: 0 -50%;
+    transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease, color 180ms ease;
 }
 
 .arrows .right-arrow {
-    right: 30%;
+    right: clamp(1rem, 3vw, 2.5rem);
 }
 
 .arrows .left-arrow {
-    left: 30%;
+    left: clamp(1rem, 3vw, 2.5rem);
 }
 
 .arrows .right-arrow:is(:hover),
-.arrows .left-arrow:is(:hover) {
-    color: #ce3824;
+.arrows .left-arrow:is(:hover),
+.arrows .right-arrow:focus-visible,
+.arrows .left-arrow:focus-visible {
+    border-color: rgba(206, 56, 36, 0.78);
+    background: rgba(206, 56, 36, 0.18);
+    box-shadow: 0 1rem 2.5rem rgba(0, 0, 0, 0.38), 0 0 1.7rem rgba(206, 56, 36, 0.38);
+    color: #ffffff;
+    outline: none;
 }

@@ -10,6 +10,7 @@ const DRAG_BUFFER = 50;
 const Slider = ({ slideData, delay = 5000 }) => {
   const [slideIndex, setSlideIndex] = useState(0);
   const [isDrag, setIsDrag] = useState(false);
+  const [nextSlideSeconds, setNextSlideSeconds] = useState(Math.ceil(delay / 1000));
   const slideDataLength = (slideData?.length || 0) - 1;
   const dragX = useMotionValue(0);
 
@@ -18,12 +19,34 @@ const Slider = ({ slideData, delay = 5000 }) => {
       return;
     }
 
-    const interval = setInterval(() => {
+    const timeout = window.setTimeout(() => {
       setSlideIndex((index) => (index === slideDataLength ? 0 : index + 1));
     }, delay);
 
-    return () => clearInterval(interval);
-  }, [delay, slideDataLength]);
+    return () => window.clearTimeout(timeout);
+  }, [delay, slideDataLength, slideIndex]);
+
+  useEffect(() => {
+    if (slideDataLength < 1) {
+      return;
+    }
+
+    const startedAt = Date.now();
+    setNextSlideSeconds(Math.ceil(delay / 1000));
+
+    const interval = window.setInterval(() => {
+      const elapsed = Date.now() - startedAt;
+      const remaining = Math.max(0, Math.ceil((delay - elapsed) / 1000));
+      setNextSlideSeconds(remaining);
+    }, 250);
+
+    return () => window.clearInterval(interval);
+  }, [delay, slideDataLength, slideIndex]);
+
+  const goToSlide = (nextIndex) => {
+    setSlideIndex(nextIndex);
+    setNextSlideSeconds(Math.ceil(delay / 1000));
+  };
 
   const onDragStart = () => {
     setIsDrag(true);
@@ -34,14 +57,22 @@ const Slider = ({ slideData, delay = 5000 }) => {
 
     const x = dragX.get();
     if (x <= -DRAG_BUFFER && slideIndex < slideDataLength) {
-      setSlideIndex((i) => i + 1);
+      goToSlide(slideIndex + 1);
     } else if (x >= DRAG_BUFFER && slideIndex > 0) {
-      setSlideIndex((i) => i - 1);
+      goToSlide(slideIndex - 1);
     }
   };
 
+  const prevSlide = () => {
+    goToSlide(slideIndex <= 0 ? slideDataLength : slideIndex - 1);
+  };
+
+  const nextSlide = () => {
+    goToSlide(slideIndex === slideDataLength ? 0 : slideIndex + 1);
+  };
+
   return (
-    <>
+    <div className="slider-frame">
       <motion.section
         className={`slider ${isDrag && "active"}`}
         drag="x"
@@ -70,21 +101,29 @@ const Slider = ({ slideData, delay = 5000 }) => {
         <Dots
           slideData={slideData}
           currentIndex={slideIndex}
-          setCurrentIndex={setSlideIndex}
+          setCurrentIndex={goToSlide}
         />
       )}
 
       {slideDataLength > 0 && (
         <Arrows
-          prevSlide={() =>
-            setSlideIndex(slideIndex <= 0 ? slideDataLength : slideIndex - 1)
-          }
-          nextSlide={() =>
-            setSlideIndex(slideIndex === slideDataLength ? 0 : slideIndex + 1)
-          }
+          prevSlide={prevSlide}
+          nextSlide={nextSlide}
         />
       )}
-    </>
+
+      {slideDataLength > 0 && (
+        <div className="slider-timer" aria-live="polite">
+          <span className="sr-only">Next in {nextSlideSeconds}s</span>
+          <div className="slider-timer__track" aria-hidden="true">
+            <span
+              key={slideIndex}
+              style={{ animationDuration: `${delay}ms` }}
+            />
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 

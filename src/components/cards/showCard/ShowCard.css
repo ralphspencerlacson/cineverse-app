@@ -140,6 +140,10 @@
     color: #ffffff;
 }
 
+.card__wishlist svg {
+    display: block;
+}
+
 .show-card__details {
     display: block;
     padding: 0.75rem 0 0;

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { FaHeart, FaRegHeart } from "react-icons/fa6";
 import { convertToSlug } from "../../../utils/StringUtils.js";
+import { useAuth } from "../../../context/AuthContext.jsx";
 import {
   addToWatchlist,
   isInWatchlist,
@@ -11,6 +13,7 @@ import "./ShowCard.css";
 const TMDB_ASSET_BASEURL = import.meta.env.VITE_TMDB_ASSET_BASEURL;
 
 const ShowCard = ({ show, cardType, showType }) => {
+  const { isLoggedIn } = useAuth();
   const title = show.title || show.name || show.original_name;
   const detailPath = `/${showType === "tv" ? "series" : "movie"}/${show.id}-${convertToSlug(title)}`;
   const watchlistID = `${showType}:${show.id}`;
@@ -23,6 +26,18 @@ const ShowCard = ({ show, cardType, showType }) => {
   const handleWishlistClick = (event) => {
     event.preventDefault();
     event.stopPropagation();
+
+    if (!isLoggedIn) {
+      window.dispatchEvent(
+        new CustomEvent("cineverse-login-request", {
+          detail: {
+            message: "Login to add this title to your watchlist.",
+            feature: "Watchlist access keeps your saved movies, series, progress, and continue-watching links together.",
+          },
+        })
+      );
+      return;
+    }
 
     if (isSavedToWatchlist) {
       removeFromWatchlist(watchlistID);
@@ -69,7 +84,7 @@ const ShowCard = ({ show, cardType, showType }) => {
           aria-label={isSavedToWatchlist ? `${title} is watchlisted` : `Add ${title} to watchlist`}
           title={isSavedToWatchlist ? "Watchlisted" : "Add to Watchlist"}
         >
-          {isSavedToWatchlist ? "♥" : "♡"}
+          {isSavedToWatchlist ? <FaHeart aria-hidden="true" /> : <FaRegHeart aria-hidden="true" />}
         </button>
       </div>
 

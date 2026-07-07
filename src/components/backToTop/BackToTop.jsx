@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import ArrowUp from "../../assets/svg/arrow-up-square.svg?react";
+import { FaCircleArrowUp } from "react-icons/fa6";
 import "./BackToTop.css";
 
 const BackToTop = () => {
@@ -19,7 +19,7 @@ const BackToTop = () => {
     return () => {
       window.removeEventListener("scroll", handleScroll);
     };
-  });
+  }, []);
 
   const scrollToTop = () => {
     window.scrollTo({
@@ -30,7 +30,7 @@ const BackToTop = () => {
 
   return (
     <div onClick={scrollToTop} className={`backToTop ${visible && "visible"}`}>
-      <ArrowUp />
+      <FaCircleArrowUp aria-hidden="true" />
     </div>
   );
 };

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { FaCheck } from "react-icons/fa6";
 import NoImagePlaceholder from "../../../assets/png/no_image_placeholder.png";
 import { getWatchlist, updateWatchlistItem } from "../../../utils/WatchlistStorage";
 import { convertToSlug } from "../../../utils/StringUtils";
@@ -203,7 +204,11 @@ const EpisodeCard = ({
       }}
     >
       <div className="overlay">
-        {isWatched && <span className="watched-checkmark">✓</span>}
+        {isWatched && (
+          <span className="watched-checkmark">
+            <FaCheck aria-hidden="true" />
+          </span>
+        )}
         <h4 className="number">{episode.episode_number}</h4>
         <p className="title">{episode.name}</p>
         <p className="overview">{episode.overview}</p>
