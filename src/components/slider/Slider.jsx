@@ -10,50 +10,48 @@ const DRAG_BUFFER = 50;
 const Slider = ({ slideData, delay = 5000 }) => {
   const [slideIndex, setSlideIndex] = useState(0);
   const [isDrag, setIsDrag] = useState(false);
-  const [nextSlideSeconds, setNextSlideSeconds] = useState(Math.ceil(delay / 1000));
+  const [isPaused, setIsPaused] = useState(false);
+  const [progressElapsed, setProgressElapsed] = useState(0);
   const slideDataLength = (slideData?.length || 0) - 1;
   const dragX = useMotionValue(0);
 
   useEffect(() => {
-    if (slideDataLength < 1) {
+    if (slideDataLength < 1 || isPaused) {
       return;
     }
-
-    const timeout = window.setTimeout(() => {
-      setSlideIndex((index) => (index === slideDataLength ? 0 : index + 1));
-    }, delay);
-
-    return () => window.clearTimeout(timeout);
-  }, [delay, slideDataLength, slideIndex]);
-
-  useEffect(() => {
-    if (slideDataLength < 1) {
-      return;
-    }
-
-    const startedAt = Date.now();
-    setNextSlideSeconds(Math.ceil(delay / 1000));
 
     const interval = window.setInterval(() => {
-      const elapsed = Date.now() - startedAt;
-      const remaining = Math.max(0, Math.ceil((delay - elapsed) / 1000));
-      setNextSlideSeconds(remaining);
+      setProgressElapsed((currentElapsed) => {
+        const nextElapsed = currentElapsed + 250;
+
+        if (nextElapsed >= delay) {
+          setSlideIndex((index) => (index === slideDataLength ? 0 : index + 1));
+          return 0;
+        }
+
+        return nextElapsed;
+      });
     }, 250);
 
     return () => window.clearInterval(interval);
-  }, [delay, slideDataLength, slideIndex]);
+  }, [delay, isPaused, slideDataLength]);
+
+  const remainingSeconds = Math.ceil(Math.max(0, delay - progressElapsed) / 1000);
+  const progressScale = Math.max(0, (delay - progressElapsed) / delay);
 
   const goToSlide = (nextIndex) => {
     setSlideIndex(nextIndex);
-    setNextSlideSeconds(Math.ceil(delay / 1000));
+    setProgressElapsed(0);
   };
 
   const onDragStart = () => {
     setIsDrag(true);
+    setIsPaused(true);
   };
 
   const onDragEnd = () => {
     setIsDrag(false);
+    setIsPaused(false);
 
     const x = dragX.get();
     if (x <= -DRAG_BUFFER && slideIndex < slideDataLength) {
@@ -72,7 +70,13 @@ const Slider = ({ slideData, delay = 5000 }) => {
   };
 
   return (
-    <div className="slider-frame">
+    <div
+      className={`slider-frame ${isPaused ? "paused" : ""}`}
+      onPointerDown={() => setIsPaused(true)}
+      onPointerUp={() => setIsPaused(false)}
+      onPointerCancel={() => setIsPaused(false)}
+      onPointerLeave={() => setIsPaused(false)}
+    >
       <motion.section
         className={`slider ${isDrag && "active"}`}
         drag="x"
@@ -114,11 +118,12 @@ const Slider = ({ slideData, delay = 5000 }) => {
 
       {slideDataLength > 0 && (
         <div className="slider-timer" aria-live="polite">
-          <span className="sr-only">Next in {nextSlideSeconds}s</span>
+          <span className="sr-only">
+            {isPaused ? "Slider paused" : `Next in ${remainingSeconds}s`}
+          </span>
           <div className="slider-timer__track" aria-hidden="true">
             <span
-              key={slideIndex}
-              style={{ animationDuration: `${delay}ms` }}
+              style={{ transform: `scaleX(${progressScale})` }}
             />
           </div>
         </div>

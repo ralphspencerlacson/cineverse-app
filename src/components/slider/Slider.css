@@ -4,6 +4,11 @@
     overflow: hidden;
   }
 
+  .slider-frame.paused .slider-timer__track span {
+    filter: brightness(1.35);
+    box-shadow: 0 0 1.6rem rgba(255, 179, 168, 0.86);
+  }
+
 .slider {
     position: relative;
     display: flex;
@@ -146,15 +151,5 @@
     background: linear-gradient(90deg, #ce3824, #ff6a52, #ffb3a8);
     box-shadow: 0 0 1.2rem rgba(206, 56, 36, 0.72);
     transform-origin: left;
-    animation: sliderTimerDrain linear forwards;
-  }
-
-  @keyframes sliderTimerDrain {
-    from {
-      transform: scaleX(1);
-    }
-
-    to {
-      transform: scaleX(0);
-    }
+    transition: transform 250ms linear, filter 180ms ease, box-shadow 180ms ease;
   }

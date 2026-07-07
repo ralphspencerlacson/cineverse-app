@@ -5,15 +5,30 @@
     background: #101010;
 }
 
+@property --home-glow-x {
+    syntax: "<length-percentage>";
+    inherits: true;
+    initial-value: 50%;
+}
+
+@property --home-glow-y {
+    syntax: "<length-percentage>";
+    inherits: true;
+    initial-value: 50%;
+}
+
 .preview-slider__intro {
     position: absolute;
     top: clamp(5.5rem, 10vw, 8rem);
-    left: 50%;
+    right: max(1rem, calc((100% - 96rem) / 2));
     z-index: 8;
-    width: min(100% - 2rem, 96rem);
+    width: min(100% - 2rem, 36rem);
     text-align: left;
-    transform: translateX(-50%);
     pointer-events: auto;
+}
+
+.preview-slider__intro p {
+    width: 100%;
 }
 
 .preview-slider__intro p,
@@ -34,7 +49,7 @@
 .preview-slider__intro h2 {
     --home-glow-x: 50%;
     --home-glow-y: 50%;
-    width: min(100%, 36rem);
+    width: 100%;
     margin-top: 0.45rem;
     color: transparent;
     background:
@@ -45,4 +60,77 @@
     line-height: 0.98;
     letter-spacing: -0.06em;
     text-shadow: 0 0 1.6rem rgba(206, 56, 36, 0.42), 0 0 3.4rem rgba(255, 179, 168, 0.18);
+}
+
+.preview-slider__bridge {
+    display: block;
+    gap: clamp(1.25rem, 4vw, 3rem);
+    width: min(100% - 2rem, 86rem);
+    margin: 0 auto 4.5rem;
+    padding: clamp(1rem, 4vw, 2rem) 0;
+    text-align: left;
+}
+
+.preview-slider__bridge-eyebrow,
+.preview-slider__bridge h2,
+.preview-slider__bridge p {
+    margin: 0;
+}
+
+.preview-slider__bridge-eyebrow {
+    color: #ffb3a8;
+    font-size: 0.75rem;
+    font-weight: 900;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.preview-slider__bridge h2 {
+    max-width: 11ch;
+    margin-top: 0.45rem;
+    color: #ffffff;
+    font-size: clamp(1.75rem, 4vw, 3.35rem);
+    line-height: 0.98;
+    letter-spacing: -0.06em;
+}
+
+.preview-slider__bridge p {
+    max-width: 42rem;
+    margin-top: 1rem;
+    color: rgba(255, 255, 255, 0.68);
+    line-height: 1.7;
+}
+
+.preview-slider__bridge-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.preview-slider__bridge-grid article {
+    display: grid;
+    align-content: start;
+    gap: 0.65rem;
+    min-height: 10rem;
+    border-top: 1px solid rgba(206, 56, 36, 0.42);
+    background: transparent;
+    padding: 1rem 0 0;
+}
+
+.preview-slider__bridge-grid strong {
+    color: #ffffff;
+    font-size: 1rem;
+}
+
+.preview-slider__bridge-grid span {
+    color: rgba(255, 255, 255, 0.64);
+    font-size: 0.9rem;
+    line-height: 1.55;
+}
+
+@media (max-width: 640px) {
+    .preview-slider__bridge-grid {
+        grid-template-columns: 1fr;
+    }
 }
