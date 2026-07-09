@@ -7,7 +7,7 @@ import {
   addToWatchlist,
   isInWatchlist,
   removeFromWatchlist,
-} from "../../../utils/WatchlistStorage.js";
+} from "../../../service/watchlist/watchlistStorage.js";
 import "./ShowCard.css";
 
 const TMDB_ASSET_BASEURL = import.meta.env.VITE_TMDB_ASSET_BASEURL;
@@ -21,7 +21,7 @@ const ShowCard = ({ show, cardType, showType }) => {
 
   useEffect(() => {
     setIsSavedToWatchlist(isInWatchlist(watchlistID));
-  }, [watchlistID]);
+  }, [isLoggedIn, watchlistID]);
 
   const handleWishlistClick = (event) => {
     event.preventDefault();

@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FaCheck } from "react-icons/fa6";
 import NoImagePlaceholder from "../../../assets/png/no_image_placeholder.png";
-import { getWatchlist, updateWatchlistItem } from "../../../utils/WatchlistStorage";
+import { getWatchlist, updateWatchlistItem } from "../../../service/watchlist/watchlistStorage";
 import { convertToSlug } from "../../../utils/StringUtils";
-import { setStoredVideoProgress } from "../../../utils/VideoProgressStorage";
+import { setStoredVideoProgress } from "../../../service/videoProgress/videoProgressStorage";
 import { useAuth } from "../../../context/AuthContext";
 import VidPlayer from "../../vidPlayer/VidPlayer";
 import "./EpisodeCard.css";
@@ -23,7 +23,6 @@ const EpisodeCard = ({
 }) => {
   const { isLoggedIn } = useAuth();
   const [isPlayerOpen, setIsPlayerOpen] = useState(false);
-  const [isAutoWatched, setIsAutoWatched] = useState(false);
   const autoNextFallbackRef = useRef(null);
   const watchlistItem = getWatchlist().find(
     (item) => item.id === `tv:${tmdbID}` || item.tmdbID === Number(tmdbID)
@@ -31,11 +30,10 @@ const EpisodeCard = ({
   const currentSeason = Number(watchlistItem?.currentSeason || 0);
   const currentEpisode = Number(watchlistItem?.currentEpisode || 0);
   const isWatched =
-    isAutoWatched ||
     watchlistItem?.progressStatus === "Completed" ||
     currentSeason > Number(season) ||
     (currentSeason === Number(season) &&
-      currentEpisode >= Number(episode.episode_number));
+      currentEpisode > Number(episode.episode_number));
 
   const buildEpisodeMetadata = useCallback(
     ({ season: metadataSeason, episode: metadataEpisode }) => ({
@@ -48,7 +46,7 @@ const EpisodeCard = ({
     [showTitle, tmdbID]
   );
 
-  const updateWatchlistProgress = useCallback((watchedSeason, watchedEpisode) => {
+  const updateWatchlistProgress = useCallback((nextSeason, nextEpisode, progressStatus = "Ongoing") => {
     const currentWatchlistItem = getWatchlist().find(
       (item) => item.id === `tv:${tmdbID}` || item.tmdbID === Number(tmdbID)
     );
@@ -60,35 +58,29 @@ const EpisodeCard = ({
     const savedSeason = Number(currentWatchlistItem.currentSeason || 0);
     const savedEpisode = Number(currentWatchlistItem.currentEpisode || 0);
     const isAheadOfSavedProgress =
-      watchedSeason > savedSeason ||
-      (watchedSeason === savedSeason && watchedEpisode > savedEpisode);
-
-    setIsAutoWatched(true);
+      nextSeason > savedSeason ||
+      (nextSeason === savedSeason && nextEpisode > savedEpisode);
 
     if (
       !isAheadOfSavedProgress &&
-      ["Ongoing", "Completed"].includes(currentWatchlistItem.progressStatus)
+      currentWatchlistItem.progressStatus === progressStatus
     ) {
       return;
     }
 
     updateWatchlistItem(currentWatchlistItem.id, {
       currentSeason: isAheadOfSavedProgress
-        ? watchedSeason
+        ? nextSeason
         : currentWatchlistItem.currentSeason,
       currentEpisode: isAheadOfSavedProgress
-        ? watchedEpisode
+        ? nextEpisode
         : currentWatchlistItem.currentEpisode,
-      progressStatus:
-        currentWatchlistItem.progressStatus === "Completed" && !isAheadOfSavedProgress
-          ? "Completed"
-          : "Ongoing",
+      progressStatus,
     });
   }, [tmdbID]);
 
-  const markEpisodeActive = useCallback(
+  const markEpisodeStarted = useCallback(
     (activeSeason = Number(season), activeEpisode = Number(episode.episode_number)) => {
-      updateWatchlistProgress(activeSeason, activeEpisode);
       setStoredVideoProgress(
         [
           `tv:${tmdbID}:s${activeSeason}:e${activeEpisode}`,
@@ -98,7 +90,7 @@ const EpisodeCard = ({
         buildEpisodeMetadata({ season: activeSeason, episode: activeEpisode })
       );
     },
-    [buildEpisodeMetadata, episode.episode_number, imdbID, season, tmdbID, updateWatchlistProgress]
+    [buildEpisodeMetadata, episode.episode_number, imdbID, season, tmdbID]
   );
 
   const getNextEpisodeTarget = useCallback(() => {
@@ -119,22 +111,22 @@ const EpisodeCard = ({
   }, [episode.episode_number, season, seasonEpisodeCount, totalSeasons]);
 
   const handleEpisodeComplete = useCallback(() => {
-    updateWatchlistProgress(Number(season), Number(episode.episode_number));
-  }, [episode.episode_number, season, updateWatchlistProgress]);
+    const nextEpisodeTarget = getNextEpisodeTarget();
 
-  const handlePlayerEpisodeChange = useCallback(
-    ({ season: nextSeason, episode: nextEpisode }) => {
-      markEpisodeActive(Number(nextSeason), Number(nextEpisode));
-    },
-    [markEpisodeActive]
-  );
+    if (!nextEpisodeTarget) {
+      updateWatchlistProgress(Number(season), Number(episode.episode_number), "Completed");
+      return;
+    }
+
+    updateWatchlistProgress(nextEpisodeTarget.season, nextEpisodeTarget.episode);
+  }, [episode.episode_number, getNextEpisodeTarget, season, updateWatchlistProgress]);
 
   useEffect(() => {
     if (isLoggedIn && autoPlay) {
       setIsPlayerOpen(true);
-      markEpisodeActive();
+      markEpisodeStarted();
     }
-  }, [autoPlay, isLoggedIn, markEpisodeActive]);
+  }, [autoPlay, isLoggedIn, markEpisodeStarted]);
 
   const openEpisodePlayer = () => {
     if (!isLoggedIn) {
@@ -142,7 +134,7 @@ const EpisodeCard = ({
     }
 
     setIsPlayerOpen(true);
-    markEpisodeActive();
+    markEpisodeStarted();
   };
 
   useEffect(() => {
@@ -166,7 +158,7 @@ const EpisodeCard = ({
     }
 
     autoNextFallbackRef.current = window.setTimeout(() => {
-      markEpisodeActive(nextEpisodeTarget.season, nextEpisodeTarget.episode);
+      updateWatchlistProgress(nextEpisodeTarget.season, nextEpisodeTarget.episode);
     }, Math.max(60, runtime * 60 * 0.92) * 1000);
 
     return () => {
@@ -175,7 +167,7 @@ const EpisodeCard = ({
         autoNextFallbackRef.current = null;
       }
     };
-  }, [episode.runtime, getNextEpisodeTarget, isPlayerOpen, markEpisodeActive]);
+  }, [episode.runtime, getNextEpisodeTarget, isPlayerOpen, updateWatchlistProgress]);
 
   const getCoverUrl = () => {
     const episodeCover =
@@ -224,18 +216,16 @@ const EpisodeCard = ({
           onOpenChange={(isOpen) => {
             setIsPlayerOpen(isOpen);
             if (isLoggedIn && isOpen) {
-              markEpisodeActive();
+              markEpisodeStarted();
             }
           }}
           title={`${showTitle ? `${showTitle} - ` : ""}S${season}E${episode.episode_number}`}
           runtimeMinutes={episode.runtime}
           onComplete={handleEpisodeComplete}
-          onEpisodeChange={handlePlayerEpisodeChange}
           progressMetadata={buildEpisodeMetadata({
             season,
             episode: episode.episode_number,
           })}
-          getProgressMetadata={buildEpisodeMetadata}
         />
       </div>
     </div>

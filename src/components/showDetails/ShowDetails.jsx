@@ -22,7 +22,7 @@ import {
   removeFromWatchlist,
   syncWatchlistItemMetadata,
   updateWatchlistItem,
-} from "../../utils/WatchlistStorage";
+} from "../../service/watchlist/watchlistStorage";
 import { useAuth } from "../../context/AuthContext";
 
 const TMDB_ASSET_BASEURL = import.meta.env.VITE_TMDB_ASSET_BASEURL;
@@ -156,7 +156,7 @@ const ShowDetails = ({
 
   useEffect(() => {
     setIsSavedToWatchlist(watchlistID ? isInWatchlist(watchlistID) : false);
-  }, [watchlistID]);
+  }, [isLoggedIn, watchlistID]);
 
   useEffect(() => {
     if (!watchlistID || showType !== "tv" || !show || !isInWatchlist(watchlistID)) {

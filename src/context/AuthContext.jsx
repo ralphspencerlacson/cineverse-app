@@ -1,44 +1,124 @@
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
-
-const AUTH_STORAGE_KEY = "cineverse_mock_auth";
-const MOCK_USERNAME = "admin";
-const MOCK_PASSWORD = "ea=P4D+CD4";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { supabase } from "../service/supabase/client";
+import { syncWatchlistForUser } from "../service/watchlist/watchlistSync";
+import { clearActiveWatchlistUser } from "../service/watchlist/watchlistStorage";
+import { syncVideoProgressForUser } from "../service/videoProgress/videoProgressSync";
+import { clearActiveVideoProgressUser } from "../service/videoProgress/videoProgressStorage";
 
 const AuthContext = createContext(null);
+const WATCHLIST_SYNC_INTERVAL_MS = 30 * 60 * 1000;
+
+const getProfileFromSession = (session) => {
+  if (!session?.user) {
+    return null;
+  }
+
+  return {
+    id: session.user.id,
+    email: session.user.email,
+    username: session.user.user_metadata?.username || session.user.email,
+  };
+};
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY));
-    } catch {
-      return null;
-    }
-  });
+  const [user, setUser] = useState(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
 
-  const login = useCallback(({ username, password }) => {
-    if (username !== MOCK_USERNAME || password !== MOCK_PASSWORD) {
-      return false;
+  const applySession = useCallback((session) => {
+    const profile = getProfileFromSession(session);
+
+    if (!profile) {
+      clearActiveWatchlistUser();
+      clearActiveVideoProgressUser();
+      setUser(null);
+      return;
     }
 
-    const nextUser = { username: MOCK_USERNAME };
-    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(nextUser));
-    setUser(nextUser);
-    return true;
+    syncWatchlistForUser(profile.id).catch((error) => {
+      console.error("Failed to sync watchlist", error);
+    });
+    syncVideoProgressForUser(profile.id).catch((error) => {
+      console.error("Failed to sync video progress", error);
+    });
+    setUser(profile);
   }, []);
 
-  const logout = useCallback(() => {
-    localStorage.removeItem(AUTH_STORAGE_KEY);
+  useEffect(() => {
+    let isActive = true;
+
+    const loadSession = async () => {
+      const { data } = await supabase.auth.getSession();
+
+      if (!isActive) {
+        return;
+      }
+
+      applySession(data.session);
+      setIsAuthLoading(false);
+    };
+
+    loadSession();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      applySession(session);
+      setIsAuthLoading(false);
+    });
+
+    return () => {
+      isActive = false;
+      authListener.subscription.unsubscribe();
+    };
+  }, [applySession]);
+
+  const login = useCallback(async ({ username, password }) => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: username.trim(),
+      password,
+    });
+
+    if (error) {
+      return { success: false, error: "Invalid username or password." };
+    }
+
+    applySession(data.session);
+    return { success: true };
+  }, [applySession]);
+
+  const logout = useCallback(async () => {
+    await supabase.auth.signOut();
+    clearActiveWatchlistUser();
+    clearActiveVideoProgressUser();
     setUser(null);
   }, []);
+
+  useEffect(() => {
+    if (!user?.id) {
+      return undefined;
+    }
+
+    const syncIntervalID = window.setInterval(() => {
+      syncWatchlistForUser(user.id).catch((error) => {
+        console.error("Failed to sync watchlist", error);
+      });
+      syncVideoProgressForUser(user.id).catch((error) => {
+        console.error("Failed to sync video progress", error);
+      });
+    }, WATCHLIST_SYNC_INTERVAL_MS);
+
+    return () => {
+      window.clearInterval(syncIntervalID);
+    };
+  }, [user?.id]);
 
   const value = useMemo(
     () => ({
       user,
       isLoggedIn: Boolean(user),
+      isAuthLoading,
       login,
       logout,
     }),
-    [login, logout, user]
+    [isAuthLoading, login, logout, user]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

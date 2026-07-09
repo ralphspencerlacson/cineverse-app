@@ -17,6 +17,7 @@ const Navbar = () => {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [loginForm, setLoginForm] = useState({ username: "", password: "" });
   const [loginError, setLoginError] = useState("");
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [loginPrompt, setLoginPrompt] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
@@ -132,11 +133,16 @@ const Navbar = () => {
     setLoginPrompt(null);
   };
 
-  const handleLoginSubmit = (event) => {
+  const handleLoginSubmit = async (event) => {
     event.preventDefault();
+    setIsLoggingIn(true);
+    setLoginError("");
 
-    if (!login(loginForm)) {
-      setLoginError("Invalid mock credentials.");
+    const result = await login(loginForm);
+    setIsLoggingIn(false);
+
+    if (!result.success) {
+      setLoginError(result.error || "Login failed. Please try again.");
       return;
     }
 
@@ -289,7 +295,7 @@ const Navbar = () => {
             <p className="login-mockup__eyebrow">Members only</p>
             <h2 id="login-title">Login to watch</h2>
             <p>
-              {loginPrompt?.message || "Use the mock admin profile to unlock video playback and your full watchlist dashboard."}
+              {loginPrompt?.message || "Sign in with your Cineverse account to unlock video playback and your full watchlist dashboard."}
             </p>
             <div className="login-mockup__features">
               <strong>When logged in, you can:</strong>
@@ -299,9 +305,9 @@ const Navbar = () => {
               {loginPrompt?.feature && <span>{loginPrompt.feature}</span>}
             </div>
             <label>
-              Username
+              Email
               <input
-                type="text"
+                type="email"
                 value={loginForm.username}
                 onChange={(event) =>
                   setLoginForm((currentValue) => ({
@@ -309,7 +315,7 @@ const Navbar = () => {
                     username: event.target.value,
                   }))
                 }
-                autoComplete="username"
+                autoComplete="email"
               />
             </label>
             <label>
@@ -327,7 +333,9 @@ const Navbar = () => {
               />
             </label>
             {loginError && <p className="login-mockup__error">{loginError}</p>}
-            <button type="submit">Enter Cineverse</button>
+            <button type="submit" disabled={isLoggingIn}>
+              {isLoggingIn ? "Signing in..." : "Enter Cineverse"}
+            </button>
           </form>
         </div>
       )}

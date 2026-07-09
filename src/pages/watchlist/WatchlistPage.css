@@ -66,6 +66,62 @@
   padding: 0.8rem 1rem;
 }
 
+.watchlist-sync-status {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: -0.35rem 0 1.25rem;
+  color: rgba(207, 215, 226, 0.72);
+  font-size: 0.82rem;
+}
+
+.watchlist-sync-status::before {
+  content: "";
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: rgba(207, 215, 226, 0.72);
+}
+
+.watchlist-sync-status.syncing::before {
+  background: #f0b24d;
+}
+
+.watchlist-sync-status.synced::before {
+  background: #55d98b;
+}
+
+.watchlist-sync-status.error::before {
+  background: #ce3824;
+}
+
+.watchlist-sync-status small {
+  color: rgba(255, 143, 128, 0.9);
+}
+
+.watchlist-sync-status button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(207, 215, 226, 0.82);
+  cursor: pointer;
+}
+
+.watchlist-sync-status button:hover:not(:disabled) {
+  border-color: rgba(206, 56, 36, 0.55);
+  color: #ffffff;
+}
+
+.watchlist-sync-status button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
 .watchlist-dashboard {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

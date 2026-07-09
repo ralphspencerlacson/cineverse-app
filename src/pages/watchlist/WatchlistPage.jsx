@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import {
   FaArrowUpRightFromSquare,
   FaTrash,
+  FaRotate,
   FaVolumeHigh,
   FaVolumeXmark,
 } from "react-icons/fa6";
@@ -13,12 +14,14 @@ import {
   removeFromWatchlist,
   syncWatchlistItemMetadata,
   updateWatchlistItem,
-} from "../../utils/WatchlistStorage";
-import { getVideoProgressEntries } from "../../utils/VideoProgressStorage";
+} from "../../service/watchlist/watchlistStorage";
+import { getVideoProgressEntries } from "../../service/videoProgress/videoProgressStorage";
 import { formatDate } from "../../utils/DateUtils";
 import instance from "../../service/tmdb/tmdb";
 import { getSeriesSeasons, getSeriesTrailers, getShowDetails } from "../../service/tmdb/requests";
 import { useAuth } from "../../context/AuthContext";
+import { getStoredWatchlistSyncStatus, syncWatchlistForUser } from "../../service/watchlist/watchlistSync";
+import { syncVideoProgressForUser } from "../../service/videoProgress/videoProgressSync";
 import "./WatchlistPage.css";
 
 const TMDB_ASSET_BASEURL = import.meta.env.VITE_TMDB_ASSET_BASEURL;
@@ -107,14 +110,14 @@ const getProgressPercent = (item, seasonEpisodeCounts = {}) => {
 
     return Math.min(
       100,
-      Math.max(0, ((watchedEpisodesBeforeSeason + currentEpisode) / totalEpisodes) * 100)
+      Math.max(0, ((watchedEpisodesBeforeSeason + currentEpisode - 1) / totalEpisodes) * 100)
     );
   }
 
   const totalSeasons = Number(item.totalSeasons);
 
   if (Number.isFinite(totalSeasons) && totalSeasons > 0) {
-    return Math.min(100, Math.max(0, (currentSeason / totalSeasons) * 100));
+    return Math.min(100, Math.max(0, ((currentSeason - 1) / totalSeasons) * 100));
   }
 
   return progressStatus === "Ongoing" ? 35 : 0;
@@ -160,10 +163,26 @@ const getItemDetailPath = (item) => {
   return query ? `${item.detailPath}?${query}` : item.detailPath;
 };
 
+const formatSyncDateTime = (date) => {
+  if (!date) {
+    return "Not synced yet";
+  }
+
+  try {
+    return new Intl.DateTimeFormat(undefined, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(date));
+  } catch {
+    return "Sync time unavailable";
+  }
+};
+
 const WatchlistPage = () => {
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, user } = useAuth();
   const [items, setItems] = useState(() => getWatchlist());
   const [message, setMessage] = useState("");
+  const [syncStatus, setSyncStatus] = useState({ state: "idle", syncedAt: null, error: "" });
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [titleFilter, setTitleFilter] = useState("");
@@ -231,9 +250,7 @@ const WatchlistPage = () => {
       } else if (sortConfig.key === "category") {
         result = getCategoryLabel(a).localeCompare(getCategoryLabel(b));
       } else if (sortConfig.key === "customSort") {
-        result = (a.customSort || a.franchise || "zzz").localeCompare(
-          b.customSort || b.franchise || "zzz"
-        );
+        result = (a.customSort || "zzz").localeCompare(b.customSort || "zzz");
       } else if (sortConfig.key === "progressStatus") {
         result =
           (STATUS_SORT_ORDER[getDisplayProgressStatus(a)] ?? 99) -
@@ -273,6 +290,36 @@ const WatchlistPage = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [rowsPerPage, statusFilter, titleFilter, typeFilter]);
+
+  useEffect(() => {
+    setItems(getWatchlist());
+    setSyncStatus(getStoredWatchlistSyncStatus(user?.id));
+  }, [user?.id]);
+
+  useEffect(() => {
+    const handleWatchlistSync = (event) => {
+      setItems(event.detail?.items || getWatchlist());
+    };
+
+    const handleWatchlistSyncStatus = (event) => {
+      if (event.detail?.userID && event.detail.userID !== user?.id) {
+        return;
+      }
+
+      setSyncStatus((currentStatus) => ({
+        ...currentStatus,
+        ...event.detail,
+      }));
+    };
+
+    window.addEventListener("cineverse-watchlist-sync", handleWatchlistSync);
+    window.addEventListener("cineverse-watchlist-sync-status", handleWatchlistSyncStatus);
+
+    return () => {
+      window.removeEventListener("cineverse-watchlist-sync", handleWatchlistSync);
+      window.removeEventListener("cineverse-watchlist-sync-status", handleWatchlistSyncStatus);
+    };
+  }, [user?.id]);
 
   useEffect(() => {
     const handleVideoProgress = () => {
@@ -633,6 +680,21 @@ const WatchlistPage = () => {
     }
   };
 
+  const handleManualSync = async () => {
+    if (!user?.id || syncStatus.state === "syncing") {
+      return;
+    }
+
+    try {
+      await Promise.all([
+        syncWatchlistForUser(user.id),
+        syncVideoProgressForUser(user.id),
+      ]);
+    } catch {
+      return;
+    }
+  };
+
   if (!isLoggedIn) {
     return (
       <main className="watchlist-page">
@@ -692,6 +754,26 @@ const WatchlistPage = () => {
       </section>
 
       {message && <p className="watchlist-page__message">{message}</p>}
+
+      <div className={`watchlist-sync-status ${syncStatus.state}`}>
+        <span>
+          {syncStatus.state === "syncing"
+            ? "Syncing watchlist..."
+            : `Last sync: ${formatSyncDateTime(syncStatus.syncedAt)}`}
+        </span>
+        <button
+          type="button"
+          onClick={handleManualSync}
+          disabled={syncStatus.state === "syncing"}
+          aria-label="Sync watchlist now"
+          title="Sync now"
+        >
+          <FaRotate aria-hidden="true" />
+        </button>
+        {syncStatus.state === "error" && syncStatus.error && (
+          <small>{syncStatus.error}</small>
+        )}
+      </div>
 
       <section className="watchlist-dashboard" aria-label="Watchlist dashboard">
         <article className="watchlist-stat-card">
@@ -926,7 +1008,7 @@ const WatchlistPage = () => {
                         <input
                           className="watchlist-custom-sort-input"
                           type="text"
-                          value={item.customSort || item.franchise || ""}
+                          value={item.customSort || ""}
                           placeholder="e.g. Marvel"
                           onChange={(event) =>
                             handleUpdate(item, { customSort: event.target.value })
@@ -954,7 +1036,7 @@ const WatchlistPage = () => {
                             <div className="watchlist-progress-summary">
                               <strong>{Math.round(progressPercent)}%</strong>
                               <span>
-                                S{item.currentSeason || 1}
+                                Next S{item.currentSeason || 1}
                                 {item.totalSeasons ? `/${item.totalSeasons}` : ""} · E{item.currentEpisode || 1}
                               </span>
                             </div>
@@ -987,11 +1069,11 @@ const WatchlistPage = () => {
                             </div>
                             <span>
                               {item.totalSeasons
-                                ? `Season ${item.currentSeason || 1} of ${item.totalSeasons}`
-                                : `Season ${item.currentSeason || 1}`}
+                                ? `Next season ${item.currentSeason || 1} of ${item.totalSeasons}`
+                                : `Next season ${item.currentSeason || 1}`}
                               {seasonEpisodeCount
-                                ? ` · Episode ${item.currentEpisode || 1} of ${seasonEpisodeCount}`
-                                : ` · Episode ${item.currentEpisode || 1}`}
+                                ? ` · episode ${item.currentEpisode || 1} of ${seasonEpisodeCount}`
+                                : ` · episode ${item.currentEpisode || 1}`}
                             </span>
                           </div>
                         ) : (
