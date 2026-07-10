@@ -621,6 +621,10 @@
   object-fit: cover;
 }
 
+.watchlist-preview-media iframe {
+  pointer-events: none;
+}
+
 .watchlist-preview-placeholder {
   display: grid;
   width: 100%;

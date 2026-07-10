@@ -72,6 +72,10 @@ export const getShowDetails = (type, id) => {
   return `/${type}/${id}?language=en-US`;
 }
 
+export const getShowPreview = (type, id) => {
+  return `/${type}/${id}?language=en-US&append_to_response=videos`;
+}
+
 export const getExternalIds = (type, id) => {
   return `/${type}/${id}/external_ids`;
 }

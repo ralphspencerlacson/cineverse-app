@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   FaArrowUpRightFromSquare,
@@ -18,7 +18,7 @@ import {
 import { getVideoProgressEntries } from "../../service/videoProgress/videoProgressStorage";
 import { formatDate } from "../../utils/DateUtils";
 import instance from "../../service/tmdb/tmdb";
-import { getSeriesSeasons, getSeriesTrailers, getShowDetails } from "../../service/tmdb/requests";
+import { getSeriesSeasons, getShowPreview } from "../../service/tmdb/requests";
 import { useAuth } from "../../context/AuthContext";
 import { getStoredWatchlistSyncStatus, syncWatchlistForUser } from "../../service/watchlist/watchlistSync";
 import { syncVideoProgressForUser } from "../../service/videoProgress/videoProgressSync";
@@ -200,6 +200,7 @@ const WatchlistPage = () => {
   const [videoProgressVersion, setVideoProgressVersion] = useState(0);
   const fileInputRef = useRef(null);
   const previewCloseTimeoutRef = useRef(null);
+  const previewFetchesRef = useRef(new Set());
   const infiniteScrollRef = useRef(null);
 
   const dashboardStats = useMemo(() => {
@@ -281,10 +282,94 @@ const WatchlistPage = () => {
     });
   }, [items, seasonEpisodeCounts, sortConfig, statusFilter, titleFilter, typeFilter]);
 
-  const paginatedItems = visibleItems.slice(0, visibleCount);
+  const paginatedItems = useMemo(
+    () => visibleItems.slice(0, visibleCount),
+    [visibleCount, visibleItems]
+  );
+  const previewPrefetchItems = useMemo(
+    () => paginatedItems.slice(0, 8),
+    [paginatedItems]
+  );
   const hoveredItem = useMemo(() => {
     return visibleItems.find((item) => item.id === hoveredItemId);
   }, [hoveredItemId, visibleItems]);
+
+  const getPreviewFallback = useCallback((item) => ({
+    isLoading: true,
+    isLoaded: false,
+    overview: item?.overview || "Loading preview...",
+    trailerKey: null,
+    backdropPath: item?.backdropPath || null,
+  }), []);
+
+  const fetchPreviewData = useCallback(async (item, { background = false } = {}) => {
+    if (!item?.id || previewFetchesRef.current.has(item.id)) {
+      return;
+    }
+
+    let shouldFetch = true;
+
+    setPreviewCache((currentCache) => {
+      const currentPreview = currentCache[item.id];
+      if (currentPreview?.isLoaded) {
+        shouldFetch = false;
+        return currentCache;
+      }
+
+      return {
+        ...currentCache,
+        [item.id]: {
+          ...getPreviewFallback(item),
+          ...currentPreview,
+          isLoading: !background,
+          isLoaded: false,
+        },
+      };
+    });
+
+    if (!shouldFetch) {
+      return;
+    }
+
+    previewFetchesRef.current.add(item.id);
+
+    try {
+      const response = await instance.get(getShowPreview(item.type, item.tmdbID));
+      const details = response.data || {};
+      const trailer = selectBestTrailer(details.videos?.results);
+      const syncedItems = syncWatchlistItemMetadata(item.id, {
+        tmdbStatus: details.status || null,
+        totalSeasons: details.number_of_seasons || item.totalSeasons,
+        totalEpisodes: details.number_of_episodes || item.totalEpisodes,
+        nextEpisodeDate: details.next_episode_to_air?.air_date || null,
+      });
+
+      setItems(syncedItems);
+      setPreviewCache((currentCache) => ({
+        ...currentCache,
+        [item.id]: {
+          isLoading: false,
+          isLoaded: true,
+          overview: details.overview || item.overview || "No description available yet.",
+          trailerKey: trailer?.key || null,
+          backdropPath: details.backdrop_path || item.backdropPath,
+        },
+      }));
+    } catch {
+      setPreviewCache((currentCache) => ({
+        ...currentCache,
+        [item.id]: {
+          ...getPreviewFallback(item),
+          isLoading: false,
+          isLoaded: true,
+          overview: item.overview || "Preview unavailable right now.",
+          backdropPath: item.backdropPath,
+        },
+      }));
+    } finally {
+      previewFetchesRef.current.delete(item.id);
+    }
+  }, [getPreviewFallback]);
 
   useEffect(() => {
     setVisibleCount(WATCHLIST_BATCH_SIZE);
@@ -380,70 +465,33 @@ const WatchlistPage = () => {
   }, [paginatedItems, seasonEpisodeCounts]);
 
   useEffect(() => {
-    if (!hoveredItem || previewCache[hoveredItem.id]) {
+    if (!hoveredItem) {
       return;
     }
 
-    let isActive = true;
+    fetchPreviewData(hoveredItem);
+  }, [fetchPreviewData, hoveredItem]);
 
-    const fetchPreview = async () => {
-      setPreviewCache((currentCache) => ({
-        ...currentCache,
-        [hoveredItem.id]: { isLoading: true },
-      }));
+  useEffect(() => {
+    const idleCallback = window.requestIdleCallback || ((callback) => window.setTimeout(callback, 600));
+    const cancelIdleCallback = window.cancelIdleCallback || window.clearTimeout;
+    const timeoutIDs = [];
 
-      try {
-        const [detailsResponse, trailerResponse] = await Promise.all([
-          instance.get(getShowDetails(hoveredItem.type, hoveredItem.tmdbID)),
-          instance.get(getSeriesTrailers(hoveredItem.type, hoveredItem.tmdbID)),
-        ]);
+    const idleID = idleCallback(() => {
+      previewPrefetchItems.forEach((item, index) => {
+        const timeoutID = window.setTimeout(() => {
+          fetchPreviewData(item, { background: true });
+        }, index * 350);
 
-        if (!isActive) {
-          return;
-        }
-
-        const trailer = selectBestTrailer(trailerResponse.data?.results);
-        const syncedItems = syncWatchlistItemMetadata(hoveredItem.id, {
-          tmdbStatus: detailsResponse.data?.status || null,
-          totalSeasons: detailsResponse.data?.number_of_seasons || hoveredItem.totalSeasons,
-          totalEpisodes: detailsResponse.data?.number_of_episodes || hoveredItem.totalEpisodes,
-          nextEpisodeDate: detailsResponse.data?.next_episode_to_air?.air_date || null,
-        });
-
-        setItems(syncedItems);
-
-        setPreviewCache((currentCache) => ({
-          ...currentCache,
-          [hoveredItem.id]: {
-            isLoading: false,
-            overview: detailsResponse.data?.overview || "No description available yet.",
-            trailerKey: trailer?.key || null,
-            backdropPath: detailsResponse.data?.backdrop_path || hoveredItem.backdropPath,
-          },
-        }));
-      } catch {
-        if (!isActive) {
-          return;
-        }
-
-        setPreviewCache((currentCache) => ({
-          ...currentCache,
-          [hoveredItem.id]: {
-            isLoading: false,
-            overview: "Preview unavailable right now.",
-            trailerKey: null,
-            backdropPath: hoveredItem.backdropPath,
-          },
-        }));
-      }
-    };
-
-    fetchPreview();
+        timeoutIDs.push(timeoutID);
+      });
+    });
 
     return () => {
-      isActive = false;
+      cancelIdleCallback(idleID);
+      timeoutIDs.forEach((timeoutID) => window.clearTimeout(timeoutID));
     };
-  }, [hoveredItem, previewCache]);
+  }, [fetchPreviewData, previewPrefetchItems]);
 
   const handleSort = (key) => {
     setSortConfig((currentSort) => ({
@@ -642,6 +690,12 @@ const WatchlistPage = () => {
 
     setPreviewPosition({ top, left });
     setPreviewSide(canOpenRight ? "right" : "left");
+    setPreviewCache((currentCache) => currentCache[item.id]
+      ? currentCache
+      : {
+          ...currentCache,
+          [item.id]: getPreviewFallback(item),
+        });
     setHoveredItemId(item.id);
   };
 
@@ -938,7 +992,7 @@ const WatchlistPage = () => {
                     ? `${TMDB_ASSET_BASEURL}${previewData.backdropPath}`
                     : null;
                   const trailerUrl = previewData?.trailerKey
-                    ? `https://www.youtube.com/embed/${previewData.trailerKey}?autoplay=1&mute=${previewMuted ? "1" : "0"}&controls=0&loop=1&playlist=${previewData.trailerKey}&playsinline=1&rel=0&modestbranding=1&disablekb=1&fs=0&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}`
+                    ? `https://www.youtube.com/embed/${previewData.trailerKey}?autoplay=1&mute=${previewMuted ? "1" : "0"}&controls=0&loop=1&playlist=${previewData.trailerKey}&playsinline=1&rel=0&modestbranding=1&disablekb=1&fs=0&iv_load_policy=3&cc_load_policy=0&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}`
                     : null;
                   const posterUrl = item.posterPath
                     ? `${TMDB_ASSET_BASEURL}${item.posterPath}`

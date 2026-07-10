@@ -91,6 +91,7 @@ const VidPlayer = ({
   const playerLoadTimeoutRef = useRef(null);
   const iframeRef = useRef(null);
   const providerProgressRef = useRef({ seconds: 0, duration: 0 });
+  const isPlaybackPausedRef = useRef(false);
 
   const isControlled = typeof isOpen === "boolean";
   const requestedShowPlayer = isControlled ? isOpen : internalShowPlayer;
@@ -149,6 +150,31 @@ const VidPlayer = ({
   };
   const handleClose = () => updateOpen(false);
 
+  const postPlaybackCommand = useCallback((command) => {
+    const iframeWindow = iframeRef.current?.contentWindow;
+    if (!iframeWindow) {
+      return;
+    }
+
+    iframeWindow.postMessage(
+      JSON.stringify({
+        event: "command",
+        func: command === "pause" ? "pauseVideo" : "playVideo",
+        args: [],
+      }),
+      "*"
+    );
+    iframeWindow.postMessage(
+      { type: "PLAYER_COMMAND", data: { event: command } },
+      "*"
+    );
+  }, []);
+
+  const togglePlayback = useCallback(() => {
+    isPlaybackPausedRef.current = !isPlaybackPausedRef.current;
+    postPlaybackCommand(isPlaybackPausedRef.current ? "pause" : "play");
+  }, [postPlaybackCommand]);
+
   useEffect(() => {
     if (isLoggedIn || !requestedShowPlayer) {
       return;
@@ -160,6 +186,29 @@ const VidPlayer = ({
       setInternalShowPlayer(false);
     }
   }, [isControlled, isLoggedIn, onOpenChange, requestedShowPlayer]);
+
+  useEffect(() => {
+    if (!showPlayer) {
+      return undefined;
+    }
+
+    isPlaybackPausedRef.current = false;
+
+    const handleKeyDown = (event) => {
+      if (event.code !== "Space" || event.repeat) {
+        return;
+      }
+
+      event.preventDefault();
+      togglePlayback();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [showPlayer, togglePlayback]);
 
   const clearPlayerLoadTimeout = useCallback(() => {
     if (playerLoadTimeoutRef.current) {
@@ -206,7 +255,9 @@ const VidPlayer = ({
     setStoredVideoProgress(progressKeys, playedSeconds, {
       ...(progressMetadata || {}),
       playbackSeconds: Math.floor(playedSeconds),
-      ...(durationSeconds ? { playbackDuration: durationSeconds } : {}),
+      ...(providerProgressRef.current.duration
+        ? { playbackDuration: providerProgressRef.current.duration }
+        : {}),
     });
   }, [getPlayedSeconds, progressKeys, progressMetadata, showPlayer]);
 
@@ -256,7 +307,11 @@ const VidPlayer = ({
     baseProgressRef.current = playedSeconds;
     sessionStartRef.current = Date.now();
 
-    setStoredVideoProgress(progressKeys, playedSeconds, progressMetadata);
+    setStoredVideoProgress(progressKeys, playedSeconds, {
+      ...(progressMetadata || {}),
+      playbackSeconds: Math.floor(playedSeconds),
+      ...(durationSeconds ? { playbackDuration: durationSeconds } : {}),
+    });
     maybeMarkComplete(playedSeconds, durationSeconds);
   }, [maybeMarkComplete, progressKeys, progressMetadata, showPlayer]);
 

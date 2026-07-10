@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 // Hooks
 import { useFetchApi } from "../../hooks/useFetchApi";
 // Service
@@ -8,6 +8,8 @@ import "./YoutubeTrailer.css";
 
 const YoutubeTrailer = ({ showType, tmdbID, title }) => {
   const [showTrailer, setShowTrailer] = useState(false);
+  const iframeRef = useRef(null);
+  const isPausedRef = useRef(false);
 
   const {
     isLoading,
@@ -22,6 +24,39 @@ const YoutubeTrailer = ({ showType, tmdbID, title }) => {
     return trailerVideo;
   };
 
+  const trailerKey = getTrailer()?.key;
+
+  useEffect(() => {
+    if (!showTrailer) {
+      return undefined;
+    }
+
+    isPausedRef.current = false;
+
+    const handleKeyDown = (event) => {
+      if (event.code !== "Space" || event.repeat) {
+        return;
+      }
+
+      event.preventDefault();
+      isPausedRef.current = !isPausedRef.current;
+      iframeRef.current?.contentWindow?.postMessage(
+        JSON.stringify({
+          event: "command",
+          func: isPausedRef.current ? "pauseVideo" : "playVideo",
+          args: [],
+        }),
+        "https://www.youtube.com"
+      );
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [showTrailer]);
+
   return (
     <>
       <a
@@ -34,11 +69,10 @@ const YoutubeTrailer = ({ showType, tmdbID, title }) => {
       {showTrailer && (
         <div className="trailer" onClick={() => setShowTrailer(false)}>
           <div className="container">
-            {trailer?.results && (
+            {trailerKey && (
               <iframe
-                src={`https://www.youtube.com/embed/${
-                  getTrailer()?.key
-                }?si=JCnaD6PZ1xf_D1ch?autoplay=1`}
+                ref={iframeRef}
+                src={`https://www.youtube.com/embed/${trailerKey}?autoplay=1&controls=0&playsinline=1&rel=0&modestbranding=1&disablekb=1&fs=0&iv_load_policy=3&cc_load_policy=0&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}`}
                 title={title}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share autoplay"
                 allowFullScreen
