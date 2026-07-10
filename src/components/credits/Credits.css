@@ -12,7 +12,14 @@
     gap: 1rem;
     overflow-y: hidden;
     overflow-x: scroll;
+    cursor: grab;
     overscroll-behavior-x: contain;
+    touch-action: pan-y;
+    user-select: none;
+}
+
+.credits .casts:active {
+    cursor: grabbing;
 }
 
 .credits .casts::-webkit-scrollbar {

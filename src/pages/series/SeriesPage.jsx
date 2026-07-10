@@ -70,6 +70,7 @@ const SeriesPage = () => {
             showTitle={show?.name || show?.original_name}
             imdbID={showIds?.imdb_id}
             initialSeason={selectedSeason}
+            initialEpisode={continueEpisode}
             autoPlayEpisode={shouldAutoplay ? continueEpisode : null}
           />
 

@@ -7,8 +7,6 @@
     border-radius: 0.6rem;
     overflow: hidden;
     cursor: pointer;
-    
-    scroll-snap-align: start;
 }
 .episode-card img {
     position: absolute;

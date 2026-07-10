@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useEffect } from "react";
+import React, { Suspense, lazy } from "react";
 import { getSeriesSeasons } from "../../../service/tmdb/requests";
 import { CineverseLoader } from "../../loading/PageSkeleton";
 // Hooks
@@ -15,6 +15,7 @@ const EpisodeList = ({
   imdbID,
   autoPlayEpisode,
   totalSeasons,
+  embedded = false,
 }) => {
   const {
     isLoading,
@@ -25,20 +26,35 @@ const EpisodeList = ({
   return (
     <>
       <Suspense fallback={<CineverseLoader label="Loading episodes" />}>
-        <div key={containerID} className="episode-list">
+        <div
+          key={containerID}
+          className={embedded ? "episode-list episode-list--embedded" : "episode-list"}
+          data-season={season}
+        >
+          {embedded && (
+            <div className="episode-list__season-marker">
+              <span>Season</span>
+              <strong>{season}</strong>
+            </div>
+          )}
           {seasonDetails?.episodes?.map((episode) => (
-            <EpisodeCard
+            <div
               key={episode?.episode_number}
-              episode={episode}
-              defaultImage={seasonDetails?.poster_path}
-              tmdbID={tmdbID}
-              season={season}
-              showTitle={showTitle}
-              imdbID={imdbID}
-              autoPlay={Number(autoPlayEpisode) === Number(episode?.episode_number)}
-              seasonEpisodeCount={seasonDetails?.episodes?.length}
-              totalSeasons={totalSeasons}
-            />
+              id={`season-${season}-episode-${episode?.episode_number}`}
+              className="episode-list__item"
+            >
+              <EpisodeCard
+                episode={episode}
+                defaultImage={seasonDetails?.poster_path}
+                tmdbID={tmdbID}
+                season={season}
+                showTitle={showTitle}
+                imdbID={imdbID}
+                autoPlay={Number(autoPlayEpisode) === Number(episode?.episode_number)}
+                seasonEpisodeCount={seasonDetails?.episodes?.length}
+                totalSeasons={totalSeasons}
+              />
+            </div>
           ))}
         </div>
       </Suspense>

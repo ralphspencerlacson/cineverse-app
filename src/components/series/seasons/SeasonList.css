@@ -38,3 +38,22 @@
 .season-list .seasons ul li.active {
     border-bottom: 2px solid #ce382480;
 }
+
+.season-list__episode-stream {
+    display: flex;
+    overflow-x: auto;
+    overflow-y: hidden;
+    gap: 1.25rem;
+    cursor: grab;
+    overscroll-behavior-x: contain;
+    touch-action: pan-y;
+    user-select: none;
+}
+
+.season-list__episode-stream:active {
+    cursor: grabbing;
+}
+
+.season-list__episode-stream::-webkit-scrollbar {
+    display: none;
+}

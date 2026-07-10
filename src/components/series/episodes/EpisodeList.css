@@ -1,14 +1,58 @@
 .episode-list {
-    padding: .4rem;
+    padding: 0.4rem 0;
     display: flex;
     flex-direction: row;
     gap: 1rem;
     overflow-y: hidden;
     overflow-x: scroll;
     overscroll-behavior-x: contain;
-    scroll-snap-type: x mandatory;
 }
 
 .episode-list::-webkit-scrollbar {
    display: none; 
+}
+
+.episode-list--embedded {
+    flex: 0 0 auto;
+    overflow: visible;
+    padding-left: 0;
+}
+
+.episode-list__season-marker {
+    position: sticky;
+    left: 0;
+    z-index: 5;
+    display: grid;
+    align-self: stretch;
+    flex: 0 0 5.5rem;
+    place-items: center;
+    min-height: 14rem;
+    border: 1px solid rgba(206, 56, 36, 0.35);
+    border-radius: 0 0.8rem 0.8rem 0;
+    background:
+        linear-gradient(180deg, rgba(206, 56, 36, 0.22), rgba(16, 16, 16, 0.92)),
+        #151515;
+    box-shadow: 1rem 0 1.2rem rgba(0, 0, 0, 0.38);
+    color: #ffffff;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+.episode-list__season-marker span {
+    color: rgba(255, 255, 255, 0.62);
+    font-size: 0.62rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    writing-mode: vertical-rl;
+}
+
+.episode-list__season-marker strong {
+    color: #ffb3a8;
+    font-size: 2rem;
+    line-height: 1;
+    text-shadow: 0 0 1rem rgba(206, 56, 36, 0.56);
+}
+
+.episode-list__item {
+    flex: 0 0 auto;
 }
