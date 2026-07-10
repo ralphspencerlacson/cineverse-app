@@ -226,7 +226,8 @@
     opacity: 0.8;
 }
 
-.show-details__movie-watch-panel {
+.show-details__movie-watch-panel,
+.show-details__series-episode-panel {
     position: relative;
     display: block;
     width: min(100%, 38rem);
@@ -245,11 +246,14 @@
 }
 
 .show-details__movie-watch-panel:hover,
-.show-details__movie-watch-panel:focus-visible {
+.show-details__movie-watch-panel:focus-visible,
+.show-details__series-episode-panel:hover,
+.show-details__series-episode-panel:focus-visible {
     border-color: rgba(206, 56, 36, 0.72);
 }
 
-.show-details__movie-watch-panel:focus-visible {
+.show-details__movie-watch-panel:focus-visible,
+.show-details__series-episode-panel:focus-visible {
     outline: 2px solid #ffffff;
     outline-offset: 4px;
 }

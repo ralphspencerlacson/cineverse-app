@@ -52,6 +52,7 @@ const SeriesList = () => {
           showType="tv"
           tmdbID={bannerShow?.id}
           allowLinkTitle={true}
+          showWatchButton={false}
         />
       )}
 

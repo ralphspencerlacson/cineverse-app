@@ -18,6 +18,7 @@ import { formatDate } from "../../utils/DateUtils";
 import { ShowDetailsSkeleton } from "../loading/PageSkeleton";
 import {
   addToWatchlist,
+  getWatchlist,
   isInWatchlist,
   removeFromWatchlist,
   syncWatchlistItemMetadata,
@@ -92,10 +93,39 @@ const ShowDetails = ({
 
   const shouldOpenPlayerByTitle = showType === "movie" && titleTriggersPlayer;
   const shouldShowMovieWatchPanel = showType === "movie" && showWatchButton;
+  const shouldShowSeriesEpisodePanel = showType === "tv" && showWatchButton;
   const watchlistID = show?.id ? `${showType}:${show.id}` : null;
   const detailPath = show?.id
     ? `/${showType === "tv" ? "series" : "movie"}/${show.id}-${convertToSlug(showTitle)}`
     : null;
+  const watchlistItem = watchlistID
+    ? getWatchlist().find((item) => item.id === watchlistID || item.tmdbID === Number(show?.id))
+    : null;
+  const currentSeason = Number(watchlistItem?.currentSeason || 0);
+  const currentEpisode = Number(watchlistItem?.currentEpisode || 0);
+  const hasSeriesProgress = currentSeason > 0 && currentEpisode > 0;
+
+  const handleSeriesEpisodePanelClick = () => {
+    if (hasSeriesProgress) {
+      const episodeCard = document.getElementById(
+        `season-${currentSeason}-episode-${currentEpisode}`
+      );
+
+      if (episodeCard) {
+        episodeCard.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+          inline: "center",
+        });
+        return;
+      }
+    }
+
+    document.getElementById("episodes")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  };
 
   const handleMovieComplete = useCallback(() => {
     if (!watchlistID || !isInWatchlist(watchlistID)) {
@@ -266,7 +296,7 @@ const ShowDetails = ({
                 showType={showType}
                 tmdbID={show?.id}
                 title={showTitle}
-                label={showType === "movie" ? "Play Trailer" : "Trailer"}
+                label={showWatchButton ? "Play Trailer" : "Trailer"}
               />
             )}
           </div>
@@ -292,6 +322,35 @@ const ShowDetails = ({
                   <strong>Watch Movie</strong>
                   <small>
                     {show?.runtime ? `${show.runtime} min runtime` : "Start streaming"}
+                  </small>
+                </span>
+              </span>
+            </button>
+          )}
+
+          {shouldShowSeriesEpisodePanel && (
+            <button
+              type="button"
+              className="show-details__series-episode-panel"
+              onClick={handleSeriesEpisodePanelClick}
+              style={backdropUrl ? { backgroundImage: `url(${backdropUrl})` } : undefined}
+              aria-label={hasSeriesProgress ? `Continue season ${currentSeason} episode ${currentEpisode}` : "Browse episodes"}
+            >
+              <span className="show-details__movie-watch-overlay" />
+              <span className="show-details__movie-watch-content">
+                <span className="show-details__movie-play-icon" aria-hidden="true">
+                  <FaPlay />
+                </span>
+                <span>
+                  <strong>
+                    {hasSeriesProgress
+                      ? `Continue S${currentSeason} E${currentEpisode}`
+                      : "Browse Episodes"}
+                  </strong>
+                  <small>
+                    {hasSeriesProgress
+                      ? "Jump back into the episode stream"
+                      : `${show?.number_of_seasons || seasonCount || 0} seasons / ${show?.number_of_episodes || 0} episodes`}
                   </small>
                 </span>
               </span>
