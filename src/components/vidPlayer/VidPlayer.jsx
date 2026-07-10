@@ -89,6 +89,8 @@ const VidPlayer = ({
   const visibilityHandlerRef = useRef(null);
   const completionMarkedRef = useRef(false);
   const playerLoadTimeoutRef = useRef(null);
+  const iframeRef = useRef(null);
+  const providerProgressRef = useRef({ seconds: 0, duration: 0 });
 
   const isControlled = typeof isOpen === "boolean";
   const requestedShowPlayer = isControlled ? isOpen : internalShowPlayer;
@@ -192,37 +194,142 @@ const VidPlayer = ({
     );
   }, []);
 
-  const saveProgress = useCallback(() => {
+  const saveProgress = useCallback((progressSeconds) => {
     if (!showPlayer || !progressKeys.length || !sessionStartRef.current) {
       return;
     }
 
-    const playedSeconds = getPlayedSeconds();
+    const playedSeconds = Number.isFinite(Number(progressSeconds))
+      ? Number(progressSeconds)
+      : getPlayedSeconds();
 
     setStoredVideoProgress(progressKeys, playedSeconds, progressMetadata);
   }, [getPlayedSeconds, progressKeys, progressMetadata, showPlayer]);
 
-  const maybeMarkComplete = useCallback(() => {
+  const maybeMarkComplete = useCallback((progressSeconds, durationSeconds) => {
     if (
       completionMarkedRef.current ||
-      !runtimeSeconds ||
       !sessionStartRef.current
     ) {
       return;
     }
 
-    const playedSeconds = getPlayedSeconds();
-    if (playedSeconds < runtimeSeconds * completionThreshold) {
+    const resolvedRuntimeSeconds = Number(durationSeconds) > 0
+      ? Number(durationSeconds)
+      : runtimeSeconds;
+
+    if (!resolvedRuntimeSeconds) {
+      return;
+    }
+
+    const playedSeconds = Number.isFinite(Number(progressSeconds))
+      ? Number(progressSeconds)
+      : getPlayedSeconds();
+
+    if (playedSeconds < resolvedRuntimeSeconds * completionThreshold) {
       return;
     }
 
     completionMarkedRef.current = true;
-    onComplete?.({ playedSeconds, runtimeSeconds });
+    onComplete?.({ playedSeconds, runtimeSeconds: resolvedRuntimeSeconds });
   }, [completionThreshold, getPlayedSeconds, onComplete, runtimeSeconds]);
+
+  const saveProviderProgress = useCallback((seconds, duration) => {
+    const playedSeconds = Number(seconds);
+    if (!showPlayer || !progressKeys.length || !Number.isFinite(playedSeconds) || playedSeconds < 1) {
+      return;
+    }
+
+    const resolvedDuration = Number(duration);
+    const durationSeconds = Number.isFinite(resolvedDuration) && resolvedDuration > 0
+      ? resolvedDuration
+      : 0;
+
+    providerProgressRef.current = {
+      seconds: playedSeconds,
+      duration: durationSeconds || providerProgressRef.current.duration,
+    };
+    baseProgressRef.current = playedSeconds;
+    sessionStartRef.current = Date.now();
+
+    setStoredVideoProgress(progressKeys, playedSeconds, progressMetadata);
+    maybeMarkComplete(playedSeconds, durationSeconds);
+  }, [maybeMarkComplete, progressKeys, progressMetadata, showPlayer]);
+
+  const parsePlayerMessage = useCallback((eventData) => {
+    if (!eventData) {
+      return null;
+    }
+
+    let data = eventData;
+    if (typeof data === "string") {
+      try {
+        data = JSON.parse(data);
+      } catch {
+        return null;
+      }
+    }
+
+    if (!data || typeof data !== "object") {
+      return null;
+    }
+
+    if (data.type === "PLAYER_EVENT") {
+      const playerData = data.data || {};
+      const playerProgress = Number(playerData.player_progress);
+      const timestamp = Number(playerData.timestamp);
+      const currentTime = Number(playerData.currentTime);
+      const duration = Number(playerData.duration) || 0;
+
+      if (Number.isFinite(playerProgress) && playerProgress > 0) {
+        return { seconds: playerProgress, duration };
+      }
+
+      if (Number.isFinite(timestamp) && timestamp > 0) {
+        return { seconds: timestamp, duration };
+      }
+
+      if (Number.isFinite(currentTime) && currentTime > 0) {
+        return { seconds: currentTime, duration };
+      }
+    }
+
+    const timestamp = Number(data.timestamp);
+    if (Number.isFinite(timestamp) && timestamp > 0) {
+      return {
+        seconds: timestamp,
+        duration: Number(data.duration) || 0,
+      };
+    }
+
+    return null;
+  }, []);
 
   useEffect(() => {
     completionMarkedRef.current = false;
+    providerProgressRef.current = { seconds: 0, duration: 0 };
   }, [type, tmdbID, imdbID, season, episode, runtimeSeconds]);
+
+  useEffect(() => {
+    if (!showPlayer) {
+      return undefined;
+    }
+
+    const handleProviderMessage = (event) => {
+      const progress = parsePlayerMessage(event.data);
+      if (!progress) {
+        return;
+      }
+
+      saveProviderProgress(progress.seconds, progress.duration);
+    };
+
+    window.addEventListener("message", handleProviderMessage);
+
+    return () => {
+      window.removeEventListener("message", handleProviderMessage);
+    };
+  }, [parsePlayerMessage, saveProviderProgress, showPlayer]);
 
   useEffect(() => {
     window.dispatchEvent(
@@ -274,20 +381,32 @@ const VidPlayer = ({
     }
 
     progressIntervalRef.current = window.setInterval(() => {
-      const playedSeconds = getPlayedSeconds();
+      const providerProgress = providerProgressRef.current;
+      const playedSeconds = providerProgress.seconds || getPlayedSeconds();
+
       setStoredVideoProgress(progressKeys, playedSeconds, progressMetadata);
-      maybeMarkComplete();
+      maybeMarkComplete(
+        providerProgress.seconds || undefined,
+        providerProgress.duration || undefined
+      );
     }, 10000);
+
+    const persistCurrentProgress = () => {
+      saveProgress(providerProgressRef.current.seconds || undefined);
+    };
 
     visibilityHandlerRef.current = () => {
       if (document.visibilityState === "hidden") {
-        saveProgress();
-        maybeMarkComplete();
+        persistCurrentProgress();
+        maybeMarkComplete(
+          providerProgressRef.current.seconds || undefined,
+          providerProgressRef.current.duration || undefined
+        );
       }
     };
 
-    window.addEventListener("beforeunload", saveProgress);
-    window.addEventListener("pagehide", saveProgress);
+    window.addEventListener("beforeunload", persistCurrentProgress);
+    window.addEventListener("pagehide", persistCurrentProgress);
     document.addEventListener("visibilitychange", visibilityHandlerRef.current);
 
     return () => {
@@ -296,8 +415,8 @@ const VidPlayer = ({
         progressIntervalRef.current = null;
       }
 
-      window.removeEventListener("beforeunload", saveProgress);
-      window.removeEventListener("pagehide", saveProgress);
+      window.removeEventListener("beforeunload", persistCurrentProgress);
+      window.removeEventListener("pagehide", persistCurrentProgress);
 
       if (visibilityHandlerRef.current) {
         document.removeEventListener(
@@ -307,8 +426,11 @@ const VidPlayer = ({
         visibilityHandlerRef.current = null;
       }
 
-      saveProgress();
-      maybeMarkComplete();
+      saveProgress(providerProgressRef.current.seconds || undefined);
+      maybeMarkComplete(
+        providerProgressRef.current.seconds || undefined,
+        providerProgressRef.current.duration || undefined
+      );
       sessionStartRef.current = null;
     };
   }, [getPlayedSeconds, maybeMarkComplete, progressKeys, progressMetadata, saveProgress, showPlayer, resumeAt]);
@@ -351,6 +473,7 @@ const VidPlayer = ({
                 loading="lazy"
                 title={title}
                 onLoad={handlePlayerLoad}
+                ref={iframeRef}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 referrerPolicy="strict-origin"
                 allowFullScreen

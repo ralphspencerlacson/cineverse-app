@@ -142,6 +142,8 @@ const STATUS_SORT_ORDER = {
   Dropped: 3,
 };
 
+const WATCHLIST_BATCH_SIZE = 20;
+
 const getItemDetailPath = (item) => {
   if (!item?.detailPath) {
     return "/";
@@ -188,8 +190,7 @@ const WatchlistPage = () => {
   const [titleFilter, setTitleFilter] = useState("");
   const [openHeaderMenu, setOpenHeaderMenu] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: "progressStatus", direction: "asc" });
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [visibleCount, setVisibleCount] = useState(WATCHLIST_BATCH_SIZE);
   const [hoveredItemId, setHoveredItemId] = useState(null);
   const [previewCache, setPreviewCache] = useState({});
   const [previewPosition, setPreviewPosition] = useState({ top: 0, left: 0 });
@@ -199,6 +200,7 @@ const WatchlistPage = () => {
   const [videoProgressVersion, setVideoProgressVersion] = useState(0);
   const fileInputRef = useRef(null);
   const previewCloseTimeoutRef = useRef(null);
+  const infiniteScrollRef = useRef(null);
 
   const dashboardStats = useMemo(() => {
     const movies = items.filter((item) => item.type === "movie");
@@ -279,17 +281,34 @@ const WatchlistPage = () => {
     });
   }, [items, seasonEpisodeCounts, sortConfig, statusFilter, titleFilter, typeFilter]);
 
-  const totalPages = Math.max(1, Math.ceil(visibleItems.length / rowsPerPage));
-  const safeCurrentPage = Math.min(currentPage, totalPages);
-  const pageStartIndex = (safeCurrentPage - 1) * rowsPerPage;
-  const paginatedItems = visibleItems.slice(pageStartIndex, pageStartIndex + rowsPerPage);
+  const paginatedItems = visibleItems.slice(0, visibleCount);
   const hoveredItem = useMemo(() => {
-    return paginatedItems.find((item) => item.id === hoveredItemId);
-  }, [hoveredItemId, paginatedItems]);
+    return visibleItems.find((item) => item.id === hoveredItemId);
+  }, [hoveredItemId, visibleItems]);
 
   useEffect(() => {
-    setCurrentPage(1);
-  }, [rowsPerPage, statusFilter, titleFilter, typeFilter]);
+    setVisibleCount(WATCHLIST_BATCH_SIZE);
+  }, [sortConfig, statusFilter, titleFilter, typeFilter]);
+
+  useEffect(() => {
+    const sentinel = infiniteScrollRef.current;
+    if (!sentinel || visibleCount >= visibleItems.length) {
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setVisibleCount((count) => Math.min(count + WATCHLIST_BATCH_SIZE, visibleItems.length));
+        }
+      },
+      { rootMargin: "240px" }
+    );
+
+    observer.observe(sentinel);
+
+    return () => observer.disconnect();
+  }, [visibleCount, visibleItems.length]);
 
   useEffect(() => {
     setItems(getWatchlist());
@@ -611,13 +630,14 @@ const WatchlistPage = () => {
 
     const cardWidth = Math.min(448, window.innerWidth * 0.72);
     const cardHeight = 430;
-    const canOpenRight = event.clientX + cardWidth + 18 < window.innerWidth;
+    const margin = 12;
+    const canOpenRight = event.clientX + cardWidth - 24 < window.innerWidth - margin;
     const left = canOpenRight
-      ? event.clientX + 16
-      : Math.max(12, event.clientX - cardWidth - 16);
-    const top = Math.min(
-      Math.max(12, event.clientY - 72),
-      Math.max(12, window.innerHeight - cardHeight - 12)
+      ? Math.min(event.clientX - 24, window.innerWidth - cardWidth - margin)
+      : Math.max(margin, event.clientX - cardWidth + 24);
+    const top = Math.max(
+      margin,
+      Math.min(event.clientY - 72, window.innerHeight - cardHeight - margin)
     );
 
     setPreviewPosition({ top, left });
@@ -903,7 +923,7 @@ const WatchlistPage = () => {
                   <th>{renderSortableHeader("Release", "tmdbStatus")}</th>
                   <th>{renderSortableHeader("Next", "nextEpisodeDate")}</th>
                   <th>{renderSortableHeader("Updated", "updatedAt")}</th>
-                  <th>Actions</th>
+                  <th className="watchlist-actions-column">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -933,7 +953,6 @@ const WatchlistPage = () => {
                         <div
                           className="watchlist-title-cell"
                           onMouseEnter={(event) => handleRowPreviewOpen(item, event)}
-                          onMouseMove={(event) => handleRowPreviewOpen(item, event)}
                           onMouseLeave={handlePreviewClose}
                         >
                           {posterUrl && <img src={posterUrl} alt={item.title} />}
@@ -1091,7 +1110,7 @@ const WatchlistPage = () => {
                       <td>{item.tmdbStatus || "-"}</td>
                       <td>{item.type === "tv" ? formatStoredDate(item.nextEpisodeDate) : "-"}</td>
                       <td>{formatStoredDate(item.updatedAt)}</td>
-                      <td>
+                      <td className="watchlist-actions-column">
                         <div className="watchlist-actions">
                           <Link
                             className="watchlist-icon-action"
@@ -1124,44 +1143,10 @@ const WatchlistPage = () => {
 
             <div className="watchlist-table-footer">
               <span>
-                Showing {visibleItems.length ? pageStartIndex + 1 : 0}-
-                {Math.min(pageStartIndex + rowsPerPage, visibleItems.length)} of {visibleItems.length}
+                Showing {paginatedItems.length} of {visibleItems.length}
               </span>
-
-              <div className="watchlist-pagination-controls">
-                <label>
-                  Rows
-                  <select
-                    value={rowsPerPage}
-                    onChange={(event) => setRowsPerPage(Number(event.target.value))}
-                  >
-                    {[5, 10, 20, 50].map((count) => (
-                      <option key={count} value={count}>
-                        {count}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-                  disabled={safeCurrentPage === 1}
-                >
-                  Prev
-                </button>
-                <strong>
-                  {safeCurrentPage} / {totalPages}
-                </strong>
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
-                  disabled={safeCurrentPage === totalPages}
-                >
-                  Next
-                </button>
-              </div>
             </div>
+            <div ref={infiniteScrollRef} className="watchlist-infinite-sentinel" aria-hidden="true" />
           </section>
         </>
       )}

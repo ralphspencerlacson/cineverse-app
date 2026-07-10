@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../service/supabase/client";
 import { syncWatchlistForUser } from "../service/watchlist/watchlistSync";
 import { clearActiveWatchlistUser } from "../service/watchlist/watchlistStorage";
@@ -23,6 +23,7 @@ const getProfileFromSession = (session) => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const syncedUserIDRef = useRef(null);
 
   const applySession = useCallback((session) => {
     const profile = getProfileFromSession(session);
@@ -30,17 +31,24 @@ export const AuthProvider = ({ children }) => {
     if (!profile) {
       clearActiveWatchlistUser();
       clearActiveVideoProgressUser();
+      syncedUserIDRef.current = null;
       setUser(null);
       return;
     }
 
+    setUser(profile);
+
+    if (syncedUserIDRef.current === profile.id) {
+      return;
+    }
+
+    syncedUserIDRef.current = profile.id;
     syncWatchlistForUser(profile.id).catch((error) => {
       console.error("Failed to sync watchlist", error);
     });
     syncVideoProgressForUser(profile.id).catch((error) => {
       console.error("Failed to sync video progress", error);
     });
-    setUser(profile);
   }, []);
 
   useEffect(() => {
@@ -88,6 +96,7 @@ export const AuthProvider = ({ children }) => {
     await supabase.auth.signOut();
     clearActiveWatchlistUser();
     clearActiveVideoProgressUser();
+    syncedUserIDRef.current = null;
     setUser(null);
   }, []);
 
