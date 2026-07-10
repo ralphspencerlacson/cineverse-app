@@ -62,7 +62,13 @@ const SeriesPage = () => {
             showData={show}
             showPlot={true}
             showProducers={true}
+            variant="detail"
           />
+
+          <section className="series-page__episodes-heading" aria-labelledby="series-episodes-title">
+            <p>Season Guide</p>
+            <h2 id="series-episodes-title">Episodes</h2>
+          </section>
 
           <SeasonList
             tmdbID={id}

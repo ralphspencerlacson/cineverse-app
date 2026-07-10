@@ -53,6 +53,7 @@ const MoviePage = () => {
             showData={movie}
             showPlot={true}
             autoPlay={shouldAutoplay}
+            variant="detail"
           />
 
           <div style={{ backgroundColor: "rgba(255,255,255,3%)" }}>

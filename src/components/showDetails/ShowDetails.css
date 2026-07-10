@@ -59,6 +59,16 @@
     position: relative;
 }
 
+.show-details__eyebrow {
+    margin: 0 0 0.7rem;
+    color: #ce3824;
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    line-height: 1.2;
+    text-transform: uppercase;
+}
+
 .show-details__network-badge {
     display: inline-flex;
     align-items: center;
@@ -180,6 +190,20 @@
 .show-details .btn.visit:hover {
     background-color: rgba(255, 255, 255, 0.14);
     border-color: rgba(255, 255, 255, 0.38);
+}
+
+.show-details__view-details {
+    display: inline-flex;
+    align-items: center;
+    background-color: #ce3824;
+    color: #ffffff;
+    border: 1px solid #ce3824;
+    text-decoration: none;
+}
+
+.show-details__view-details:hover {
+    background-color: #b92f1e;
+    border-color: #b92f1e;
 }
 
 .show-details .btn.watchlist {
@@ -315,6 +339,56 @@
     line-height: 1.8em;
 }
 
+.show-details--hero {
+    max-width: 42rem;
+    padding-inline: 0;
+}
+
+.show-details--hero .show-details__layout {
+    display: block;
+}
+
+.show-details--hero .show-details__title-row {
+    margin-top: 0;
+}
+
+.show-details--hero h1 {
+    max-width: min(100%, 14ch);
+    font-size: clamp(2.4rem, 7vw, 5.2rem);
+    line-height: 0.95;
+    white-space: normal;
+}
+
+.show-details--hero .show-details__actions {
+    margin: 1.3rem 0 0;
+}
+
+.show-details--hero ul {
+    margin: 1rem 0 0;
+    color: rgba(255, 255, 255, 0.76);
+}
+
+.show-details--hero .overview,
+.show-details--hero .plot,
+.show-details--hero .genre-pills,
+.show-details--hero .language {
+    display: none;
+}
+
+.show-details--detail .show-details__eyebrow {
+    color: rgba(255, 255, 255, 0.72);
+}
+
+.show-details--detail h1 {
+    display: -webkit-box;
+    max-width: min(100%, 20ch);
+    overflow: hidden;
+    text-align: left;
+    white-space: normal;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
 .show-details .genre-pills {
     margin: 1.4rem 0;
     display: flex;
@@ -335,7 +409,7 @@
 
 .movie-list .show-details,
 .series-list .show-details {
-    margin: -24rem auto 0rem;
+    margin: -24rem auto 0rem max(1rem, calc((100% - 96rem) / 2));
 }
 
 .movie-page .show-details,
@@ -346,7 +420,10 @@
 @media (min-width: 640px) {
 
     .movie-list .show-details,
-    .series-list .show-details,
+    .series-list .show-details {
+        margin: -24rem auto 1rem max(1rem, calc((100% - 96rem) / 2));
+    }
+
     .movie-page .show-details,
     .series-page .show-details {
         margin: -24rem auto 1rem;
@@ -378,7 +455,10 @@
 @media (min-width: 1024px) {
 
     .movie-list .show-details,
-    .series-list .show-details,
+    .series-list .show-details {
+        margin: -24rem auto 1rem max(1rem, calc((100% - 96rem) / 2));
+    }
+
     .movie-page .show-details,
     .series-page .show-details {
         margin: -24rem auto 1rem;

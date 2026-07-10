@@ -1,3 +1,26 @@
 .series-page {
     position: relative;
 }
+
+.series-page__episodes-heading {
+    position: relative;
+    z-index: 4;
+    margin: 2rem auto -1.5rem;
+    padding: 0 1rem;
+    text-align: left;
+}
+
+.series-page__episodes-heading p {
+    margin: 0 0 0.3rem;
+    color: #ce3824;
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.series-page__episodes-heading h2 {
+    margin: 0;
+    font-size: clamp(2rem, 5vw, 3.8rem);
+    line-height: 1;
+}

@@ -38,6 +38,7 @@ const ShowDetails = ({
   showWatchButton = true,
   autoPlay = false,
   showData = null,
+  variant = "detail",
 }) => {
   const { isLoggedIn } = useAuth();
   const [contentRating, setContentRating] = useState(null);
@@ -82,6 +83,8 @@ const ShowDetails = ({
   const languageText = otherDetails?.Language || languageFromTmdb || "Not available";
 
   const showTitle = show?.title || show?.name || show?.original_name;
+  const isHeroVariant = variant === "hero";
+  const pageTypeLabel = showType === "tv" ? "Series" : "Movie";
   const networkLength = show?.networks?.length - 1;
   const genres = show?.genres || [];
   const seasonCount = show?.seasons?.length;
@@ -92,8 +95,8 @@ const ShowDetails = ({
       : "";
 
   const shouldOpenPlayerByTitle = showType === "movie" && titleTriggersPlayer;
-  const shouldShowMovieWatchPanel = showType === "movie" && showWatchButton;
-  const shouldShowSeriesEpisodePanel = showType === "tv" && showWatchButton;
+  const shouldShowMovieWatchPanel = !isHeroVariant && showType === "movie" && showWatchButton;
+  const shouldShowSeriesEpisodePanel = !isHeroVariant && showType === "tv" && showWatchButton;
   const watchlistID = show?.id ? `${showType}:${show.id}` : null;
   const detailPath = show?.id
     ? `/${showType === "tv" ? "series" : "movie"}/${show.id}-${convertToSlug(showTitle)}`
@@ -225,9 +228,9 @@ const ShowDetails = ({
   }
 
   return (
-    <section className="show-details">
+    <section className={`show-details show-details--${variant}`}>
       <div className="show-details__layout">
-        {posterUrl && (
+        {!isHeroVariant && posterUrl && (
           <div className="show-details__poster-wrap">
             <img className="show-details__poster" src={posterUrl} alt={showTitle} />
 
@@ -241,7 +244,11 @@ const ShowDetails = ({
         )}
 
         <div className="show-details__body">
-          {networkLogoUrl && (
+          <p className="show-details__eyebrow">
+            {isHeroVariant ? `Featured ${pageTypeLabel}` : pageTypeLabel}
+          </p>
+
+          {!isHeroVariant && networkLogoUrl && (
             <div className="show-details__network-badge" aria-label={`Available on ${network?.name}`}>
               <span>Available on</span>
               <img
@@ -280,7 +287,13 @@ const ShowDetails = ({
 
           {/* Buttons */}
           <div className="show-details__actions">
-            {show?.homepage && (
+            {isHeroVariant && detailPath && (
+              <Link className="btn show-details__view-details" to={detailPath}>
+                View Details
+              </Link>
+            )}
+
+            {!isHeroVariant && show?.homepage && (
               <a
                 className="btn visit"
                 href={show?.homepage}
@@ -296,7 +309,7 @@ const ShowDetails = ({
                 showType={showType}
                 tmdbID={show?.id}
                 title={showTitle}
-                label={showWatchButton ? "Play Trailer" : "Trailer"}
+                label={!isHeroVariant && showWatchButton ? "Play Trailer" : "Trailer"}
               />
             )}
           </div>
@@ -357,6 +370,7 @@ const ShowDetails = ({
             </button>
           )}
 
+          {!isHeroVariant && (
           <button
             type="button"
             className={`show-details__wishlist-button ${isSavedToWatchlist ? "saved" : ""}`}
@@ -368,6 +382,7 @@ const ShowDetails = ({
             </span>
             {isSavedToWatchlist ? "Watchlisted" : "Add to Watchlist"}
           </button>
+          )}
 
           {/* Trailer */}
           {show && (

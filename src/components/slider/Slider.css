@@ -85,15 +85,17 @@
    .slider .slide .container {
      position: relative;
      display: flex;
+     align-items: flex-end;
      justify-content: center;
+     min-height: 100%;
      z-index: 3;
-   }
+    }
   
    .slider .slide .container .wrapper {
      position: relative;
      width: min(100% - 2rem, 96rem);
-     padding-top: clamp(18rem, 34vh, 23rem);
-   }
+     padding: 0 0 clamp(5rem, 11vh, 8rem);
+    }
 
   .slide__kicker {
     width: fit-content;

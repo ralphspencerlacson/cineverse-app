@@ -126,6 +126,7 @@ const SlideItem = ({ showType, data }) => {
                 allowLinkTitle={false}
                 showData={data}
                 showWatchButton={false}
+                variant="hero"
               />
             </div>
           </div>

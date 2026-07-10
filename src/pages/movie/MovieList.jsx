@@ -49,6 +49,7 @@ const MovieList = () => {
           tmdbID={bannerShow?.id}
           allowLinkTitle={true}
           showWatchButton={false}
+          variant="hero"
         />
       )}
 
