@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import Slider from "../../../components/slider/Slider";
 import Newsletter from "../../../components/newsletter/Newsletter";
 import networks from "../../../service/networks";
 import instance from "../../../service/tmdb/tmdb";
 import "./PreviewSlider.css";
+
+const ScrollCameraModel = lazy(() => import("./ScrollCameraModel"));
 
 const getRandomResult = (results = []) => {
   if (!results.length) {
@@ -15,6 +17,7 @@ const getRandomResult = (results = []) => {
 
 const PreviewSlider = () => {
   const [slideData, setSlideData] = useState([]);
+  const bridgeRef = useRef(null);
   const headlineRef = useRef(null);
   const isHeadlineHoveredRef = useRef(false);
   const glowPositionRef = useRef({ x: 50, y: 50 });
@@ -135,29 +138,37 @@ const PreviewSlider = () => {
 
       <Newsletter />
 
-      <section className="preview-slider__bridge" aria-label="Cineverse benefits">
-        <div>
-          <p className="preview-slider__bridge-eyebrow">Watch smarter</p>
-          <h2>Less wandering. More watching.</h2>
-          <p>
-            Use Cineverse as your quiet control room: discover what is trending,
-            save what matters, and return exactly where you left off.
-          </p>
+      <section ref={bridgeRef} className="preview-slider__bridge" aria-label="Cineverse benefits">
+        <div className="preview-slider__bridge-model">
+          <Suspense fallback={<div className="preview-slider__camera-fallback" aria-hidden="true"><span /><span /><span /></div>}>
+            <ScrollCameraModel sectionRef={bridgeRef} />
+          </Suspense>
         </div>
 
-        <div className="preview-slider__bridge-grid">
-          <article>
-            <strong>One watch hub</strong>
-            <span>Movies, series, progress, and saved picks stay in one place.</span>
-          </article>
-          <article>
-            <strong>Resume faster</strong>
-            <span>Continue movies and episodes without digging through pages.</span>
-          </article>
-          <article>
-            <strong>Local control</strong>
-            <span>Keep your watchlist portable with simple import and export.</span>
-          </article>
+        <div className="preview-slider__bridge-content">
+          <div>
+            <p className="preview-slider__bridge-eyebrow">Watch smarter</p>
+            <h2>Less wandering. More watching.</h2>
+            <p>
+              Use Cineverse as your quiet control room: discover what is trending,
+              save what matters, and return exactly where you left off.
+            </p>
+          </div>
+
+          <div className="preview-slider__bridge-grid">
+            <article>
+              <strong>One watch hub</strong>
+              <span>Movies, series, progress, and saved picks stay in one place.</span>
+            </article>
+            <article>
+              <strong>Resume faster</strong>
+              <span>Continue movies and episodes without digging through pages.</span>
+            </article>
+            <article>
+              <strong>Local control</strong>
+              <span>Keep your watchlist portable with simple import and export.</span>
+            </article>
+          </div>
         </div>
       </section>
     </div>

@@ -203,7 +203,11 @@ const VidPlayer = ({
       ? Number(progressSeconds)
       : getPlayedSeconds();
 
-    setStoredVideoProgress(progressKeys, playedSeconds, progressMetadata);
+    setStoredVideoProgress(progressKeys, playedSeconds, {
+      ...(progressMetadata || {}),
+      playbackSeconds: Math.floor(playedSeconds),
+      ...(durationSeconds ? { playbackDuration: durationSeconds } : {}),
+    });
   }, [getPlayedSeconds, progressKeys, progressMetadata, showPlayer]);
 
   const maybeMarkComplete = useCallback((progressSeconds, durationSeconds) => {

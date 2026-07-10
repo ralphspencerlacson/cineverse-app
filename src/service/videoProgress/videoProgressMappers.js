@@ -45,16 +45,27 @@ export const toVideoProgressRow = (userID, entry) => {
     return null;
   }
 
+  const seconds = Math.floor(Number(entry.seconds) || 0);
+  const duration = Number(entry.metadata?.playbackDuration || entry.metadata?.duration || 0);
+  const currentProgress = Number.isFinite(duration) && duration > 0
+    ? Math.min(100, Math.max(0, Math.round((seconds / duration) * 100)))
+    : Math.min(100, Math.max(0, seconds));
+  const metadata = {
+    ...(entry.metadata || {}),
+    playbackSeconds: seconds,
+    ...(duration > 0 ? { playbackDuration: duration } : {}),
+  };
+
   return {
     user_id: userID,
     content_type: parsedKey.contentType,
     tmdb_id: parsedKey.tmdbID,
     season_number: parsedKey.seasonNumber,
     episode_number: parsedKey.episodeNumber,
-    current_progress: Math.floor(Number(entry.seconds) || 0),
+    current_progress: currentProgress,
     is_finished: Boolean(entry.isFinished),
     finished_at: entry.finishedAt || null,
-    metadata: entry.metadata || null,
+    metadata,
     updated_at: entry.updatedAt || new Date().toISOString(),
   };
 };
@@ -67,7 +78,7 @@ export const fromVideoProgressRow = (row) => {
 
   return {
     key,
-    seconds: Math.floor(Number(row.current_progress) || 0),
+    seconds: Math.floor(Number(row.metadata?.playbackSeconds ?? row.current_progress) || 0),
     updatedAt: row.updated_at,
     metadata: row.metadata || null,
     isFinished: row.is_finished,
