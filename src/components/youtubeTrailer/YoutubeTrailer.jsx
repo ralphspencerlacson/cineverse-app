@@ -6,7 +6,7 @@ import { getSeriesTrailers } from "../../service/tmdb/requests";
 // CSS
 import "./YoutubeTrailer.css";
 
-const YoutubeTrailer = ({ showType, tmdbID, title }) => {
+const YoutubeTrailer = ({ showType, tmdbID, title, label = "Trailer" }) => {
   const [showTrailer, setShowTrailer] = useState(false);
   const iframeRef = useRef(null);
   const isPausedRef = useRef(false);
@@ -63,7 +63,7 @@ const YoutubeTrailer = ({ showType, tmdbID, title }) => {
         className="btn btn-trailer"
         onClick={() => setShowTrailer(!showTrailer)}
       >
-        Trailer
+        {label}
       </a>
 
       {showTrailer && (

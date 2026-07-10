@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { FaHeart, FaRegHeart } from "react-icons/fa6";
+import { FaHeart, FaPlay, FaRegHeart } from "react-icons/fa6";
 import YoutubeTrailer from "../../components/youtubeTrailer/YoutubeTrailer";
 import VidPlayer from "../../components/vidPlayer/VidPlayer";
 import Producers from "../producers/Producers";
@@ -63,6 +63,9 @@ const ShowDetails = ({
   const posterUrl = show?.poster_path
     ? `${TMDB_ASSET_BASEURL}${show.poster_path}`
     : null;
+  const backdropUrl = show?.backdrop_path
+    ? `${TMDB_ASSET_BASEURL}${show.backdrop_path}`
+    : posterUrl;
 
   const networkLogoUrl = network?.logo_path
     ? `${TMDB_ASSET_BASEURL}${network.logo_path}`
@@ -88,6 +91,7 @@ const ShowDetails = ({
       : "";
 
   const shouldOpenPlayerByTitle = showType === "movie" && titleTriggersPlayer;
+  const shouldShowMovieWatchPanel = showType === "movie" && showWatchButton;
   const watchlistID = show?.id ? `${showType}:${show.id}` : null;
   const detailPath = show?.id
     ? `/${showType === "tv" ? "series" : "movie"}/${show.id}-${convertToSlug(showTitle)}`
@@ -253,7 +257,7 @@ const ShowDetails = ({
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Visit
+                Official Site
               </a>
             )}
 
@@ -261,10 +265,38 @@ const ShowDetails = ({
               <YoutubeTrailer
                 showType={showType}
                 tmdbID={show?.id}
-                title={show?.name || show?.original_name}
+                title={showTitle}
+                label={showType === "movie" ? "Play Trailer" : "Trailer"}
               />
             )}
           </div>
+
+          {shouldShowMovieWatchPanel && (
+            <button
+              type="button"
+              className="show-details__movie-watch-panel"
+              onClick={() => {
+                if (isLoggedIn) {
+                  setIsPlayerOpen(true);
+                }
+              }}
+              style={backdropUrl ? { backgroundImage: `url(${backdropUrl})` } : undefined}
+              aria-label={`Watch ${showTitle}`}
+            >
+              <span className="show-details__movie-watch-overlay" />
+              <span className="show-details__movie-watch-content">
+                <span className="show-details__movie-play-icon" aria-hidden="true">
+                  <FaPlay />
+                </span>
+                <span>
+                  <strong>Watch Movie</strong>
+                  <small>
+                    {show?.runtime ? `${show.runtime} min runtime` : "Start streaming"}
+                  </small>
+                </span>
+              </span>
+            </button>
+          )}
 
           <button
             type="button"
@@ -289,9 +321,9 @@ const ShowDetails = ({
                   title={showTitle}
                   label="Watch"
                   className="btn-watch--subtle"
-                  showButton={showWatchButton && !shouldOpenPlayerByTitle}
-                  isOpen={shouldOpenPlayerByTitle ? isPlayerOpen : undefined}
-                  onOpenChange={shouldOpenPlayerByTitle ? setIsPlayerOpen : undefined}
+                  showButton={!shouldShowMovieWatchPanel && showWatchButton && !shouldOpenPlayerByTitle}
+                  isOpen={shouldShowMovieWatchPanel || shouldOpenPlayerByTitle ? isPlayerOpen : undefined}
+                  onOpenChange={shouldShowMovieWatchPanel || shouldOpenPlayerByTitle ? setIsPlayerOpen : undefined}
                   runtimeMinutes={show?.runtime}
                   onComplete={handleMovieComplete}
                   progressMetadata={{
