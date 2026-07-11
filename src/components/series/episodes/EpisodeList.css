@@ -14,6 +14,7 @@
 
 .episode-list--embedded {
     flex: 0 0 auto;
+    align-items: stretch;
     overflow: visible;
     padding-left: 0;
 }
@@ -26,7 +27,7 @@
     align-self: stretch;
     flex: 0 0 5.5rem;
     place-items: center;
-    min-height: 14rem;
+    height: 14rem;
     border: 1px solid rgba(206, 56, 36, 0.35);
     border-radius: 0 0.8rem 0.8rem 0;
     background:
@@ -55,4 +56,16 @@
 
 .episode-list__item {
     flex: 0 0 auto;
+}
+
+@media (max-width: 640px) {
+    .episode-list__season-marker {
+        flex-basis: 4.5rem;
+        height: calc(min(18rem, 82vw) * 9 / 16);
+        min-height: 0;
+    }
+
+    .episode-list__season-marker strong {
+        font-size: 1.55rem;
+    }
 }

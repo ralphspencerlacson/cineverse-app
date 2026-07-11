@@ -500,7 +500,7 @@ const VidPlayer = ({
 
   return (
     <>
-      {showButton && (
+      {showButton && isLoggedIn && (
         <button
           type="button"
           className={`btn btn-watch ${className}`}

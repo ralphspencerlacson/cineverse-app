@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
-import { FaChevronUp, FaMagnifyingGlass, FaXmark } from "react-icons/fa6";
+import { FaBars, FaChevronUp, FaMagnifyingGlass, FaXmark } from "react-icons/fa6";
 import CineverseLogo from "../../assets/png/cineverse-hd-logo-transparent.png";
 import tmdbInstance from "../../service/tmdb/tmdb";
 import { convertToSlug } from "../../utils/StringUtils";
@@ -9,6 +9,14 @@ import "./Navbar.css";
 
 const TMDB_ASSET_BASEURL = import.meta.env.VITE_TMDB_ASSET_BASEURL;
 const DEFAULT_SEARCH_RESULT_COUNT = 8;
+const NAV_ITEMS = [
+  { key: "home", label: "Home", to: "/", end: true },
+  { key: "movies", label: "Movies", to: "/movies" },
+  { key: "series", label: "Series", to: "/series" },
+  { key: "watchlist", label: "Watchlist", to: "/watchlist" },
+  { key: "blogs", label: "Blogs", to: "/blogs" },
+  { key: "news", label: "News", to: "/news" },
+];
 
 const Navbar = () => {
   const { isLoggedIn, login, logout, user } = useAuth();
@@ -25,6 +33,7 @@ const Navbar = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState(false);
   const [isNavbarHovered, setIsNavbarHovered] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [chargedNav, setChargedNav] = useState("");
   const searchInputRef = useRef(null);
   const chargeTimeoutRef = useRef(null);
@@ -126,6 +135,13 @@ const Navbar = () => {
     setSearchError(false);
   };
 
+  const openLogin = () => {
+    closeSearch();
+    setIsMobileMenuOpen(false);
+    setLoginPrompt(null);
+    setIsLoginOpen((currentValue) => !currentValue);
+  };
+
   const closeLogin = () => {
     setIsLoginOpen(false);
     setLoginForm({ username: "", password: "" });
@@ -194,6 +210,7 @@ const Navbar = () => {
   const handleNavClick = (navKey) => {
     closeSearch();
     closeLogin();
+    setIsMobileMenuOpen(false);
     setChargedNav("");
 
     window.requestAnimationFrame(() => {
@@ -213,7 +230,7 @@ const Navbar = () => {
   return (
     <>
       <nav
-        className={`nav ${navbarClass || isSearchOpen || isNavbarHovered ? "bg_black" : ""} ${isNavbarHovered ? "hovered" : ""}`}
+        className={`nav ${navbarClass || isSearchOpen || isNavbarHovered || isMobileMenuOpen ? "bg_black" : ""} ${isNavbarHovered ? "hovered" : ""}`}
         onMouseEnter={() => setIsNavbarHovered(true)}
         onMouseLeave={() => setIsNavbarHovered(false)}
         onMouseMove={handleNavbarMouseMove}
@@ -223,32 +240,41 @@ const Navbar = () => {
         </Link>
 
         <div className="links">
-          <NavLink to={"/"} end className={({ isActive }) => `${getNavLinkClass({ isActive })} ${chargedNav === "home" ? "charging" : ""}`} onClick={() => handleNavClick("home")}>
-            <h4>Home</h4>
-          </NavLink>
-          <NavLink to={"/movies"} className={({ isActive }) => `${getNavLinkClass({ isActive })} ${chargedNav === "movies" ? "charging" : ""}`} onClick={() => handleNavClick("movies")}>
-            <h4>Movies</h4>
-          </NavLink>
-          <NavLink to={"/series"} className={({ isActive }) => `${getNavLinkClass({ isActive })} ${chargedNav === "series" ? "charging" : ""}`} onClick={() => handleNavClick("series")}>
-            <h4>Series</h4>
-          </NavLink>
-          <NavLink to={"/watchlist"} className={({ isActive }) => `${getNavLinkClass({ isActive })} ${chargedNav === "watchlist" ? "charging" : ""}`} onClick={() => handleNavClick("watchlist")}>
-            <h4>Watchlist</h4>
-          </NavLink>
-          <NavLink to={"/blogs"} className={({ isActive }) => `${getNavLinkClass({ isActive })} ${chargedNav === "blogs" ? "charging" : ""}`} onClick={() => handleNavClick("blogs")}>
-            <h4>Blogs</h4>
-          </NavLink>
-          <NavLink to={"/news"} className={({ isActive }) => `${getNavLinkClass({ isActive })} ${chargedNav === "news" ? "charging" : ""}`} onClick={() => handleNavClick("news")}>
-            <h4>News</h4>
-          </NavLink>
+          {NAV_ITEMS.map((item) => (
+            <NavLink
+              key={item.key}
+              to={item.to}
+              end={item.end}
+              className={({ isActive }) => `${getNavLinkClass({ isActive })} ${chargedNav === item.key ? "charging" : ""}`}
+              onClick={() => handleNavClick(item.key)}
+            >
+              <h4>{item.label}</h4>
+            </NavLink>
+          ))}
         </div>
 
         <div className="nav-actions">
           <button
             type="button"
+            className={`nav-menu-toggle ${isMobileMenuOpen ? "active" : ""}`}
+            aria-label={isMobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-expanded={isMobileMenuOpen}
+            onClick={() => {
+              closeSearch();
+              setIsMobileMenuOpen((currentValue) => !currentValue);
+            }}
+          >
+            {isMobileMenuOpen ? <FaXmark aria-hidden="true" /> : <FaBars aria-hidden="true" />}
+          </button>
+
+          <button
+            type="button"
             className={`nav-search-toggle ${isSearchOpen ? "active" : ""}`}
             aria-label={isSearchOpen ? "Close search" : "Open search"}
-            onClick={() => setIsSearchOpen((currentValue) => !currentValue)}
+            onClick={() => {
+              setIsMobileMenuOpen(false);
+              setIsSearchOpen((currentValue) => !currentValue);
+            }}
           >
             {isSearchOpen ? <FaXmark aria-hidden="true" /> : <FaMagnifyingGlass aria-hidden="true" />}
           </button>
@@ -262,11 +288,7 @@ const Navbar = () => {
             ) : (
               <button
                 type="button"
-                onClick={() => {
-                  closeSearch();
-                  setLoginPrompt(null);
-                  setIsLoginOpen((currentValue) => !currentValue);
-                }}
+                onClick={openLogin}
               >
                 Login
               </button>
@@ -274,6 +296,42 @@ const Navbar = () => {
           </div>
         </div>
       </nav>
+
+      <div className={`nav-drawer ${isMobileMenuOpen ? "open" : ""}`}>
+        <div className="nav-drawer__panel" role="dialog" aria-modal="true" aria-label="Navigation menu">
+          <div className="nav-drawer__links">
+            {NAV_ITEMS.map((item) => (
+              <NavLink
+                key={item.key}
+                to={item.to}
+                end={item.end}
+                className={({ isActive }) => `${getNavLinkClass({ isActive })} ${chargedNav === item.key ? "charging" : ""}`}
+                onClick={() => handleNavClick(item.key)}
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </div>
+
+          <div className="nav-drawer__account">
+            <span>Account</span>
+            {isLoggedIn ? (
+              <>
+                <strong>{user.username}</strong>
+                <button type="button" onClick={() => { setIsMobileMenuOpen(false); logout(); }}>Logout</button>
+              </>
+            ) : (
+              <button type="button" onClick={openLogin}>Login</button>
+            )}
+          </div>
+        </div>
+        <button
+          type="button"
+          className="nav-drawer__backdrop"
+          aria-label="Close navigation menu"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      </div>
 
       {isLoginOpen && !isLoggedIn && (
         <div

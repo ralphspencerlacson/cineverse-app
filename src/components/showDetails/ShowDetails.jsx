@@ -94,9 +94,9 @@ const ShowDetails = ({
       ? `${seasonCount || 0} Season${(seasonCount || 0) > 1 ? "s" : ""}`
       : "";
 
-  const shouldOpenPlayerByTitle = showType === "movie" && titleTriggersPlayer;
-  const shouldShowMovieWatchPanel = !isHeroVariant && showType === "movie" && showWatchButton;
-  const shouldShowSeriesEpisodePanel = !isHeroVariant && showType === "tv" && showWatchButton;
+  const shouldOpenPlayerByTitle = isLoggedIn && showType === "movie" && titleTriggersPlayer;
+  const shouldShowMovieWatchPanel = isLoggedIn && !isHeroVariant && showType === "movie" && showWatchButton;
+  const shouldShowSeriesEpisodePanel = isLoggedIn && !isHeroVariant && showType === "tv" && showWatchButton;
   const watchlistID = show?.id ? `${showType}:${show.id}` : null;
   const detailPath = show?.id
     ? `/${showType === "tv" ? "series" : "movie"}/${show.id}-${convertToSlug(showTitle)}`
@@ -395,7 +395,7 @@ const ShowDetails = ({
                   title={showTitle}
                   label="Watch"
                   className="btn-watch--subtle"
-                  showButton={!shouldShowMovieWatchPanel && showWatchButton && !shouldOpenPlayerByTitle}
+                  showButton={isLoggedIn && !shouldShowMovieWatchPanel && showWatchButton && !shouldOpenPlayerByTitle}
                   isOpen={shouldShowMovieWatchPanel || shouldOpenPlayerByTitle ? isPlayerOpen : undefined}
                   onOpenChange={shouldShowMovieWatchPanel || shouldOpenPlayerByTitle ? setIsPlayerOpen : undefined}
                   runtimeMinutes={show?.runtime}
