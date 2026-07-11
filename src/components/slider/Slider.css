@@ -155,3 +155,26 @@
     transform-origin: left;
     transition: transform 250ms linear, filter 180ms ease, box-shadow 180ms ease;
   }
+
+  @media (max-width: 640px) {
+    .slider-frame {
+      height: 86vh;
+      min-height: 36rem;
+    }
+
+    .slider .slide__overlay {
+      background:
+        radial-gradient(circle at 72% 18%, rgba(206, 56, 36, 0.14), transparent 18rem),
+        linear-gradient(180deg, rgba(10, 10, 10, 0.22), rgba(10, 10, 10, 0.84)),
+        linear-gradient(90deg, rgba(10, 10, 10, 0.72), rgba(10, 10, 10, 0.28));
+    }
+
+    .slider .slide .container .wrapper {
+      width: calc(100% - 1.5rem);
+      padding-bottom: 4.4rem;
+    }
+
+    .slider .slide__video {
+      width: max(220vw, 220vh);
+    }
+  }

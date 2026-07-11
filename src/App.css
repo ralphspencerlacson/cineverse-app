@@ -8,9 +8,20 @@
 
 body {
   margin: 0;
-  min-width: 400px;
+  min-width: 0;
   caret-color: transparent;
   user-select: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  overflow-x: hidden;
 }
 
 input,
@@ -86,6 +97,21 @@ a {
   .genres,
   .footer section .wrapper {
     width: 90%;
+  }
+}
+
+@media (max-width: 480px) {
+  .slider>div .container .wrapper,
+  .movie-list section,
+  .movie-list .grid,
+  .movie-page section,
+  .series-list .row,
+  .series-list section,
+  .series-page section,
+  .networks,
+  .genres,
+  .footer section .wrapper {
+    width: calc(100% - 1rem);
   }
 }
 

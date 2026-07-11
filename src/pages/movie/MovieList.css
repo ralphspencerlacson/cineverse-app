@@ -18,6 +18,7 @@
 
 @media (max-width: 640px) {
     .movie-list .listing {
-        width: min(100% - 1rem, 96rem);
+        width: calc(100% - 1rem);
+        margin-bottom: 2.5rem;
     }
 }

@@ -21,7 +21,12 @@
 }
 
 @media (max-width: 640px) {
+    .series-list .content {
+        margin: 3.5rem 0.75rem;
+    }
+
     .series-list .listing {
-        width: min(100% - 1rem, 96rem);
+        width: calc(100% - 1rem);
+        margin-bottom: 2.5rem;
     }
 }

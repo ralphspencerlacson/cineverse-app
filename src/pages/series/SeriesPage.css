@@ -24,3 +24,10 @@
     font-size: clamp(2rem, 5vw, 3.8rem);
     line-height: 1;
 }
+
+@media (max-width: 640px) {
+    .series-page__episodes-heading {
+        margin: 1.5rem auto -0.75rem;
+        padding: 0 0.75rem;
+    }
+}

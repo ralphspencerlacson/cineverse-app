@@ -187,8 +187,21 @@
 
 @media (max-width: 520px) {
     .sitemap {
+        margin-top: 2.5rem;
         padding-left: 0.5rem;
         padding-right: 0.5rem;
+    }
+
+    .sitemap .wrapper {
+        gap: 1.5rem;
+        border-radius: 1rem;
+        padding: 1.25rem;
+    }
+
+    .sitemap__bridge span {
+        border-radius: 0.85rem;
+        align-items: flex-start;
+        white-space: normal;
     }
 
     .sitemap__links {

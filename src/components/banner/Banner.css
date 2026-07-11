@@ -38,3 +38,19 @@
 .banner.lg {
     height: 100vh;
 }
+
+@media (max-width: 640px) {
+    .banner.sm {
+        height: 64vh;
+        min-height: 31rem;
+    }
+
+    .banner.lg {
+        height: 78vh;
+        min-height: 36rem;
+    }
+
+    .banner__video {
+        width: max(220vw, 220vh);
+    }
+}

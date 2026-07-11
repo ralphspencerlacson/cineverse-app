@@ -430,6 +430,67 @@
     }
 }
 
+@media (max-width: 639px) {
+    .show-details {
+        padding: 0.75rem;
+    }
+
+    .show-details h1 {
+        max-width: 100%;
+        white-space: normal;
+    }
+
+    .show-details__poster-wrap {
+        margin-left: 0;
+    }
+
+    .show-details__poster {
+        width: min(11rem, 42vw);
+    }
+
+    .show-details__poster-meta {
+        justify-content: flex-start;
+        text-align: left;
+    }
+
+    .show-details__actions,
+    .show-details ul {
+        gap: 0.55rem;
+    }
+
+    .show-details .btn,
+    .btn-watch {
+        margin: 0;
+        padding: 0.75rem 1rem;
+    }
+
+    .show-details__movie-watch-panel,
+    .show-details__series-episode-panel {
+        width: 100%;
+        min-height: 8.5rem;
+        border-radius: 0.8rem;
+    }
+
+    .show-details__movie-watch-content {
+        min-height: 8.5rem;
+        padding: 1rem;
+    }
+
+    .movie-list .show-details,
+    .series-list .show-details {
+        margin: -18rem 0.75rem 1rem;
+    }
+
+    .movie-page .show-details,
+    .series-page .show-details {
+        margin: -23rem 0.75rem 1rem;
+    }
+
+    .show-details--hero h1 {
+        max-width: min(100%, 12ch);
+    }
+}
+
 @media (min-width: 768px) {
     .show-details__layout {
         display: flex;

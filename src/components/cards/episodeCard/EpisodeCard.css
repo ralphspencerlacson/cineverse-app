@@ -102,3 +102,20 @@
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
 }
+
+@media (max-width: 640px) {
+    .episode-card {
+        width: min(18rem, 82vw);
+        height: auto;
+        aspect-ratio: 16 / 9;
+    }
+
+    .episode-card .overlay {
+        height: 100%;
+    }
+
+    .episode-card .overlay p {
+        padding: 0 0.75rem;
+        font-size: 0.82rem;
+    }
+}

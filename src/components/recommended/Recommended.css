@@ -4,3 +4,9 @@
     margin-right: auto;
     text-align: left;
 }
+
+@media (max-width: 640px) {
+    .recommended {
+        padding: 2rem 0.75rem;
+    }
+}

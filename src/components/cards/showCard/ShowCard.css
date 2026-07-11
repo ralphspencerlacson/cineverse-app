@@ -180,3 +180,23 @@
     color: #ce3824;
     text-shadow: 0 0 0.75rem rgba(206, 56, 36, 0.8), 0 0 1.4rem rgba(255, 179, 168, 0.36);
 }
+
+@media (max-width: 640px) {
+    .show-card.poster {
+        width: 10.5rem;
+    }
+
+    .show-card.backdrop {
+        width: min(18rem, 82vw);
+    }
+
+    .show-card.backdrop .card {
+        height: auto;
+        aspect-ratio: 16 / 9;
+    }
+
+    .card__wishlist {
+        opacity: 1;
+        transform: none;
+    }
+}

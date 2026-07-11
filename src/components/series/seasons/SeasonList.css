@@ -57,3 +57,17 @@
 .season-list__episode-stream::-webkit-scrollbar {
     display: none;
 }
+
+@media (max-width: 640px) {
+    .season-list {
+        padding: 2rem 0.75rem;
+    }
+
+    .season-list .seasons ul li {
+        margin-right: 1.2rem;
+    }
+
+    .season-list__episode-stream {
+        gap: 0.75rem;
+    }
+}

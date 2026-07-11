@@ -516,6 +516,14 @@ const VidPlayer = ({
               className="container"
               onPointerDown={(event) => event.stopPropagation()}
             >
+              <button
+                type="button"
+                className="vid-player__close"
+                onClick={handleClose}
+                aria-label="Close video player"
+              >
+                Close
+              </button>
               {canSwitchPlayer && (
                 <button
                   type="button"
