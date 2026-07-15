@@ -27,11 +27,11 @@ const selectBestTrailer = (videos = []) => {
   return youtubeVideos[0];
 };
 
-const SlideItem = ({ showType, data }) => {
+const SlideItem = ({ showType, data, shouldLoadVideo = true, useFixedBackground = true }) => {
   const [isVideoReady, setIsVideoReady] = useState(false);
   const iframeRef = useRef(null);
   const { apiData: trailer } = useFetchApi(
-    data?.id ? getSeriesTrailers(showType, data.id) : null,
+    shouldLoadVideo && data?.id ? getSeriesTrailers(showType, data.id) : null,
     "tmdb"
   );
 
@@ -98,13 +98,13 @@ const SlideItem = ({ showType, data }) => {
           key={data?.id}
           className={`slide `}
           style={{
-            background: `url(${TMDB_ASSET_BASEURL}${data?.backdrop_path})`,
+            backgroundImage: `url(${TMDB_ASSET_BASEURL}${data?.backdrop_path})`,
             backgroundPosition: "center",
             backgroundSize: "cover",
-            backgroundAttachment: "fixed",
+            backgroundAttachment: useFixedBackground ? "fixed" : "scroll",
           }}
         >
-          {trailerUrl && (
+          {shouldLoadVideo && trailerUrl && (
             <iframe
               ref={iframeRef}
               className={`slide__video ${isVideoReady ? "ready" : ""}`}

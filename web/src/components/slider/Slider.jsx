@@ -7,7 +7,7 @@ import "./Slider.css";
 
 const DRAG_BUFFER = 50;
 
-const Slider = ({ slideData, delay = 5000 }) => {
+const Slider = ({ slideData, delay = 5000, isMobile = false }) => {
   const [slideIndex, setSlideIndex] = useState(0);
   const [isDrag, setIsDrag] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -92,11 +92,13 @@ const Slider = ({ slideData, delay = 5000 }) => {
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
       >
-        {slideData?.map((data) => (
+        {slideData?.map((data, index) => (
           <SlideItem
             showType={data?.mediaType || "tv"}
             key={`${data?.mediaType || "tv"}-${data?.id}`}
             data={data}
+            shouldLoadVideo={!isMobile && index === slideIndex}
+            useFixedBackground={!isMobile}
           />
         ))}
       </motion.section>

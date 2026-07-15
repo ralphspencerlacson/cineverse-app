@@ -17,6 +17,7 @@ const getRandomResult = (results = []) => {
 
 const PreviewSlider = () => {
   const [slideData, setSlideData] = useState([]);
+  const [isMobile, setIsMobile] = useState(false);
   const bridgeRef = useRef(null);
   const headlineRef = useRef(null);
   const isHeadlineHoveredRef = useRef(false);
@@ -33,6 +34,14 @@ const PreviewSlider = () => {
   };
 
   useEffect(() => {
+    const canAnimateGlow = window.matchMedia(
+      "(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)"
+    ).matches;
+
+    if (!canAnimateGlow) {
+      return;
+    }
+
     let animationFrameId;
     const startedAt = performance.now();
 
@@ -66,6 +75,18 @@ const PreviewSlider = () => {
 
     return () => {
       window.cancelAnimationFrame(animationFrameId);
+    };
+  }, []);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 640px)");
+    const updateIsMobile = () => setIsMobile(mediaQuery.matches);
+
+    updateIsMobile();
+    mediaQuery.addEventListener?.("change", updateIsMobile);
+
+    return () => {
+      mediaQuery.removeEventListener?.("change", updateIsMobile);
     };
   }, []);
 
@@ -134,15 +155,19 @@ const PreviewSlider = () => {
         </h2>
       </div>
 
-      <Slider slideData={slideData} />
+      <Slider slideData={slideData} isMobile={isMobile} />
 
       <Newsletter />
 
       <section ref={bridgeRef} className="preview-slider__bridge" aria-label="Cineverse benefits">
         <div className="preview-slider__bridge-model">
-          <Suspense fallback={<div className="preview-slider__camera-fallback" aria-hidden="true"><span /><span /><span /></div>}>
-            <ScrollCameraModel sectionRef={bridgeRef} />
-          </Suspense>
+          {isMobile ? (
+            <div className="preview-slider__camera-fallback" aria-hidden="true"><span /><span /><span /></div>
+          ) : (
+            <Suspense fallback={<div className="preview-slider__camera-fallback" aria-hidden="true"><span /><span /><span /></div>}>
+              <ScrollCameraModel sectionRef={bridgeRef} />
+            </Suspense>
+          )}
         </div>
 
         <div className="preview-slider__bridge-content">

@@ -177,4 +177,8 @@
     .slider .slide__video {
       width: max(220vw, 220vh);
     }
+
+    .slider .slide::after {
+      background-image: none;
+    }
   }
