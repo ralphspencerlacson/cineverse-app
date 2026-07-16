@@ -201,6 +201,7 @@ const WatchlistPage = () => {
   const fileInputRef = useRef(null);
   const previewCloseTimeoutRef = useRef(null);
   const previewFetchesRef = useRef(new Set());
+  const tableScrollRef = useRef(null);
   const infiniteScrollRef = useRef(null);
 
   const dashboardStats = useMemo(() => {
@@ -286,6 +287,7 @@ const WatchlistPage = () => {
     () => visibleItems.slice(0, visibleCount),
     [visibleCount, visibleItems]
   );
+  const hasActiveFilters = Boolean(titleFilter.trim()) || typeFilter !== "all" || statusFilter !== "all";
   const previewPrefetchItems = useMemo(
     () => paginatedItems.slice(0, 8),
     [paginatedItems]
@@ -387,7 +389,7 @@ const WatchlistPage = () => {
           setVisibleCount((count) => Math.min(count + WATCHLIST_BATCH_SIZE, visibleItems.length));
         }
       },
-      { rootMargin: "240px" }
+      { root: tableScrollRef.current, rootMargin: "240px 0px" }
     );
 
     observer.observe(sentinel);
@@ -898,9 +900,65 @@ const WatchlistPage = () => {
         </section>
       ) : (
         <>
+          <section className="watchlist-filter-bar" aria-label="Watchlist filters">
+            <label className="watchlist-search-field">
+              <span>Search watchlist</span>
+              <input
+                type="search"
+                value={titleFilter}
+                placeholder="Search by title"
+                onChange={(event) => setTitleFilter(event.target.value)}
+              />
+            </label>
+
+            <label>
+              <span>Type</span>
+              <select
+                value={typeFilter}
+                onChange={(event) => setTypeFilter(event.target.value)}
+              >
+                <option value="all">All types</option>
+                <option value="movie">Movies</option>
+                <option value="tv">Series</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Status</span>
+              <select
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value)}
+              >
+                <option value="all">All statuses</option>
+                {WATCH_STATUS_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <button
+              type="button"
+              onClick={() => {
+                setTitleFilter("");
+                setTypeFilter("all");
+                setStatusFilter("all");
+              }}
+              disabled={!hasActiveFilters}
+            >
+              Clear filters
+            </button>
+
+            <span className="watchlist-filter-count">
+              {visibleItems.length} of {items.length} titles
+            </span>
+          </section>
+
           <section className="watchlist-table-wrap">
-            <table className="watchlist-table">
-              <thead>
+            <div className="watchlist-table-scroll" ref={tableScrollRef}>
+              <table className="watchlist-table">
+                <thead>
                 <tr>
                   <th className="watchlist-filter-header title">
                     {renderHeaderControls("Title", "title", "title")}
@@ -977,10 +1035,10 @@ const WatchlistPage = () => {
                   <th>{renderSortableHeader("Release", "tmdbStatus")}</th>
                   <th>{renderSortableHeader("Next", "nextEpisodeDate")}</th>
                   <th>{renderSortableHeader("Updated", "updatedAt")}</th>
-                  <th className="watchlist-actions-column">Actions</th>
+                  <th className="watchlist-actions-column" aria-label="Actions"></th>
                 </tr>
-              </thead>
-              <tbody>
+                </thead>
+                <tbody>
                 {paginatedItems.map((item) => {
                   const progressPercent = getProgressPercent(item, seasonEpisodeCounts);
                   const progressStatus = getDisplayProgressStatus(item);
@@ -1023,6 +1081,8 @@ const WatchlistPage = () => {
                             className={`watchlist-preview-card ${previewSide}`}
                             style={{ top: previewPosition.top, left: previewPosition.left }}
                             aria-label={`${item.title} preview`}
+                            onWheel={(event) => event.stopPropagation()}
+                            onTouchMove={(event) => event.stopPropagation()}
                             onMouseEnter={() => {
                               if (previewCloseTimeoutRef.current) {
                                 window.clearTimeout(previewCloseTimeoutRef.current);
@@ -1188,8 +1248,10 @@ const WatchlistPage = () => {
                     </tr>
                   );
                 })}
-              </tbody>
-            </table>
+                </tbody>
+              </table>
+              <div ref={infiniteScrollRef} className="watchlist-infinite-sentinel" aria-hidden="true" />
+            </div>
 
             {!visibleItems.length && (
               <p className="watchlist-table-empty">No titles match these filters.</p>
@@ -1200,7 +1262,6 @@ const WatchlistPage = () => {
                 Showing {paginatedItems.length} of {visibleItems.length}
               </span>
             </div>
-            <div ref={infiniteScrollRef} className="watchlist-infinite-sentinel" aria-hidden="true" />
           </section>
         </>
       )}
