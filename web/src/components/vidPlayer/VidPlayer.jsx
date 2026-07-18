@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { getEmbedUrl as getZxcstreamEmbedUrl } from "../../service/zxcstream/requests";
 import { getEmbedUrl as getVideasyEmbedUrl } from "../../service/videasy/requests";
 import { getEmbedUrl as getVidapiEmbedUrl } from "../../service/vidapi/requests";
 import {
@@ -12,6 +13,11 @@ const RESUME_BACKTRACK_SECONDS = 5;
 const DEFAULT_COMPLETION_THRESHOLD = 0.9;
 const PLAYER_LOAD_TIMEOUT_MS = 9000;
 const PLAYER_PROVIDERS = [
+  {
+    key: "zxcstream",
+    label: "ZXCStream",
+    getEmbedUrl: getZxcstreamEmbedUrl,
+  },
   {
     key: "videasy",
     label: "Videasy",
@@ -226,6 +232,10 @@ const VidPlayer = ({
       (currentIndex + 1) % playerOptions.length
     );
   }, [canSwitchPlayer, playerOptions.length]);
+
+  const handleProviderChange = (event) => {
+    setActiveProviderIndex(Number(event.target.value));
+  };
 
   const handlePlayerLoad = () => {
     clearPlayerLoadTimeout();
@@ -512,10 +522,11 @@ const VidPlayer = ({
 
       {showPlayer && (
         <div className="vid-player" onPointerDown={handleClose}>
-            <div
-              className="container"
-              onPointerDown={(event) => event.stopPropagation()}
-            >
+          <div
+            className="vid-player__shell"
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <div className="vid-player__controls">
               <button
                 type="button"
                 className="vid-player__close"
@@ -525,15 +536,23 @@ const VidPlayer = ({
                 Close
               </button>
               {canSwitchPlayer && (
-                <button
-                  type="button"
-                  className="vid-player__switch"
-                  onClick={switchPlayer}
-                >
-                  {isPlayerLoading ? "Trying" : "Switch to"}{" "}
-                  {playerOptions[(activeProviderIndex + 1) % playerOptions.length]?.label}
-                </button>
+                <label className="vid-player__provider">
+                  <span>{isPlayerLoading ? "Trying" : "Server"}</span>
+                  <select
+                    className="vid-player__select"
+                    value={activeProviderIndex}
+                    onChange={handleProviderChange}
+                  >
+                    {playerOptions.map((provider, index) => (
+                      <option value={index} key={provider.key}>
+                        {provider.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
               )}
+            </div>
+            <div className="container">
               <iframe
                 key={activeProvider.key}
                 src={activeProvider.embedUrl}
@@ -546,6 +565,7 @@ const VidPlayer = ({
                 allowFullScreen
               ></iframe>
             </div>
+          </div>
         </div>
       )}
     </>

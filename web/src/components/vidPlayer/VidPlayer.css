@@ -13,13 +13,26 @@
     padding: 1rem;
 }
 
-.vid-player .container {
-    position: relative;
-    background-color: #000000;
-    width: min(95vw, 88rem);
-    aspect-ratio: 16 / 9;
+.vid-player__shell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: min(95vw, 88rem, calc((100vh - 5.5rem) * 16 / 9));
     max-width: 88rem;
-    max-height: 55rem;
+}
+
+.vid-player__controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+}
+
+.vid-player .container {
+    background-color: #000000;
+    width: 100%;
+    aspect-ratio: 16 / 9;
     padding: 0;
     overflow: hidden;
     transition: opacity 1s ease-in-out;
@@ -32,10 +45,6 @@
 }
 
 .vid-player__switch {
-    position: absolute;
-    top: 0.75rem;
-    right: 0.75rem;
-    z-index: 2;
     border: 1px solid rgba(255, 255, 255, 0.35);
     border-radius: 999px;
     background-color: rgba(0, 0, 0, 0.72);
@@ -47,10 +56,6 @@
 }
 
 .vid-player__close {
-    position: absolute;
-    top: 0.75rem;
-    left: 0.75rem;
-    z-index: 2;
     border: 1px solid rgba(255, 255, 255, 0.35);
     border-radius: 999px;
     background-color: rgba(0, 0, 0, 0.72);
@@ -79,8 +84,8 @@
 }
 
 @media (min-width: 1024px) {
-    .vid-player .container {
-        width: min(90vw, 96rem);
+    .vid-player__shell {
+        width: min(90vw, 96rem, calc((100vh - 5.5rem) * 16 / 9));
     }
 }
 
@@ -103,25 +108,23 @@
         padding: 0.5rem;
     }
 
-    .vid-player .container {
-        width: 100%;
-        max-height: calc(100vh - 1rem);
+    .vid-player__shell {
+        width: min(100%, calc((100vh - 4.5rem) * 16 / 9));
+        gap: 0.5rem;
+    }
+
+    .vid-player__controls {
+        gap: 0.5rem;
     }
 
     .vid-player__close,
     .vid-player__switch {
-        top: 0.5rem;
         font-size: 0.72rem;
         padding: 0.38rem 0.58rem;
     }
 
-    .vid-player__close {
-        left: 0.5rem;
-    }
-
     .vid-player__switch {
-        right: 0.5rem;
-        max-width: calc(100% - 5.5rem);
+        max-width: calc(100% - 4.5rem);
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
