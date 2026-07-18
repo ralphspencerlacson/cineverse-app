@@ -1,4 +1,4 @@
-const ZXCSTREAM_BASEURL = import.meta.env.VITE_ZXCSTREAM_BASEURL || "https://zxcstream.xyz";
+const ZXCSTREAM_BASEURL = import.meta.env.VITE_ZXCSTREAM_BASEURL;
 const ZXCSTREAM_THEME_COLOR = "CE3824";
 
 const isNumericId = (value) => /^\d+$/.test(String(value || ""));
@@ -23,6 +23,10 @@ export const getEmbedUrl = ({
   season,
   episode,
 }) => {
+  if (!ZXCSTREAM_BASEURL) {
+    return null;
+  }
+
   const baseUrl = ZXCSTREAM_BASEURL.replace(/\/+$/, "");
   const params = {
     dubLang: "en",
