@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { FaBars, FaChevronUp, FaMagnifyingGlass, FaXmark } from "react-icons/fa6";
 import CineverseLogo from "../../assets/png/cineverse-hd-logo-transparent.png";
@@ -34,6 +34,7 @@ const Navbar = () => {
   const [searchError, setSearchError] = useState(false);
   const [isNavbarHovered, setIsNavbarHovered] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isPlayerOpen, setIsPlayerOpen] = useState(false);
   const [chargedNav, setChargedNav] = useState("");
   const searchInputRef = useRef(null);
   const chargeTimeoutRef = useRef(null);
@@ -75,6 +76,25 @@ const Navbar = () => {
 
     return () => {
       window.removeEventListener("cineverse-login-request", handleLoginRequest);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handlePlayerState = (event) => {
+      const nextIsPlayerOpen = Boolean(event.detail?.isOpen);
+      setIsPlayerOpen(nextIsPlayerOpen);
+
+      if (nextIsPlayerOpen) {
+        closeSearch();
+        closeLogin();
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    window.addEventListener("cineverse-player-state", handlePlayerState);
+
+    return () => {
+      window.removeEventListener("cineverse-player-state", handlePlayerState);
     };
   }, []);
 
@@ -226,6 +246,10 @@ const Navbar = () => {
       chargeTimeoutRef.current = null;
     }, 760);
   };
+
+  if (isPlayerOpen) {
+    return null;
+  }
 
   return (
     <>

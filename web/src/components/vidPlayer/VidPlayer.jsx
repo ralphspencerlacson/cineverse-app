@@ -12,6 +12,7 @@ import "./VidPlayer.css";
 const RESUME_BACKTRACK_SECONDS = 5;
 const DEFAULT_COMPLETION_THRESHOLD = 0.9;
 const PLAYER_LOAD_TIMEOUT_MS = 9000;
+const CONTROLS_IDLE_TIMEOUT_MS = 3000;
 const PLAYER_PROVIDERS = [
   {
     key: "zxcstream",
@@ -77,6 +78,8 @@ const VidPlayer = ({
   const [internalShowPlayer, setInternalShowPlayer] = useState(false);
   const [activeProviderIndex, setActiveProviderIndex] = useState(0);
   const [isPlayerLoading, setIsPlayerLoading] = useState(false);
+  const [areControlsVisible, setAreControlsVisible] = useState(true);
+  const [isPlaybackPaused, setIsPlaybackPaused] = useState(false);
   const progressKeys = useMemo(
     () =>
       buildProgressKeys({
@@ -95,6 +98,7 @@ const VidPlayer = ({
   const visibilityHandlerRef = useRef(null);
   const completionMarkedRef = useRef(false);
   const playerLoadTimeoutRef = useRef(null);
+  const controlsIdleTimeoutRef = useRef(null);
   const iframeRef = useRef(null);
   const providerProgressRef = useRef({ seconds: 0, duration: 0 });
   const isPlaybackPausedRef = useRef(false);
@@ -129,6 +133,7 @@ const VidPlayer = ({
   const activeProvider =
     playerOptions[activeProviderIndex] || playerOptions[0] || null;
   const canSwitchPlayer = playerOptions.length > 1;
+  const shouldShowControls = areControlsVisible || isPlaybackPaused || isPlayerLoading;
 
   const runtimeSeconds = useMemo(() => {
     const runtime = Number(runtimeMinutes);
@@ -156,6 +161,27 @@ const VidPlayer = ({
   };
   const handleClose = () => updateOpen(false);
 
+  const clearControlsIdleTimeout = useCallback(() => {
+    if (controlsIdleTimeoutRef.current) {
+      window.clearTimeout(controlsIdleTimeoutRef.current);
+      controlsIdleTimeoutRef.current = null;
+    }
+  }, []);
+
+  const revealControls = useCallback((keepVisible = false) => {
+    setAreControlsVisible(true);
+    clearControlsIdleTimeout();
+
+    if (keepVisible || isPlaybackPausedRef.current) {
+      return;
+    }
+
+    controlsIdleTimeoutRef.current = window.setTimeout(() => {
+      setAreControlsVisible(false);
+      controlsIdleTimeoutRef.current = null;
+    }, CONTROLS_IDLE_TIMEOUT_MS);
+  }, [clearControlsIdleTimeout]);
+
   const postPlaybackCommand = useCallback((command) => {
     const iframeWindow = iframeRef.current?.contentWindow;
     if (!iframeWindow) {
@@ -178,8 +204,10 @@ const VidPlayer = ({
 
   const togglePlayback = useCallback(() => {
     isPlaybackPausedRef.current = !isPlaybackPausedRef.current;
+    setIsPlaybackPaused(isPlaybackPausedRef.current);
+    revealControls(isPlaybackPausedRef.current);
     postPlaybackCommand(isPlaybackPausedRef.current ? "pause" : "play");
-  }, [postPlaybackCommand]);
+  }, [postPlaybackCommand, revealControls]);
 
   useEffect(() => {
     if (isLoggedIn || !requestedShowPlayer) {
@@ -199,6 +227,10 @@ const VidPlayer = ({
     }
 
     isPlaybackPausedRef.current = false;
+    setIsPlaybackPaused(false);
+    revealControls();
+
+    const handleWindowBlur = () => revealControls();
 
     const handleKeyDown = (event) => {
       if (event.code !== "Space" || event.repeat) {
@@ -210,11 +242,13 @@ const VidPlayer = ({
     };
 
     window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("blur", handleWindowBlur);
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("blur", handleWindowBlur);
     };
-  }, [showPlayer, togglePlayback]);
+  }, [revealControls, showPlayer, togglePlayback]);
 
   const clearPlayerLoadTimeout = useCallback(() => {
     if (playerLoadTimeoutRef.current) {
@@ -235,6 +269,7 @@ const VidPlayer = ({
 
   const handleProviderChange = (event) => {
     setActiveProviderIndex(Number(event.target.value));
+    revealControls();
   };
 
   const handlePlayerLoad = () => {
@@ -349,6 +384,22 @@ const VidPlayer = ({
       const timestamp = Number(playerData.timestamp);
       const currentTime = Number(playerData.currentTime);
       const duration = Number(playerData.duration) || 0;
+      const playerState = Number(playerData.playerState ?? playerData.state);
+      const eventName = String(playerData.event || playerData.type || "").toLowerCase();
+      const isPaused =
+        playerData.paused === true ||
+        playerData.isPaused === true ||
+        playerState === 2 ||
+        eventName === "pause" ||
+        eventName === "paused";
+
+      if (isPaused || playerState === 1 || eventName === "play" || eventName === "playing") {
+        return {
+          seconds: Number.isFinite(currentTime) && currentTime > 0 ? currentTime : playerProgress || timestamp || 0,
+          duration,
+          isPaused,
+        };
+      }
 
       if (Number.isFinite(playerProgress) && playerProgress > 0) {
         return { seconds: playerProgress, duration };
@@ -361,6 +412,15 @@ const VidPlayer = ({
       if (Number.isFinite(currentTime) && currentTime > 0) {
         return { seconds: currentTime, duration };
       }
+    }
+
+    const playerState = Number(data.info?.playerState ?? data.playerState ?? data.state);
+    if (playerState === 1 || playerState === 2) {
+      return {
+        seconds: Number(data.timestamp) || 0,
+        duration: Number(data.duration) || 0,
+        isPaused: playerState === 2,
+      };
     }
 
     const timestamp = Number(data.timestamp);
@@ -377,7 +437,11 @@ const VidPlayer = ({
   useEffect(() => {
     completionMarkedRef.current = false;
     providerProgressRef.current = { seconds: 0, duration: 0 };
-  }, [type, tmdbID, imdbID, season, episode, runtimeSeconds]);
+    clearControlsIdleTimeout();
+    setAreControlsVisible(true);
+    setIsPlaybackPaused(false);
+    isPlaybackPausedRef.current = false;
+  }, [clearControlsIdleTimeout, type, tmdbID, imdbID, season, episode, runtimeSeconds]);
 
   useEffect(() => {
     if (!showPlayer) {
@@ -390,7 +454,19 @@ const VidPlayer = ({
         return;
       }
 
-      saveProviderProgress(progress.seconds, progress.duration);
+      if (typeof progress.isPaused === "boolean") {
+        const wasPlaybackPaused = isPlaybackPausedRef.current;
+        isPlaybackPausedRef.current = progress.isPaused;
+        setIsPlaybackPaused(progress.isPaused);
+
+        if (progress.isPaused || wasPlaybackPaused) {
+          revealControls(progress.isPaused);
+        }
+      }
+
+      if (progress.seconds > 0) {
+        saveProviderProgress(progress.seconds, progress.duration);
+      }
     };
 
     window.addEventListener("message", handleProviderMessage);
@@ -398,7 +474,20 @@ const VidPlayer = ({
     return () => {
       window.removeEventListener("message", handleProviderMessage);
     };
-  }, [parsePlayerMessage, saveProviderProgress, showPlayer]);
+  }, [parsePlayerMessage, revealControls, saveProviderProgress, showPlayer]);
+
+  useEffect(() => {
+    if (!showPlayer) {
+      clearControlsIdleTimeout();
+      setAreControlsVisible(true);
+      setIsPlaybackPaused(false);
+      return undefined;
+    }
+
+    revealControls();
+
+    return clearControlsIdleTimeout;
+  }, [clearControlsIdleTimeout, revealControls, showPlayer]);
 
   useEffect(() => {
     window.dispatchEvent(
@@ -524,35 +613,38 @@ const VidPlayer = ({
         <div className="vid-player" onPointerDown={handleClose}>
           <div
             className="vid-player__shell"
+            onPointerMove={() => revealControls()}
             onPointerDown={(event) => event.stopPropagation()}
           >
-            <div className="vid-player__controls">
-              <button
-                type="button"
-                className="vid-player__close"
-                onClick={handleClose}
-                aria-label="Close video player"
-              >
-                Close
-              </button>
-              {canSwitchPlayer && (
-                <label className="vid-player__provider">
-                  <span>{isPlayerLoading ? "Trying" : "Server"}</span>
-                  <select
-                    className="vid-player__select"
-                    value={activeProviderIndex}
-                    onChange={handleProviderChange}
-                  >
-                    {playerOptions.map((provider, index) => (
-                      <option value={index} key={provider.key}>
-                        {provider.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
-            </div>
-            <div className="container">
+            <div className={`container ${shouldShowControls ? "show-controls" : "hide-controls"}`}>
+              <div className="vid-player__controls">
+                <button
+                  type="button"
+                  className="vid-player__close"
+                  onClick={handleClose}
+                  aria-label="Close video player"
+                >
+                  Close
+                </button>
+                {canSwitchPlayer && (
+                  <label className="vid-player__provider">
+                    <span>{isPlayerLoading ? "Trying" : "Server"}</span>
+                    <select
+                      className="vid-player__select"
+                      value={activeProviderIndex}
+                      onChange={handleProviderChange}
+                      onFocus={() => revealControls(true)}
+                      onBlur={() => revealControls()}
+                    >
+                      {playerOptions.map((provider, index) => (
+                        <option value={index} key={provider.key}>
+                          {provider.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+              </div>
               <iframe
                 key={activeProvider.key}
                 src={activeProvider.embedUrl}
