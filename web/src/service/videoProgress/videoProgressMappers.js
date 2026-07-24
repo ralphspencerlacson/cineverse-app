@@ -9,15 +9,15 @@ export const parseProgressKey = (key) => {
     return {
       contentType: "movie",
       tmdbID: Number(movieMatch[1]),
-      seasonNumber: 0,
-      episodeNumber: 0,
+      seasonNumber: null,
+      episodeNumber: null,
     };
   }
 
   const episodeMatch = key.match(/^tv:(\d+):s(\d+):e(\d+)$/i);
   if (episodeMatch) {
     return {
-      contentType: "tv",
+      contentType: "episode",
       tmdbID: Number(episodeMatch[1]),
       seasonNumber: Number(episodeMatch[2]),
       episodeNumber: Number(episodeMatch[3]),
