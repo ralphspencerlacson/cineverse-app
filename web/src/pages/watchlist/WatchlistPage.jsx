@@ -1110,17 +1110,19 @@ const WatchlistPage = () => {
                       className={`is-${getStatusClassName(progressStatus)}`}
                     >
                       <td>
-                        <div
-                          className="watchlist-title-cell"
-                          onMouseEnter={(event) => handleRowPreviewOpen(item, event)}
-                          onMouseLeave={handlePreviewClose}
-                        >
+                        <div className="watchlist-title-cell">
                           {posterUrl && <img src={posterUrl} alt={item.title} />}
                           <div>
                             <span className={`watchlist-title-status-pill ${getStatusClassName(progressStatus)}`}>
                               {progressStatus}
                             </span>
-                            <Link to={getItemDetailPath(item)}>{item.title}</Link>
+                            <Link
+                              to={getItemDetailPath(item)}
+                              onMouseEnter={(event) => handleRowPreviewOpen(item, event)}
+                              onMouseLeave={handlePreviewClose}
+                            >
+                              {item.title}
+                            </Link>
                             <span>{formatStoredDate(item.releaseDate)}</span>
                           </div>
                         </div>

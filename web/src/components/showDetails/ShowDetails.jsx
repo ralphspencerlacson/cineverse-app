@@ -138,6 +138,25 @@ const ShowDetails = ({
     updateWatchlistItem(watchlistID, { progressStatus: "Completed" });
   }, [watchlistID]);
 
+  const handleMovieStart = useCallback(() => {
+    if (!watchlistID || showType !== "movie") {
+      return;
+    }
+
+    const currentWatchlistItem = getWatchlist().find(
+      (item) => item.id === watchlistID || item.tmdbID === Number(show?.id)
+    );
+
+    if (
+      !currentWatchlistItem ||
+      currentWatchlistItem.progressStatus === "Ongoing"
+    ) {
+      return;
+    }
+
+    updateWatchlistItem(watchlistID, { progressStatus: "Ongoing" });
+  }, [show?.id, showType, watchlistID]);
+
   const handleToggleWatchlist = () => {
     if (!show || !watchlistID) {
       return;
@@ -190,6 +209,12 @@ const ShowDetails = ({
       setIsPlayerOpen(true);
     }
   }, [autoPlay, isLoggedIn, show?.id, showType]);
+
+  useEffect(() => {
+    if (isPlayerOpen) {
+      handleMovieStart();
+    }
+  }, [handleMovieStart, isPlayerOpen]);
 
   useEffect(() => {
     setIsSavedToWatchlist(watchlistID ? isInWatchlist(watchlistID) : false);
