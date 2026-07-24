@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useFetchApi } from "../../hooks/useFetchApi";
 import { getGenres, getMovieList, requests } from "../../service/tmdb/requests";
 import { capitalizeFirstLetter } from "../../utils/StringUtils";
@@ -11,7 +11,10 @@ import "./MovieList.css";
 
 const MovieList = () => {
   const [genre, setGenre] = useState("");
+  const [page, setPage] = useState(1);
   const [bannerShow, setBannerShow] = useState(null);
+  const genrePickerRef = useRef(null);
+  const shouldScrollToGenreRef = useRef(false);
 
   const { // Banner
     isLoading,
@@ -32,6 +35,34 @@ const MovieList = () => {
   }, [trendingData]);
 
   const selectedGenreName = genre?.name || "Popular Movies";
+
+  const handleGenreChange = (nextGenre) => {
+    setGenre(nextGenre);
+    setPage(1);
+  };
+
+  const handlePageChange = (nextPage) => {
+    shouldScrollToGenreRef.current = true;
+    setPage(nextPage);
+  };
+
+  const scrollToGenrePicker = useCallback(() => {
+    if (!shouldScrollToGenreRef.current) {
+      return;
+    }
+
+    shouldScrollToGenreRef.current = false;
+
+    window.requestAnimationFrame(() => {
+      const genrePicker = genrePickerRef.current;
+      if (!genrePicker) {
+        return;
+      }
+
+      const top = genrePicker.getBoundingClientRect().top + window.scrollY - 96;
+      window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+    });
+  }, []);
 
   return (
     <div className="movie-list">
@@ -54,19 +85,24 @@ const MovieList = () => {
       )}
 
       <div className="listing">
-        <Dropdown
-          options={genreList?.genres}
-          selectedOption={genre}
-          onChangeOption={setGenre}
-          label="Find a Movie Mood"
-          allLabel="Popular"
-        />
+        <div ref={genrePickerRef}>
+          <Dropdown
+            options={genreList?.genres}
+            selectedOption={genre}
+            onChangeOption={handleGenreChange}
+            label="Find a Movie Mood"
+            allLabel="Popular"
+          />
+        </div>
         <GridContainer
           title={`${capitalizeFirstLetter(selectedGenreName)}`}
           hideTitle={true}
-          reqUrl={getMovieList(1, null, null, genre?.id)}
+          reqUrl={getMovieList(page, null, null, genre?.id)}
           cardType="poster"
           showType="movie"
+          page={page}
+          onPageChange={handlePageChange}
+          onLoadComplete={scrollToGenrePicker}
         />
 
         <RowContainer

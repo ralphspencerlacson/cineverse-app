@@ -31,6 +31,23 @@ const PLAYER_PROVIDERS = [
   },
 ];
 
+const PROVIDER_ORDER_BY_TYPE = {
+  movie: ["videasy", "vidapi", "zxcstream"],
+  tv: ["vidapi", "videasy", "zxcstream"],
+};
+
+const getOrderedProviders = (type) => {
+  const providerOrder = PROVIDER_ORDER_BY_TYPE[type] || [];
+
+  return [...PLAYER_PROVIDERS].sort((providerA, providerB) => {
+    const providerAIndex = providerOrder.indexOf(providerA.key);
+    const providerBIndex = providerOrder.indexOf(providerB.key);
+
+    return (providerAIndex === -1 ? PLAYER_PROVIDERS.length : providerAIndex) -
+      (providerBIndex === -1 ? PLAYER_PROVIDERS.length : providerBIndex);
+  });
+};
+
 const buildProgressKeys = ({ type, tmdbID, imdbID, season, episode }) => {
   const ids = [];
 
@@ -117,7 +134,7 @@ const VidPlayer = ({
   }, [progressKeys]);
 
   const playerOptions = useMemo(() => {
-    return PLAYER_PROVIDERS.map((provider) => ({
+    return getOrderedProviders(type).map((provider) => ({
       ...provider,
       embedUrl: provider.getEmbedUrl({
         type,
@@ -159,7 +176,11 @@ const VidPlayer = ({
 
     updateOpen(true);
   };
-  const handleClose = () => updateOpen(false);
+  const handleClose = (event) => {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    updateOpen(false);
+  };
 
   const clearControlsIdleTimeout = useCallback(() => {
     if (controlsIdleTimeoutRef.current) {
@@ -610,11 +631,12 @@ const VidPlayer = ({
       )}
 
       {showPlayer && (
-        <div className="vid-player" onPointerDown={handleClose}>
+        <div className="vid-player" onClick={handleClose}>
           <div
             className="vid-player__shell"
             onPointerMove={() => revealControls()}
             onPointerDown={(event) => event.stopPropagation()}
+            onClick={(event) => event.stopPropagation()}
           >
             <div className={`container ${shouldShowControls ? "show-controls" : "hide-controls"}`}>
               <div className="vid-player__controls">
@@ -622,6 +644,7 @@ const VidPlayer = ({
                   type="button"
                   className="vid-player__close"
                   onClick={handleClose}
+                  onPointerDown={(event) => event.stopPropagation()}
                   aria-label="Close video player"
                 >
                   Close

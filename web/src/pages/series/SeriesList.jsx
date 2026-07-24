@@ -8,7 +8,6 @@ import { useFetchApi } from "../../hooks/useFetchApi";
 import Banner from "../../components/banner/Banner";
 import ShowDetails from "../../components/showDetails/ShowDetails";
 import Networks from "../../components/networks/Networks";
-import Genres from "../../components/genres/Genres";
 import RowContainer from "../../components/containers/RowContainer";
 // CSS
 import "./SeriesList.css";
@@ -18,6 +17,8 @@ const SeriesList = () => {
   const [bannerShow, setBannerShow] = useState(null);
   const [network, setNetwork] = useState("Netflix");
   const [genre, setGenre] = useState({ id: 80, name: "Crime" });
+  const [networkPage, setNetworkPage] = useState(1);
+  const [genrePage, setGenrePage] = useState(1);
 
   const { // Banner
     isLoading,
@@ -36,6 +37,17 @@ const SeriesList = () => {
       ]
     );
   }, [trendingData]);
+
+  const handleNetworkChange = (nextNetwork) => {
+    setNetwork(nextNetwork);
+    setNetworkPage(1);
+    setGenrePage(1);
+  };
+
+  const handleGenreChange = (nextGenre) => {
+    setGenre(nextGenre);
+    setGenrePage(1);
+  };
 
   return (
     <div className="series-list">
@@ -58,28 +70,36 @@ const SeriesList = () => {
       )}
 
       <div className="listing">
-        <Networks currentNetwork={network} setNetwork={setNetwork} />
+        <Networks currentNetwork={network} setNetwork={handleNetworkChange} />
         <RowContainer
           title={`${network} Shows`}
-          reqUrl={getSeriesList(1, network, "popular", "desc")}
+          reqUrl={getSeriesList(networkPage, network, "popular", "desc")}
           hideTitle={true}
           cardType="poster"
           showType="tv"
+          page={networkPage}
+          onPageChange={setNetworkPage}
+          infiniteScroll={true}
+          resetKey={network}
         />
 
         <Dropdown
           options={genreList?.genres}
           selectedOption={genre}
-          onChangeOption={setGenre}
+          onChangeOption={handleGenreChange}
           label="Tune by Genre"
           allLabel="All Shows"
         />
         <RowContainer
           title={`${capitalizeFirstLetter(genre?.name || `${network} Shows`)}`}
-          reqUrl={getSeriesList(1, network, null, null, genre?.id)}
+          reqUrl={getSeriesList(genrePage, network, null, null, genre?.id)}
           hideTitle={true}
           cardType="poster"
           showType="tv"
+          page={genrePage}
+          onPageChange={setGenrePage}
+          infiniteScroll={true}
+          resetKey={`${network}:${genre?.id || "all"}`}
         />
 
         <RowContainer
