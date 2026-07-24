@@ -80,7 +80,13 @@ const selectBestTrailer = (videos = []) => {
   return youtubeVideos[0];
 };
 
-const getProgressPercent = (item, seasonEpisodeCounts = {}) => {
+const clampProgressPercent = (value) => Math.min(100, Math.max(0, value));
+
+const getProgressPercent = (
+  item,
+  seasonEpisodeCounts = {},
+  movieProgressByKey = {}
+) => {
   const progressStatus = getDisplayProgressStatus(item);
 
   if (progressStatus === "Completed") {
@@ -88,6 +94,24 @@ const getProgressPercent = (item, seasonEpisodeCounts = {}) => {
   }
 
   if (item.type !== "tv") {
+    const progressEntry =
+      movieProgressByKey[item.id] || movieProgressByKey[`movie:${item.tmdbID}`];
+    const progressSeconds = Number(
+      progressEntry?.metadata?.playbackSeconds || progressEntry?.seconds || 0
+    );
+    const durationSeconds = Number(
+      progressEntry?.metadata?.playbackDuration || progressEntry?.metadata?.duration || 0
+    );
+
+    if (
+      Number.isFinite(progressSeconds) &&
+      progressSeconds > 0 &&
+      Number.isFinite(durationSeconds) &&
+      durationSeconds > 0
+    ) {
+      return clampProgressPercent((progressSeconds / durationSeconds) * 100);
+    }
+
     return progressStatus === "Ongoing" ? 50 : 0;
   }
 
@@ -108,16 +132,15 @@ const getProgressPercent = (item, seasonEpisodeCounts = {}) => {
       watchedEpisodesBeforeSeason += episodeCount;
     }
 
-    return Math.min(
-      100,
-      Math.max(0, ((watchedEpisodesBeforeSeason + currentEpisode - 1) / totalEpisodes) * 100)
+    return clampProgressPercent(
+      ((watchedEpisodesBeforeSeason + currentEpisode - 1) / totalEpisodes) * 100
     );
   }
 
   const totalSeasons = Number(item.totalSeasons);
 
   if (Number.isFinite(totalSeasons) && totalSeasons > 0) {
-    return Math.min(100, Math.max(0, ((currentSeason - 1) / totalSeasons) * 100));
+    return clampProgressPercent(((currentSeason - 1) / totalSeasons) * 100);
   }
 
   return progressStatus === "Ongoing" ? 35 : 0;
@@ -197,12 +220,24 @@ const WatchlistPage = () => {
   const [previewSide, setPreviewSide] = useState("right");
   const [previewMuted, setPreviewMuted] = useState(false);
   const [seasonEpisodeCounts, setSeasonEpisodeCounts] = useState({});
-  const [videoProgressVersion, setVideoProgressVersion] = useState(0);
+  const [videoProgressEntries, setVideoProgressEntries] = useState(() =>
+    getVideoProgressEntries()
+  );
   const fileInputRef = useRef(null);
   const previewCloseTimeoutRef = useRef(null);
   const previewFetchesRef = useRef(new Set());
   const tableScrollRef = useRef(null);
   const infiniteScrollRef = useRef(null);
+
+  const movieProgressByKey = useMemo(() => {
+    return videoProgressEntries.reduce((progressMap, entry) => {
+      if (entry.key?.startsWith("movie:")) {
+        progressMap[entry.key] = entry;
+      }
+
+      return progressMap;
+    }, {});
+  }, [videoProgressEntries]);
 
   const dashboardStats = useMemo(() => {
     const movies = items.filter((item) => item.type === "movie");
@@ -213,7 +248,7 @@ const WatchlistPage = () => {
     const completedSeries = series.filter(
       (item) => item.progressStatus === "Completed"
     ).length;
-    const lastVideoWatched = getVideoProgressEntries()
+    const lastVideoWatched = videoProgressEntries
       .filter((entry) => entry.metadata?.title)
       .sort(
         (a, b) =>
@@ -230,7 +265,7 @@ const WatchlistPage = () => {
       seriesPercent: series.length ? (completedSeries / series.length) * 100 : 0,
       lastVideoWatched,
     };
-  }, [items, videoProgressVersion]);
+  }, [items, videoProgressEntries]);
 
   const visibleItems = useMemo(() => {
     const normalizedTitleFilter = titleFilter.trim().toLowerCase();
@@ -261,8 +296,8 @@ const WatchlistPage = () => {
           (STATUS_SORT_ORDER[getDisplayProgressStatus(b)] ?? 99);
       } else if (sortConfig.key === "progress") {
         result =
-          getProgressPercent(a, seasonEpisodeCounts) -
-          getProgressPercent(b, seasonEpisodeCounts);
+          getProgressPercent(a, seasonEpisodeCounts, movieProgressByKey) -
+          getProgressPercent(b, seasonEpisodeCounts, movieProgressByKey);
       } else if (sortConfig.key === "tmdbStatus") {
         result = (a.tmdbStatus || "zzz").localeCompare(b.tmdbStatus || "zzz");
       } else if (sortConfig.key === "nextEpisodeDate") {
@@ -281,7 +316,15 @@ const WatchlistPage = () => {
 
       return result * direction;
     });
-  }, [items, seasonEpisodeCounts, sortConfig, statusFilter, titleFilter, typeFilter]);
+  }, [
+    items,
+    movieProgressByKey,
+    seasonEpisodeCounts,
+    sortConfig,
+    statusFilter,
+    titleFilter,
+    typeFilter,
+  ]);
 
   const paginatedItems = useMemo(
     () => visibleItems.slice(0, visibleCount),
@@ -399,6 +442,7 @@ const WatchlistPage = () => {
 
   useEffect(() => {
     setItems(getWatchlist());
+    setVideoProgressEntries(getVideoProgressEntries());
     setSyncStatus(getStoredWatchlistSyncStatus(user?.id));
   }, [user?.id]);
 
@@ -429,7 +473,7 @@ const WatchlistPage = () => {
 
   useEffect(() => {
     const handleVideoProgress = () => {
-      setVideoProgressVersion((version) => version + 1);
+      setVideoProgressEntries(getVideoProgressEntries());
     };
 
     window.addEventListener("cineverse-video-progress", handleVideoProgress);
@@ -1040,7 +1084,11 @@ const WatchlistPage = () => {
                 </thead>
                 <tbody>
                 {paginatedItems.map((item) => {
-                  const progressPercent = getProgressPercent(item, seasonEpisodeCounts);
+                  const progressPercent = getProgressPercent(
+                    item,
+                    seasonEpisodeCounts,
+                    movieProgressByKey
+                  );
                   const progressStatus = getDisplayProgressStatus(item);
                   const seasonEpisodeCount = seasonEpisodeCounts[
                     `${item.id}:${item.currentSeason || 1}`
