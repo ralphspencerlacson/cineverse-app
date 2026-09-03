@@ -1,7 +1,6 @@
 #root {
   text-align: center;
 
-  --fs-header1: clamp(1.8rem, 8vw, 3.2rem);
   --fs-header1: clamp(1.6rem, 7vw, 3rem);
   --fs-default: clamp(.8rem, 2vw, 1.1rem);
 }
@@ -9,8 +8,10 @@
 body {
   margin: 0;
   min-width: 0;
-  caret-color: transparent;
-  user-select: none;
+  background: var(--cv-black);
+  color: var(--cv-text);
+  caret-color: auto;
+  user-select: text;
 }
 
 * {
@@ -29,7 +30,22 @@ textarea,
 select,
 [contenteditable="true"] {
   caret-color: auto;
+  font-family: inherit;
   user-select: text;
+}
+
+button {
+  font-family: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--cv-focus);
+  outline-offset: 3px;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--cv-ember) 78%, transparent);
+  color: var(--cv-text);
 }
 
 img,
@@ -44,7 +60,7 @@ a {
 }
 
 a {
-  color: white;
+  color: var(--cv-text);
   text-decoration: none;
 }
 
@@ -60,7 +76,7 @@ a {
 
 /* Handle */
 ::-webkit-scrollbar-thumb {
-  background: #c9c9c9;
+  background: #cfd7e2;
   border-radius: 10px;
 }
 

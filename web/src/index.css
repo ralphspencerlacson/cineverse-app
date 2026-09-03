@@ -3,9 +3,28 @@
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  background-color: rgb(18, 18, 18);
+  color-scheme: dark;
   color: white;
+  background: #090a0b;
+
+  --cv-black: #090a0b;
+  --cv-raised: #111;
+  --cv-surface: #171717;
+  --cv-surface-soft: #202020;
+  --cv-text: white;
+  --cv-muted: #cfd7e2;
+  --cv-ember: #ce3824;
+  --cv-ember-bright: #ff5d46;
+  --cv-blush: #ffb3a8;
+  --cv-complete: #cfd7e2;
+  --cv-danger: #ffb3a8;
+  --cv-focus: #ff5d46;
+  --cv-radius-sm: 0.375rem;
+  --cv-radius-md: 0.75rem;
+  --cv-radius-lg: 1.125rem;
+  --cv-radius-pill: 999px;
+  --cv-shadow-raised: 0 0.75rem 2rem rgb(0 0 0 / 0.34);
+  --cv-shadow-overlay: 0 1.5rem 4rem rgb(0 0 0 / 0.58);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;

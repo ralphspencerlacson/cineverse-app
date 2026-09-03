@@ -3,7 +3,8 @@ import { getEmbedUrl as getZxcstreamEmbedUrl } from "../../service/zxcstream/req
 import { getEmbedUrl as getVideasyEmbedUrl } from "../../service/videasy/requests";
 import { getEmbedUrl as getVidapiEmbedUrl } from "../../service/vidapi/requests";
 import {
-  getStoredVideoProgress,
+  flushStoredVideoProgress,
+  getStoredVideoProgressEntry,
   setStoredVideoProgress,
 } from "../../service/videoProgress/videoProgressStorage";
 import { useAuth } from "../../context/AuthContext";
@@ -13,21 +14,26 @@ const RESUME_BACKTRACK_SECONDS = 5;
 const DEFAULT_COMPLETION_THRESHOLD = 0.9;
 const PLAYER_LOAD_TIMEOUT_MS = 9000;
 const CONTROLS_IDLE_TIMEOUT_MS = 3000;
+const SEEK_EVENT_GUARD_MS = 5000;
+const MAX_REASONABLE_DURATION_SECONDS = 24 * 60 * 60;
 const PLAYER_PROVIDERS = [
   {
     key: "zxcstream",
     label: "ZXCStream",
     getEmbedUrl: getZxcstreamEmbedUrl,
+    supportsResume: false,
   },
   {
     key: "videasy",
     label: "Videasy",
     getEmbedUrl: getVideasyEmbedUrl,
+    supportsResume: true,
   },
   {
     key: "vidapi",
     label: "VidAPI",
     getEmbedUrl: getVidapiEmbedUrl,
+    supportsResume: true,
   },
 ];
 
@@ -97,6 +103,7 @@ const VidPlayer = ({
   const [isPlayerLoading, setIsPlayerLoading] = useState(false);
   const [areControlsVisible, setAreControlsVisible] = useState(true);
   const [isPlaybackPaused, setIsPlaybackPaused] = useState(false);
+  const [playerRevision, setPlayerRevision] = useState(0);
   const progressKeys = useMemo(
     () =>
       buildProgressKeys({
@@ -108,6 +115,11 @@ const VidPlayer = ({
       }),
     [type, tmdbID, imdbID, season, episode]
   );
+  const runtimeSeconds = useMemo(() => {
+    const runtime = Number(runtimeMinutes);
+    return Number.isFinite(runtime) && runtime > 0 ? runtime * 60 : 0;
+  }, [runtimeMinutes]);
+  const progressKeySignature = progressKeys.join("|");
 
   const sessionStartRef = useRef(null);
   const baseProgressRef = useRef(0);
@@ -117,21 +129,43 @@ const VidPlayer = ({
   const playerLoadTimeoutRef = useRef(null);
   const controlsIdleTimeoutRef = useRef(null);
   const iframeRef = useRef(null);
-  const providerProgressRef = useRef({ seconds: 0, duration: 0 });
+  const providerProgressRef = useRef({ seconds: null, duration: 0 });
   const isPlaybackPausedRef = useRef(false);
+  const resumeAtRef = useRef(0);
+  const canonicalCheckpointRef = useRef(0);
+  const knownDurationRef = useRef(runtimeSeconds);
+  const lastProviderProgressRef = useRef(null);
+  const recentSeekRef = useRef(null);
+  const backwardCandidateRef = useRef(null);
+  const hasProviderProgressRef = useRef(false);
+  const wasShowingPlayerRef = useRef(false);
+  const activeProgressKeyRef = useRef("");
+  const progressMetadataRef = useRef(progressMetadata);
+  progressMetadataRef.current = progressMetadata;
 
   const isControlled = typeof isOpen === "boolean";
   const requestedShowPlayer = isControlled ? isOpen : internalShowPlayer;
   const showPlayer = isLoggedIn && requestedShowPlayer;
 
-  const resumeAt = useMemo(() => {
-    if (!progressKeys.length) {
-      return 0;
-    }
+  if (
+    showPlayer &&
+    (!wasShowingPlayerRef.current || activeProgressKeyRef.current !== progressKeySignature)
+  ) {
+    const storedEntry = getStoredVideoProgressEntry(progressKeys);
+    const checkpoint = storedEntry?.seconds || 0;
+    const storedDuration = Number(storedEntry?.metadata?.playbackDuration);
 
-    const storedProgress = getStoredVideoProgress(progressKeys);
-    return Math.max(0, storedProgress - RESUME_BACKTRACK_SECONDS);
-  }, [progressKeys]);
+    canonicalCheckpointRef.current = checkpoint;
+    baseProgressRef.current = checkpoint;
+    resumeAtRef.current = Math.max(0, checkpoint - RESUME_BACKTRACK_SECONDS);
+    knownDurationRef.current =
+      (Number.isFinite(storedDuration) && storedDuration > 0 && storedDuration) ||
+      runtimeSeconds;
+  }
+  wasShowingPlayerRef.current = showPlayer;
+  activeProgressKeyRef.current = progressKeySignature;
+
+  const resumeAt = resumeAtRef.current;
 
   const playerOptions = useMemo(() => {
     return getOrderedProviders(type).map((provider) => ({
@@ -142,20 +176,26 @@ const VidPlayer = ({
         imdbID,
         season,
         episode,
-        resumeAt,
+        resumeAt: provider.supportsResume ? resumeAt : 0,
       }),
     })).filter((provider) => provider.embedUrl);
   }, [episode, imdbID, resumeAt, season, tmdbID, type]);
 
   const activeProvider =
     playerOptions[activeProviderIndex] || playerOptions[0] || null;
+  const activeProviderOrigin = useMemo(() => {
+    if (!activeProvider?.embedUrl) {
+      return null;
+    }
+
+    try {
+      return new URL(activeProvider.embedUrl, window.location.href).origin;
+    } catch {
+      return null;
+    }
+  }, [activeProvider?.embedUrl]);
   const canSwitchPlayer = playerOptions.length > 1;
   const shouldShowControls = areControlsVisible || isPlaybackPaused || isPlayerLoading;
-
-  const runtimeSeconds = useMemo(() => {
-    const runtime = Number(runtimeMinutes);
-    return Number.isFinite(runtime) && runtime > 0 ? runtime * 60 : 0;
-  }, [runtimeMinutes]);
 
   const updateOpen = (value) => {
     window.dispatchEvent(
@@ -224,7 +264,17 @@ const VidPlayer = ({
   }, []);
 
   const togglePlayback = useCallback(() => {
-    isPlaybackPausedRef.current = !isPlaybackPausedRef.current;
+    const willPause = !isPlaybackPausedRef.current;
+    if (willPause && sessionStartRef.current) {
+      baseProgressRef.current += Math.floor(
+        (Date.now() - sessionStartRef.current) / 1000
+      );
+      sessionStartRef.current = null;
+    } else if (!willPause) {
+      sessionStartRef.current = Date.now();
+    }
+
+    isPlaybackPausedRef.current = willPause;
     setIsPlaybackPaused(isPlaybackPausedRef.current);
     revealControls(isPlaybackPausedRef.current);
     postPlaybackCommand(isPlaybackPausedRef.current ? "pause" : "play");
@@ -278,21 +328,6 @@ const VidPlayer = ({
     }
   }, []);
 
-  const switchPlayer = useCallback(() => {
-    if (!canSwitchPlayer) {
-      return;
-    }
-
-    setActiveProviderIndex((currentIndex) =>
-      (currentIndex + 1) % playerOptions.length
-    );
-  }, [canSwitchPlayer, playerOptions.length]);
-
-  const handleProviderChange = (event) => {
-    setActiveProviderIndex(Number(event.target.value));
-    revealControls();
-  };
-
   const handlePlayerLoad = () => {
     clearPlayerLoadTimeout();
     setIsPlayerLoading(false);
@@ -309,28 +344,27 @@ const VidPlayer = ({
     );
   }, []);
 
-  const saveProgress = useCallback((progressSeconds) => {
-    if (!showPlayer || !progressKeys.length || !sessionStartRef.current) {
+  const saveProgress = useCallback((progressSeconds, flushLocal = false) => {
+    if (!showPlayer || !progressKeys.length) {
       return;
     }
 
-    const playedSeconds = Number.isFinite(Number(progressSeconds))
+    const hasExplicitProgress = progressSeconds !== undefined && progressSeconds !== null;
+    const playedSeconds = hasExplicitProgress && Number.isFinite(Number(progressSeconds))
       ? Number(progressSeconds)
       : getPlayedSeconds();
+    const duration = knownDurationRef.current || runtimeSeconds;
 
     setStoredVideoProgress(progressKeys, playedSeconds, {
-      ...(progressMetadata || {}),
+      ...(progressMetadataRef.current || {}),
       playbackSeconds: Math.floor(playedSeconds),
-      ...(providerProgressRef.current.duration
-        ? { playbackDuration: providerProgressRef.current.duration }
-        : {}),
-    });
-  }, [getPlayedSeconds, progressKeys, progressMetadata, showPlayer]);
+      ...(duration ? { playbackDuration: duration } : {}),
+    }, { flushLocal });
+  }, [getPlayedSeconds, progressKeys, runtimeSeconds, showPlayer]);
 
   const maybeMarkComplete = useCallback((progressSeconds, durationSeconds) => {
     if (
-      completionMarkedRef.current ||
-      !sessionStartRef.current
+      completionMarkedRef.current
     ) {
       return;
     }
@@ -355,31 +389,113 @@ const VidPlayer = ({
     onComplete?.({ playedSeconds, runtimeSeconds: resolvedRuntimeSeconds });
   }, [completionThreshold, getPlayedSeconds, onComplete, runtimeSeconds]);
 
-  const saveProviderProgress = useCallback((seconds, duration) => {
+  const saveProviderProgress = useCallback((seconds, duration, isSeek = false) => {
     const playedSeconds = Number(seconds);
-    if (!showPlayer || !progressKeys.length || !Number.isFinite(playedSeconds) || playedSeconds < 1) {
+    if (!showPlayer || !progressKeys.length || !Number.isFinite(playedSeconds) || playedSeconds < 0) {
       return;
     }
 
     const resolvedDuration = Number(duration);
     const durationSeconds = Number.isFinite(resolvedDuration) && resolvedDuration > 0
       ? resolvedDuration
-      : 0;
+      : knownDurationRef.current || runtimeSeconds;
+    const lastProgress = lastProviderProgressRef.current;
+    const backwardTolerance = Math.max(15, durationSeconds * 0.02);
+    const recentSeek = recentSeekRef.current;
+
+    if (!isSeek) {
+      if (
+        activeProvider?.supportsResume &&
+        playedSeconds < canonicalCheckpointRef.current &&
+        lastProgress === null
+      ) {
+        return;
+      }
+      if (
+        recentSeek &&
+        Date.now() - recentSeek.at < SEEK_EVENT_GUARD_MS &&
+        Math.abs(playedSeconds - recentSeek.seconds) > backwardTolerance
+      ) {
+        return;
+      }
+      if (lastProgress !== null && playedSeconds < lastProgress - backwardTolerance) {
+        const candidate = backwardCandidateRef.current;
+        const corroboratesBackwardSeek =
+          candidate &&
+          Date.now() - candidate.at < 3000 &&
+          Math.abs(candidate.seconds - playedSeconds) <= backwardTolerance;
+
+        if (!corroboratesBackwardSeek) {
+          backwardCandidateRef.current = { seconds: playedSeconds, at: Date.now() };
+          return;
+        }
+      }
+    } else {
+      recentSeekRef.current = { seconds: playedSeconds, at: Date.now() };
+    }
+
+    backwardCandidateRef.current = null;
 
     providerProgressRef.current = {
       seconds: playedSeconds,
-      duration: durationSeconds || providerProgressRef.current.duration,
+      duration: durationSeconds,
     };
+    hasProviderProgressRef.current = true;
+    lastProviderProgressRef.current = playedSeconds;
+    canonicalCheckpointRef.current = playedSeconds;
+    knownDurationRef.current = durationSeconds;
     baseProgressRef.current = playedSeconds;
-    sessionStartRef.current = Date.now();
+    sessionStartRef.current = isPlaybackPausedRef.current ? null : Date.now();
 
     setStoredVideoProgress(progressKeys, playedSeconds, {
-      ...(progressMetadata || {}),
+      ...(progressMetadataRef.current || {}),
       playbackSeconds: Math.floor(playedSeconds),
       ...(durationSeconds ? { playbackDuration: durationSeconds } : {}),
     });
     maybeMarkComplete(playedSeconds, durationSeconds);
-  }, [maybeMarkComplete, progressKeys, progressMetadata, showPlayer]);
+  }, [activeProvider?.supportsResume, maybeMarkComplete, progressKeys, runtimeSeconds, showPlayer]);
+
+  const refreshResumeCheckpoint = useCallback(() => {
+    const currentProgress = getPlayedSeconds();
+    if (activeProvider?.supportsResume || hasProviderProgressRef.current) {
+      saveProgress(currentProgress, true);
+    }
+
+    const storedEntry = getStoredVideoProgressEntry(progressKeys);
+    const checkpoint = storedEntry?.seconds || 0;
+    const storedDuration = Number(storedEntry?.metadata?.playbackDuration);
+    canonicalCheckpointRef.current = checkpoint;
+    baseProgressRef.current = checkpoint;
+    resumeAtRef.current = Math.max(0, checkpoint - RESUME_BACKTRACK_SECONDS);
+    knownDurationRef.current =
+      (Number.isFinite(storedDuration) && storedDuration > 0 && storedDuration) ||
+      knownDurationRef.current ||
+      runtimeSeconds;
+    providerProgressRef.current = { seconds: null, duration: knownDurationRef.current };
+    hasProviderProgressRef.current = false;
+    lastProviderProgressRef.current = null;
+    recentSeekRef.current = null;
+    backwardCandidateRef.current = null;
+    sessionStartRef.current = isPlaybackPausedRef.current ? null : Date.now();
+    setPlayerRevision((revision) => revision + 1);
+  }, [activeProvider?.supportsResume, getPlayedSeconds, progressKeys, runtimeSeconds, saveProgress]);
+
+  const switchPlayer = useCallback(() => {
+    if (!canSwitchPlayer) {
+      return;
+    }
+
+    refreshResumeCheckpoint();
+    setActiveProviderIndex((currentIndex) =>
+      (currentIndex + 1) % playerOptions.length
+    );
+  }, [canSwitchPlayer, playerOptions.length, refreshResumeCheckpoint]);
+
+  const handleProviderChange = (event) => {
+    refreshResumeCheckpoint();
+    setActiveProviderIndex(Number(event.target.value));
+    revealControls();
+  };
 
   const parsePlayerMessage = useCallback((eventData) => {
     if (!eventData) {
@@ -399,65 +515,68 @@ const VidPlayer = ({
       return null;
     }
 
-    if (data.type === "PLAYER_EVENT") {
-      const playerData = data.data || {};
-      const playerProgress = Number(playerData.player_progress);
-      const timestamp = Number(playerData.timestamp);
-      const currentTime = Number(playerData.currentTime);
-      const duration = Number(playerData.duration) || 0;
-      const playerState = Number(playerData.playerState ?? playerData.state);
-      const eventName = String(playerData.event || playerData.type || "").toLowerCase();
-      const isPaused =
-        playerData.paused === true ||
-        playerData.isPaused === true ||
-        playerState === 2 ||
-        eventName === "pause" ||
-        eventName === "paused";
-
-      if (isPaused || playerState === 1 || eventName === "play" || eventName === "playing") {
-        return {
-          seconds: Number.isFinite(currentTime) && currentTime > 0 ? currentTime : playerProgress || timestamp || 0,
-          duration,
-          isPaused,
-        };
+    const playerData = data.type === "PLAYER_EVENT" ? data.data || {} : data;
+    const toFiniteNumber = (value) => {
+      if (value === undefined || value === null || value === "") {
+        return null;
       }
-
-      if (Number.isFinite(playerProgress) && playerProgress > 0) {
-        return { seconds: playerProgress, duration };
+      const number = Number(value);
+      return Number.isFinite(number) ? number : null;
+    };
+    const reportedDuration = toFiniteNumber(playerData.duration);
+    const duration =
+      reportedDuration > 0 && reportedDuration <= MAX_REASONABLE_DURATION_SECONDS
+        ? reportedDuration
+        : knownDurationRef.current || runtimeSeconds;
+    const isReasonableTime = (value) => {
+      if (value === null || value < 0 || value > MAX_REASONABLE_DURATION_SECONDS) {
+        return false;
       }
+      return !duration || value <= duration + Math.max(30, duration * 0.05);
+    };
+    const currentTime = toFiniteNumber(playerData.currentTime);
+    const timestamp = toFiniteNumber(playerData.timestamp);
+    const playerProgress = toFiniteNumber(playerData.player_progress);
+    const seconds = [currentTime, timestamp, playerProgress].find(isReasonableTime);
+    const playerState = Number(
+      playerData.info?.playerState ?? playerData.playerState ?? playerData.state
+    );
+    const eventName = String(
+      playerData.event || playerData.type || data.event || ""
+    ).toLowerCase();
+    const isPauseEvent =
+      playerData.paused === true ||
+      playerData.isPaused === true ||
+      playerState === 2 ||
+      eventName === "pause" ||
+      eventName === "paused";
+    const isPlayEvent =
+      playerData.paused === false ||
+      playerData.isPaused === false ||
+      playerState === 1 ||
+      eventName === "play" ||
+      eventName === "playing";
+    const isSeek = ["seek", "seeking", "seeked"].includes(eventName);
 
-      if (Number.isFinite(timestamp) && timestamp > 0) {
-        return { seconds: timestamp, duration };
-      }
-
-      if (Number.isFinite(currentTime) && currentTime > 0) {
-        return { seconds: currentTime, duration };
-      }
+    if (seconds === undefined && !isPauseEvent && !isPlayEvent) {
+      return null;
     }
 
-    const playerState = Number(data.info?.playerState ?? data.playerState ?? data.state);
-    if (playerState === 1 || playerState === 2) {
-      return {
-        seconds: Number(data.timestamp) || 0,
-        duration: Number(data.duration) || 0,
-        isPaused: playerState === 2,
-      };
-    }
-
-    const timestamp = Number(data.timestamp);
-    if (Number.isFinite(timestamp) && timestamp > 0) {
-      return {
-        seconds: timestamp,
-        duration: Number(data.duration) || 0,
-      };
-    }
-
-    return null;
-  }, []);
+    return {
+      seconds: seconds ?? null,
+      duration,
+      ...(isPauseEvent || isPlayEvent ? { isPaused: isPauseEvent } : {}),
+      isSeek,
+    };
+  }, [runtimeSeconds]);
 
   useEffect(() => {
     completionMarkedRef.current = false;
-    providerProgressRef.current = { seconds: 0, duration: 0 };
+    providerProgressRef.current = { seconds: null, duration: knownDurationRef.current };
+    hasProviderProgressRef.current = false;
+    lastProviderProgressRef.current = null;
+    recentSeekRef.current = null;
+    backwardCandidateRef.current = null;
     clearControlsIdleTimeout();
     setAreControlsVisible(true);
     setIsPlaybackPaused(false);
@@ -470,6 +589,17 @@ const VidPlayer = ({
     }
 
     const handleProviderMessage = (event) => {
+      if (event.source !== iframeRef.current?.contentWindow) {
+        return;
+      }
+      if (
+        activeProviderOrigin &&
+        event.origin !== "null" &&
+        event.origin !== activeProviderOrigin
+      ) {
+        return;
+      }
+
       const progress = parsePlayerMessage(event.data);
       if (!progress) {
         return;
@@ -477,6 +607,14 @@ const VidPlayer = ({
 
       if (typeof progress.isPaused === "boolean") {
         const wasPlaybackPaused = isPlaybackPausedRef.current;
+
+        if (progress.isPaused && !wasPlaybackPaused && progress.seconds === null) {
+          baseProgressRef.current = getPlayedSeconds();
+          sessionStartRef.current = null;
+        } else if (!progress.isPaused && wasPlaybackPaused) {
+          sessionStartRef.current = Date.now();
+        }
+
         isPlaybackPausedRef.current = progress.isPaused;
         setIsPlaybackPaused(progress.isPaused);
 
@@ -485,8 +623,8 @@ const VidPlayer = ({
         }
       }
 
-      if (progress.seconds > 0) {
-        saveProviderProgress(progress.seconds, progress.duration);
+      if (progress.seconds !== null) {
+        saveProviderProgress(progress.seconds, progress.duration, progress.isSeek);
       }
     };
 
@@ -495,7 +633,7 @@ const VidPlayer = ({
     return () => {
       window.removeEventListener("message", handleProviderMessage);
     };
-  }, [parsePlayerMessage, revealControls, saveProviderProgress, showPlayer]);
+  }, [activeProviderOrigin, getPlayedSeconds, parsePlayerMessage, revealControls, saveProviderProgress, showPlayer]);
 
   useEffect(() => {
     if (!showPlayer) {
@@ -548,37 +686,48 @@ const VidPlayer = ({
   }, [activeProvider, canSwitchPlayer, clearPlayerLoadTimeout, showPlayer, switchPlayer]);
 
   useEffect(() => {
-    if (!showPlayer) {
+    if (!showPlayer || !activeProvider) {
       return;
     }
 
-    baseProgressRef.current = resumeAt;
-    sessionStartRef.current = Date.now();
-
-    if (progressKeys.length) {
-      setStoredVideoProgress(progressKeys, Math.max(1, resumeAt || 1), progressMetadata);
+    if (activeProvider.supportsResume) {
+      baseProgressRef.current = canonicalCheckpointRef.current;
+      sessionStartRef.current = isPlaybackPausedRef.current ? null : Date.now();
+    } else {
+      baseProgressRef.current = 0;
+      sessionStartRef.current = null;
     }
 
     progressIntervalRef.current = window.setInterval(() => {
-      const providerProgress = providerProgressRef.current;
-      const playedSeconds = providerProgress.seconds || getPlayedSeconds();
+      if (!activeProvider.supportsResume && !hasProviderProgressRef.current) {
+        return;
+      }
 
-      setStoredVideoProgress(progressKeys, playedSeconds, progressMetadata);
+      const providerProgress = providerProgressRef.current;
+      const playedSeconds = getPlayedSeconds();
+
+      saveProgress(playedSeconds);
       maybeMarkComplete(
-        providerProgress.seconds || undefined,
+        playedSeconds,
         providerProgress.duration || undefined
       );
     }, 10000);
 
     const persistCurrentProgress = () => {
-      saveProgress(providerProgressRef.current.seconds || undefined);
+      if (!activeProvider.supportsResume && !hasProviderProgressRef.current) {
+        flushStoredVideoProgress();
+        return;
+      }
+
+      saveProgress(getPlayedSeconds(), true);
+      flushStoredVideoProgress();
     };
 
     visibilityHandlerRef.current = () => {
       if (document.visibilityState === "hidden") {
         persistCurrentProgress();
         maybeMarkComplete(
-          providerProgressRef.current.seconds || undefined,
+          getPlayedSeconds(),
           providerProgressRef.current.duration || undefined
         );
       }
@@ -605,14 +754,14 @@ const VidPlayer = ({
         visibilityHandlerRef.current = null;
       }
 
-      saveProgress(providerProgressRef.current.seconds || undefined);
+      persistCurrentProgress();
       maybeMarkComplete(
-        providerProgressRef.current.seconds || undefined,
+        getPlayedSeconds(),
         providerProgressRef.current.duration || undefined
       );
       sessionStartRef.current = null;
     };
-  }, [getPlayedSeconds, maybeMarkComplete, progressKeys, progressMetadata, saveProgress, showPlayer, resumeAt]);
+  }, [activeProvider, getPlayedSeconds, maybeMarkComplete, progressKeys, saveProgress, showPlayer]);
 
   if (!activeProvider) {
     return null;
@@ -669,7 +818,7 @@ const VidPlayer = ({
                 )}
               </div>
               <iframe
-                key={activeProvider.key}
+                key={`${activeProvider.key}:${playerRevision}`}
                 src={activeProvider.embedUrl}
                 loading="lazy"
                 title={title}

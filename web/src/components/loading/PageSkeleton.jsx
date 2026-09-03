@@ -13,14 +13,14 @@ export const CineverseLoader = ({ label = "Loading Cineverse", className = "" })
   );
 };
 
-export const CardSkeleton = ({ count = 10, layout = "row" }) => {
+export const CardSkeleton = ({ count = 10, layout = "row", cardType = "poster" }) => {
   return (
-    <div className={`card-skeletons ${layout}`} aria-label="Loading titles">
+    <div className={`card-skeletons layout-${layout} ${cardType}`} aria-label="Loading titles">
       {Array.from({ length: count }).map((_, index) => (
-        <div className="card-skeleton shimmer" key={index}>
-          <div className="card-skeleton__poster" />
-          <div className="card-skeleton__title" />
-          <div className="card-skeleton__meta" />
+        <div className="card-skeleton" key={index}>
+          <div className="card-skeleton__poster shimmer" />
+          <div className="card-skeleton__title shimmer" />
+          <div className="card-skeleton__meta shimmer" />
         </div>
       ))}
     </div>

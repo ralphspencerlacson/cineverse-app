@@ -26,7 +26,7 @@ export const getRemoteVideoProgressEntries = async (userID) => {
 export const upsertRemoteVideoProgressEntry = async (userID, entry) => {
   const remoteProgress = toVideoProgressRow(userID, entry);
   if (!remoteProgress) {
-    return;
+    return true;
   }
 
   const { error } = await supabase
@@ -37,8 +37,10 @@ export const upsertRemoteVideoProgressEntry = async (userID, entry) => {
 
   if (error) {
     console.error("Failed to save remote video progress", error);
-    return;
+    return false;
   }
+
+  return true;
 };
 
 export const upsertRemoteVideoProgressEntries = async (userID, entries) => {

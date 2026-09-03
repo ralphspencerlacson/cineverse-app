@@ -37,10 +37,16 @@ export const syncVideoProgressForUser = async (userID) => {
 
   const localEntries = getVideoProgressEntries();
   const remoteEntries = await getRemoteVideoProgressEntries(userID);
-  const mergedEntries = mergeProgressEntries(localEntries, remoteEntries);
+  const mergedEntries = mergeProgressEntries(
+    mergeProgressEntries(localEntries, remoteEntries),
+    getVideoProgressEntries()
+  );
 
-  replaceActiveVideoProgress(mergedEntries);
-  await upsertRemoteVideoProgressEntries(userID, mergedEntries);
+  const replacedMap = replaceActiveVideoProgress(mergedEntries, {
+    mergeCurrent: true,
+  });
+  const currentMergedEntries = Object.values(replacedMap);
+  await upsertRemoteVideoProgressEntries(userID, currentMergedEntries);
 
-  return mergedEntries;
+  return currentMergedEntries;
 };

@@ -340,7 +340,7 @@
 }
 
 .show-details--hero {
-    max-width: 42rem;
+    max-width: none;
     padding-inline: 0;
 }
 
@@ -353,10 +353,10 @@
 }
 
 .show-details--hero h1 {
-    max-width: min(100%, 14ch);
+    max-width: 100%;
     font-size: clamp(2.4rem, 7vw, 5.2rem);
     line-height: 0.95;
-    white-space: normal;
+    white-space: nowrap;
 }
 
 .show-details--hero .show-details__actions {
@@ -487,7 +487,7 @@
     }
 
     .show-details--hero h1 {
-        max-width: min(100%, 12ch);
+        white-space: nowrap;
     }
 }
 

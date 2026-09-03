@@ -42,7 +42,7 @@ const ScrollableCollumn = ({
         {hasError && <p>Error fetching data. Please try again later</p>}
         {
           isLoading ? (
-            <CardSkeleton count={10} layout="grid" />
+            <CardSkeleton count={10} layout="grid" cardType={cardType} />
           ) : (
             <div className='wrapper'>
               {shows?.results?.map((show) => (

@@ -55,6 +55,14 @@ const writeWatchlistToKey = (storageKey, items) => {
   return normalizedItems;
 };
 
+const notifyWatchlistChange = (items) => {
+  if (isBrowser()) {
+    window.dispatchEvent(
+      new CustomEvent("cineverse-watchlist-change", { detail: { items } })
+    );
+  }
+};
+
 const normalizeItem = (item) => {
   if (!item || !item.id || !item.tmdbID || !item.type || !item.title) {
     return null;
@@ -85,7 +93,9 @@ export const saveWatchlist = (items) => {
     return [];
   }
 
-  return writeWatchlistToKey(getStorageKey(), items);
+  const savedItems = writeWatchlistToKey(getStorageKey(), items);
+  notifyWatchlistChange(savedItems);
+  return savedItems;
 };
 
 export const setActiveWatchlistUser = (userID) => {

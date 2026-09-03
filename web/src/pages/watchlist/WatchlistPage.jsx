@@ -1,11 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
+  FaArrowRight,
   FaArrowUpRightFromSquare,
-  FaTrash,
+  FaBarsStaggered,
+  FaBoxArchive,
+  FaChevronDown,
+  FaClockRotateLeft,
+  FaEllipsis,
+  FaFileArrowDown,
+  FaFileArrowUp,
+  FaMagnifyingGlass,
+  FaPen,
+  FaPlay,
   FaRotate,
-  FaVolumeHigh,
-  FaVolumeXmark,
+  FaTrash,
+  FaXmark,
 } from "react-icons/fa6";
 import {
   WATCH_STATUS_OPTIONS,
@@ -15,25 +25,31 @@ import {
   syncWatchlistItemMetadata,
   updateWatchlistItem,
 } from "../../service/watchlist/watchlistStorage";
-import { getVideoProgressEntries } from "../../service/videoProgress/videoProgressStorage";
+import {
+  getVideoProgressEntries,
+  setStoredVideoProgress,
+} from "../../service/videoProgress/videoProgressStorage";
 import { formatDate } from "../../utils/DateUtils";
 import instance from "../../service/tmdb/tmdb";
-import { getSeriesSeasons, getShowPreview } from "../../service/tmdb/requests";
+import { getSeriesSeasons, getShowDetails, getShowPreview } from "../../service/tmdb/requests";
 import { useAuth } from "../../context/AuthContext";
-import { getStoredWatchlistSyncStatus, syncWatchlistForUser } from "../../service/watchlist/watchlistSync";
+import {
+  getStoredWatchlistSyncStatus,
+  syncWatchlistForUser,
+} from "../../service/watchlist/watchlistSync";
 import { syncVideoProgressForUser } from "../../service/videoProgress/videoProgressSync";
+import NoImagePlaceholder from "../../assets/png/no_image_placeholder.png";
 import "./WatchlistPage.css";
 
 const TMDB_ASSET_BASEURL = import.meta.env.VITE_TMDB_ASSET_BASEURL;
+const WATCHLIST_BATCH_SIZE = 20;
+const WATCHLIST_DENSITY_KEY = "cineverse-watchlist-density";
+const STATUS_SORT_ORDER = { Ongoing: 0, Planned: 1, Completed: 2, Dropped: 3 };
 
 const formatStoredDate = (date) => {
-  if (!date) {
-    return "-";
-  }
-
+  if (!date) return "-";
   try {
-    const formattedDate = formatDate(date);
-    return formattedDate || "-";
+    return formatDate(date) || "-";
   } catch {
     return "-";
   }
@@ -41,158 +57,17 @@ const formatStoredDate = (date) => {
 
 const formatProgressTime = (seconds) => {
   const totalSeconds = Number(seconds);
-  if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) {
-    return "0:00";
-  }
-
+  if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) return "0:00";
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const remainingSeconds = Math.floor(totalSeconds % 60);
-
-  if (hours > 0) {
-    return `${hours}:${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
-  }
-
-  return `${minutes}:${String(remainingSeconds).padStart(2, "0")}`;
-};
-
-const getCategoryLabel = (item) => (item.type === "tv" ? "Series" : "Movie");
-
-const selectBestTrailer = (videos = []) => {
-  const youtubeVideos = videos
-    .filter(
-      (video) =>
-        video?.site === "YouTube" &&
-        (video?.type === "Trailer" || video?.type === "Teaser")
-    )
-    .sort((first, second) => {
-      if (first?.type !== second?.type) {
-        return first?.type === "Trailer" ? -1 : 1;
-      }
-
-      if (first?.official !== second?.official) {
-        return first?.official ? -1 : 1;
-      }
-
-      return (second?.size || 0) - (first?.size || 0);
-    });
-
-  return youtubeVideos[0];
-};
-
-const clampProgressPercent = (value) => Math.min(100, Math.max(0, value));
-
-const getProgressPercent = (
-  item,
-  seasonEpisodeCounts = {},
-  movieProgressByKey = {}
-) => {
-  const progressStatus = getDisplayProgressStatus(item);
-
-  if (progressStatus === "Completed") {
-    return 100;
-  }
-
-  if (item.type !== "tv") {
-    const progressEntry =
-      movieProgressByKey[item.id] || movieProgressByKey[`movie:${item.tmdbID}`];
-    const progressSeconds = Number(
-      progressEntry?.metadata?.playbackSeconds || progressEntry?.seconds || 0
-    );
-    const durationSeconds = Number(
-      progressEntry?.metadata?.playbackDuration || progressEntry?.metadata?.duration || 0
-    );
-
-    if (
-      Number.isFinite(progressSeconds) &&
-      progressSeconds > 0 &&
-      Number.isFinite(durationSeconds) &&
-      durationSeconds > 0
-    ) {
-      return clampProgressPercent((progressSeconds / durationSeconds) * 100);
-    }
-
-    return progressStatus === "Ongoing" ? 50 : 0;
-  }
-
-  const totalEpisodes = Number(item.totalEpisodes);
-  const currentSeason = Number(item.currentSeason || 1);
-  const currentEpisode = Number(item.currentEpisode || 1);
-
-  if (Number.isFinite(totalEpisodes) && totalEpisodes > 0) {
-    let watchedEpisodesBeforeSeason = 0;
-
-    for (let season = 1; season < currentSeason; season += 1) {
-      const episodeCount = seasonEpisodeCounts[`${item.id}:${season}`];
-
-      if (!episodeCount || episodeCount < 0) {
-        return progressStatus === "Ongoing" ? 35 : 0;
-      }
-
-      watchedEpisodesBeforeSeason += episodeCount;
-    }
-
-    return clampProgressPercent(
-      ((watchedEpisodesBeforeSeason + currentEpisode - 1) / totalEpisodes) * 100
-    );
-  }
-
-  const totalSeasons = Number(item.totalSeasons);
-
-  if (Number.isFinite(totalSeasons) && totalSeasons > 0) {
-    return clampProgressPercent(((currentSeason - 1) / totalSeasons) * 100);
-  }
-
-  return progressStatus === "Ongoing" ? 35 : 0;
-};
-
-const getDisplayProgressStatus = (item) => {
-  if (item.progressStatus === "Watching") {
-    return "Ongoing";
-  }
-
-  return item.progressStatus || "Planned";
-};
-
-const getStatusClassName = (status = "Planned") => {
-  return status.toLowerCase().replace(/\s+/g, "-");
-};
-
-const STATUS_SORT_ORDER = {
-  Ongoing: 0,
-  Planned: 1,
-  Completed: 2,
-  Dropped: 3,
-};
-
-const WATCHLIST_BATCH_SIZE = 20;
-
-const getItemDetailPath = (item) => {
-  if (!item?.detailPath) {
-    return "/";
-  }
-
-  if (item.type !== "tv") {
-    return item.detailPath;
-  }
-
-  const params = new URLSearchParams();
-  if (item.currentSeason) {
-    params.set("season", item.currentSeason);
-  }
-  if (item.currentEpisode) {
-    params.set("episode", item.currentEpisode);
-  }
-
-  const query = params.toString();
-  return query ? `${item.detailPath}?${query}` : item.detailPath;
+  const remainder = Math.floor(totalSeconds % 60);
+  return hours
+    ? `${hours}:${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`
+    : `${minutes}:${String(remainder).padStart(2, "0")}`;
 };
 
 const formatSyncDateTime = (date) => {
-  if (!date) {
-    return "Not synced yet";
-  }
-
+  if (!date) return "Not synced yet";
   try {
     return new Intl.DateTimeFormat(undefined, {
       dateStyle: "medium",
@@ -203,59 +78,157 @@ const formatSyncDateTime = (date) => {
   }
 };
 
+const getDisplayProgressStatus = (item) =>
+  item.progressStatus === "Watching" ? "Ongoing" : item.progressStatus || "Planned";
+
+const getStatusClassName = (status = "Planned") =>
+  status.toLowerCase().replace(/\s+/g, "-");
+
+const getCategoryLabel = (item) => (item.type === "tv" ? "Series" : "Movie");
+const clampProgressPercent = (value) => Math.min(100, Math.max(0, value));
+
+const usePlaceholderOnError = (event) => {
+  if (event.currentTarget.dataset.fallbackApplied) return;
+  event.currentTarget.dataset.fallbackApplied = "true";
+  event.currentTarget.src = NoImagePlaceholder;
+};
+
+const formatRelativeDate = (date, type) => {
+  if (!date) return type === "tv" ? "Schedule not announced" : "Release date unavailable";
+  const target = new Date(date);
+  if (Number.isNaN(target.getTime())) return "Date unavailable";
+  const days = Math.round((target.getTime() - Date.now()) / 86400000);
+  if (days === 0) return type === "tv" ? "Next episode today" : "Released today";
+  if (days === 1) return type === "tv" ? "Next episode tomorrow" : "Releases tomorrow";
+  if (days === -1) return "Yesterday";
+  if (days > 1 && days < 60) return `${type === "tv" ? "Next episode" : "Releases"} in ${days} days`;
+  if (days < -1 && days > -60) return `${Math.abs(days)} days ago`;
+  return formatStoredDate(date);
+};
+
+const getMovieProgress = (item, movieProgressByKey) => {
+  if (getDisplayProgressStatus(item) === "Completed") {
+    return { percent: 100, elapsed: 0, duration: 0 };
+  }
+
+  const entry = movieProgressByKey[item.id] || movieProgressByKey[`movie:${item.tmdbID}`];
+  const elapsed = Number(entry?.metadata?.playbackSeconds || entry?.seconds || 0);
+  const duration = Number(
+    entry?.metadata?.playbackDuration || entry?.metadata?.duration || 0
+  );
+  const hasElapsed = Number.isFinite(elapsed) && elapsed > 0;
+  const hasDuration = Number.isFinite(duration) && duration > 0;
+
+  return {
+    percent: hasElapsed && hasDuration ? clampProgressPercent((elapsed / duration) * 100) : null,
+    elapsed: hasElapsed ? elapsed : 0,
+    duration: hasDuration ? duration : 0,
+  };
+};
+
+const getProgressPercent = (item, seasonEpisodeCounts, movieProgressByKey) => {
+  const status = getDisplayProgressStatus(item);
+  if (status === "Completed") return 100;
+  if (item.type !== "tv") return getMovieProgress(item, movieProgressByKey).percent;
+
+  const totalEpisodes = Number(item.totalEpisodes);
+  const currentSeason = Number(item.currentSeason || 1);
+  const currentEpisode = Number(item.currentEpisode || 1);
+  if (Number.isFinite(totalEpisodes) && totalEpisodes > 0) {
+    let watchedBeforeSeason = 0;
+    for (let season = 1; season < currentSeason; season += 1) {
+      const count = seasonEpisodeCounts[`${item.id}:${season}`];
+      if (!count || count < 0) return null;
+      watchedBeforeSeason += count;
+    }
+    return clampProgressPercent(
+      ((watchedBeforeSeason + currentEpisode - 1) / totalEpisodes) * 100
+    );
+  }
+
+  const totalSeasons = Number(item.totalSeasons);
+  return Number.isFinite(totalSeasons) && totalSeasons > 0
+    ? clampProgressPercent(((currentSeason - 1) / totalSeasons) * 100)
+    : null;
+};
+
+const getItemDetailPath = (item) => {
+  if (!item?.detailPath) return "/";
+  if (item.type !== "tv") return item.detailPath;
+  const params = new URLSearchParams();
+  if (item.currentSeason) params.set("season", item.currentSeason);
+  if (item.currentEpisode) params.set("episode", item.currentEpisode);
+  return params.size ? `${item.detailPath}?${params}` : item.detailPath;
+};
+
+const selectBestTrailer = (videos = []) =>
+  videos
+    .filter(
+      (video) =>
+        video?.site === "YouTube" &&
+        (video?.type === "Trailer" || video?.type === "Teaser")
+    )
+    .sort((a, b) => {
+      if (a.type !== b.type) return a.type === "Trailer" ? -1 : 1;
+      if (a.official !== b.official) return a.official ? -1 : 1;
+      return (b.size || 0) - (a.size || 0);
+    })[0];
+
 const WatchlistPage = () => {
   const { isLoggedIn, user } = useAuth();
   const [items, setItems] = useState(() => getWatchlist());
+  const [videoProgressEntries, setVideoProgressEntries] = useState(() =>
+    getVideoProgressEntries()
+  );
   const [message, setMessage] = useState("");
   const [syncStatus, setSyncStatus] = useState({ state: "idle", syncedAt: null, error: "" });
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [titleFilter, setTitleFilter] = useState("");
-  const [openHeaderMenu, setOpenHeaderMenu] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: "progressStatus", direction: "asc" });
   const [visibleCount, setVisibleCount] = useState(WATCHLIST_BATCH_SIZE);
-  const [hoveredItemId, setHoveredItemId] = useState(null);
-  const [previewCache, setPreviewCache] = useState({});
-  const [previewPosition, setPreviewPosition] = useState({ top: 0, left: 0 });
-  const [previewSide, setPreviewSide] = useState("right");
-  const [previewMuted, setPreviewMuted] = useState(false);
   const [seasonEpisodeCounts, setSeasonEpisodeCounts] = useState({});
-  const [videoProgressEntries, setVideoProgressEntries] = useState(() =>
-    getVideoProgressEntries()
-  );
+  const [panel, setPanel] = useState(null);
+  const [editDraft, setEditDraft] = useState(null);
+  const [previewCache, setPreviewCache] = useState({});
+  const [previewPlaying, setPreviewPlaying] = useState(false);
+  const [density, setDensity] = useState(() => {
+    try {
+      return window.localStorage.getItem(WATCHLIST_DENSITY_KEY) === "compact"
+        ? "compact"
+        : "comfortable";
+    } catch {
+      return "comfortable";
+    }
+  });
   const fileInputRef = useRef(null);
-  const previewCloseTimeoutRef = useRef(null);
-  const previewFetchesRef = useRef(new Set());
-  const tableScrollRef = useRef(null);
-  const infiniteScrollRef = useRef(null);
+  const panelRef = useRef(null);
+  const closeButtonRef = useRef(null);
+  const progressInputRef = useRef(null);
+  const openerRef = useRef(null);
+  const movieRuntimeFetchesRef = useRef(new Set());
 
-  const movieProgressByKey = useMemo(() => {
-    return videoProgressEntries.reduce((progressMap, entry) => {
-      if (entry.key?.startsWith("movie:")) {
-        progressMap[entry.key] = entry;
-      }
-
-      return progressMap;
-    }, {});
-  }, [videoProgressEntries]);
+  const movieProgressByKey = useMemo(
+    () =>
+      videoProgressEntries.reduce((map, entry) => {
+        if (entry.key?.startsWith("movie:")) map[entry.key] = entry;
+        return map;
+      }, {}),
+    [videoProgressEntries]
+  );
 
   const dashboardStats = useMemo(() => {
     const movies = items.filter((item) => item.type === "movie");
     const series = items.filter((item) => item.type === "tv");
     const completedMovies = movies.filter(
-      (item) => item.progressStatus === "Completed"
+      (item) => getDisplayProgressStatus(item) === "Completed"
     ).length;
     const completedSeries = series.filter(
-      (item) => item.progressStatus === "Completed"
+      (item) => getDisplayProgressStatus(item) === "Completed"
     ).length;
-    const lastVideoWatched = videoProgressEntries
+    const lastVideoWatched = [...videoProgressEntries]
       .filter((entry) => entry.metadata?.title)
-      .sort(
-        (a, b) =>
-          new Date(b.updatedAt || 0) -
-          new Date(a.updatedAt || 0)
-      )[0];
-
+      .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))[0];
     return {
       moviesTotal: movies.length,
       seriesTotal: series.length,
@@ -268,27 +241,19 @@ const WatchlistPage = () => {
   }, [items, videoProgressEntries]);
 
   const visibleItems = useMemo(() => {
-    const normalizedTitleFilter = titleFilter.trim().toLowerCase();
+    const query = titleFilter.trim().toLowerCase();
+    const filtered = items.filter(
+      (item) =>
+        (typeFilter === "all" || item.type === typeFilter) &&
+        (statusFilter === "all" || getDisplayProgressStatus(item) === statusFilter) &&
+        (!query || item.title.toLowerCase().includes(query))
+    );
 
-    const filteredItems = items.filter((item) => {
-      const matchesType = typeFilter === "all" || item.type === typeFilter;
-      const matchesStatus =
-        statusFilter === "all" || getDisplayProgressStatus(item) === statusFilter;
-      const matchesTitle =
-        !normalizedTitleFilter || item.title.toLowerCase().includes(normalizedTitleFilter);
-
-      return matchesType && matchesStatus && matchesTitle;
-    });
-
-    return [...filteredItems].sort((a, b) => {
+    return [...filtered].sort((a, b) => {
       const direction = sortConfig.direction === "asc" ? 1 : -1;
-      let result = 0;
-
-      if (sortConfig.key === "title") {
-        result = a.title.localeCompare(b.title);
-      } else if (sortConfig.key === "category") {
-        result = getCategoryLabel(a).localeCompare(getCategoryLabel(b));
-      } else if (sortConfig.key === "customSort") {
+      let result;
+      if (sortConfig.key === "title") result = a.title.localeCompare(b.title);
+      else if (sortConfig.key === "customSort") {
         result = (a.customSort || "zzz").localeCompare(b.customSort || "zzz");
       } else if (sortConfig.key === "progressStatus") {
         result =
@@ -296,102 +261,293 @@ const WatchlistPage = () => {
           (STATUS_SORT_ORDER[getDisplayProgressStatus(b)] ?? 99);
       } else if (sortConfig.key === "progress") {
         result =
-          getProgressPercent(a, seasonEpisodeCounts, movieProgressByKey) -
-          getProgressPercent(b, seasonEpisodeCounts, movieProgressByKey);
-      } else if (sortConfig.key === "tmdbStatus") {
-        result = (a.tmdbStatus || "zzz").localeCompare(b.tmdbStatus || "zzz");
-      } else if (sortConfig.key === "nextEpisodeDate") {
-        const aDate = a.nextEpisodeDate ? new Date(a.nextEpisodeDate).getTime() : Infinity;
-        const bDate = b.nextEpisodeDate ? new Date(b.nextEpisodeDate).getTime() : Infinity;
+          (getProgressPercent(a, seasonEpisodeCounts, movieProgressByKey) ?? -1) -
+          (getProgressPercent(b, seasonEpisodeCounts, movieProgressByKey) ?? -1);
+      } else if (sortConfig.key === "nextRelease") {
+        const aDate = new Date(a.type === "tv" ? a.nextEpisodeDate || 0 : a.releaseDate || 0);
+        const bDate = new Date(b.type === "tv" ? b.nextEpisodeDate || 0 : b.releaseDate || 0);
         result = aDate - bDate;
       } else {
-        result =
-          new Date(a.updatedAt || a.addedAt || 0) -
-          new Date(b.updatedAt || b.addedAt || 0);
+        result = new Date(a.updatedAt || a.addedAt || 0) - new Date(b.updatedAt || b.addedAt || 0);
       }
-
-      if (result === 0) {
-        result = a.title.localeCompare(b.title);
-      }
-
+      if (result === 0) result = a.title.localeCompare(b.title);
       return result * direction;
     });
-  }, [
-    items,
-    movieProgressByKey,
-    seasonEpisodeCounts,
-    sortConfig,
-    statusFilter,
-    titleFilter,
-    typeFilter,
-  ]);
+  }, [items, movieProgressByKey, seasonEpisodeCounts, sortConfig, statusFilter, titleFilter, typeFilter]);
 
-  const paginatedItems = useMemo(
-    () => visibleItems.slice(0, visibleCount),
-    [visibleCount, visibleItems]
-  );
-  const hasActiveFilters = Boolean(titleFilter.trim()) || typeFilter !== "all" || statusFilter !== "all";
-  const previewPrefetchItems = useMemo(
-    () => paginatedItems.slice(0, 8),
-    [paginatedItems]
-  );
-  const hoveredItem = useMemo(() => {
-    return visibleItems.find((item) => item.id === hoveredItemId);
-  }, [hoveredItemId, visibleItems]);
-
-  const getPreviewFallback = useCallback((item) => ({
-    isLoading: true,
-    isLoaded: false,
-    overview: item?.overview || "Loading preview...",
-    trailerKey: null,
-    backdropPath: item?.backdropPath || null,
-  }), []);
-
-  const fetchPreviewData = useCallback(async (item, { background = false } = {}) => {
-    if (!item?.id || previewFetchesRef.current.has(item.id)) {
-      return;
-    }
-
-    let shouldFetch = true;
-
-    setPreviewCache((currentCache) => {
-      const currentPreview = currentCache[item.id];
-      if (currentPreview?.isLoaded) {
-        shouldFetch = false;
-        return currentCache;
-      }
-
-      return {
-        ...currentCache,
-        [item.id]: {
-          ...getPreviewFallback(item),
-          ...currentPreview,
-          isLoading: !background,
-          isLoaded: false,
-        },
-      };
+  const paginatedItems = visibleItems.slice(0, visibleCount);
+  const activeItem = panel ? items.find((item) => item.id === panel.itemId) : null;
+  const activePreview = activeItem ? previewCache[activeItem.id] : null;
+  const hasActiveFilters =
+    Boolean(titleFilter.trim()) || typeFilter !== "all" || statusFilter !== "all";
+  const closeOverflowMenus = useCallback(() => {
+    document.querySelectorAll(".watchlist-overflow[open]").forEach((menu) => {
+      menu.removeAttribute("open");
     });
+  }, []);
 
-    if (!shouldFetch) {
+  const featureItem = useMemo(() => {
+    if (!items.length) return null;
+    const lastVideo = dashboardStats.lastVideoWatched;
+    const lastMatch = lastVideo
+      ? items.find(
+          (item) =>
+            item.title === lastVideo.metadata?.title ||
+            (item.detailPath && lastVideo.metadata?.detailPath?.startsWith(item.detailPath))
+        )
+      : null;
+    if (lastMatch) return lastMatch;
+    return [...items]
+      .filter((item) => getDisplayProgressStatus(item) === "Ongoing")
+      .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))[0] || items[0];
+  }, [dashboardStats.lastVideoWatched, items]);
+
+  const featureProgress = featureItem
+    ? getProgressPercent(featureItem, seasonEpisodeCounts, movieProgressByKey)
+    : null;
+  const lastVideo = dashboardStats.lastVideoWatched;
+  const featureVideo =
+    featureItem &&
+    (featureItem.title === lastVideo?.metadata?.title ||
+      (featureItem.detailPath && lastVideo?.metadata?.detailPath?.startsWith(featureItem.detailPath)))
+      ? lastVideo
+      : null;
+  const featurePath =
+    featureVideo?.metadata?.detailPath &&
+    (featureItem?.title === featureVideo.metadata?.title ||
+      featureVideo.metadata.detailPath.startsWith(featureItem?.detailPath || "__no-match__"))
+      ? featureVideo.metadata.detailPath
+      : featureItem
+        ? getItemDetailPath(featureItem)
+        : "/";
+  const featureCanContinue = Boolean(
+    featureVideo?.seconds ||
+    (featureItem && getDisplayProgressStatus(featureItem) === "Ongoing")
+  );
+
+  const getSeasonEpisodeCount = useCallback(
+    async (item, season) => {
+      const cacheKey = `${item.id}:${season}`;
+      if (seasonEpisodeCounts[cacheKey] !== undefined) {
+        return Math.max(0, seasonEpisodeCounts[cacheKey]);
+      }
+      try {
+        const response = await instance.get(getSeriesSeasons(item.tmdbID, season));
+        const count = response.data?.episodes?.length || 0;
+        setSeasonEpisodeCounts((current) => ({ ...current, [cacheKey]: count || -1 }));
+        return count;
+      } catch {
+        setSeasonEpisodeCounts((current) => ({ ...current, [cacheKey]: -1 }));
+        return 0;
+      }
+    },
+    [seasonEpisodeCounts]
+  );
+
+  const closePanel = useCallback(() => {
+    setPanel(null);
+    setEditDraft(null);
+    setPreviewPlaying(false);
+    window.setTimeout(() => openerRef.current?.focus(), 0);
+  }, []);
+
+  useEffect(() => {
+    setVisibleCount(WATCHLIST_BATCH_SIZE);
+  }, [sortConfig, statusFilter, titleFilter, typeFilter]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(WATCHLIST_DENSITY_KEY, density);
+    } catch {
+      // The preference is optional when storage is unavailable.
+    }
+  }, [density]);
+
+  useEffect(() => {
+    setItems(getWatchlist());
+    setVideoProgressEntries(getVideoProgressEntries());
+    setSyncStatus(getStoredWatchlistSyncStatus(user?.id));
+  }, [user?.id]);
+
+  useEffect(() => {
+    const handleWatchlistSync = (event) => setItems(event.detail?.items || getWatchlist());
+    const handleSyncStatus = (event) => {
+      if (event.detail?.userID && event.detail.userID !== user?.id) return;
+      setSyncStatus((current) => ({ ...current, ...event.detail }));
+    };
+    window.addEventListener("cineverse-watchlist-change", handleWatchlistSync);
+    window.addEventListener("cineverse-watchlist-sync", handleWatchlistSync);
+    window.addEventListener("cineverse-watchlist-sync-status", handleSyncStatus);
+    return () => {
+      window.removeEventListener("cineverse-watchlist-change", handleWatchlistSync);
+      window.removeEventListener("cineverse-watchlist-sync", handleWatchlistSync);
+      window.removeEventListener("cineverse-watchlist-sync-status", handleSyncStatus);
+    };
+  }, [user?.id]);
+
+  useEffect(() => {
+    const handleProgress = () => setVideoProgressEntries(getVideoProgressEntries());
+    window.addEventListener("cineverse-video-progress", handleProgress);
+    window.addEventListener("storage", handleProgress);
+    return () => {
+      window.removeEventListener("cineverse-video-progress", handleProgress);
+      window.removeEventListener("storage", handleProgress);
+    };
+  }, []);
+
+  useEffect(() => {
+    paginatedItems.forEach((item) => {
+      if (item.type !== "tv") return;
+      const currentSeason = Number(item.currentSeason || 1);
+      for (let season = 1; season <= currentSeason; season += 1) {
+        if (seasonEpisodeCounts[`${item.id}:${season}`] === undefined) {
+          getSeasonEpisodeCount(item, season);
+        }
+      }
+    });
+  }, [getSeasonEpisodeCount, paginatedItems, seasonEpisodeCounts]);
+
+  useEffect(() => {
+    paginatedItems.forEach((item) => {
+      if (item.type !== "movie" || movieRuntimeFetchesRef.current.has(item.id)) return;
+
+      const progressEntry =
+        movieProgressByKey[item.id] || movieProgressByKey[`movie:${item.tmdbID}`];
+      const playedSeconds = Number(progressEntry?.seconds || 0);
+      const knownDuration = Number(
+        progressEntry?.metadata?.playbackDuration || progressEntry?.metadata?.duration || 0
+      );
+      if (!progressEntry || playedSeconds <= 0 || knownDuration > 0) return;
+
+      movieRuntimeFetchesRef.current.add(item.id);
+      instance.get(getShowDetails("movie", item.tmdbID)).then((response) => {
+        const runtimeMinutes = Number(response.data?.runtime || 0);
+        if (!Number.isFinite(runtimeMinutes) || runtimeMinutes <= 0) return;
+
+        setStoredVideoProgress(
+          progressEntry.key,
+          playedSeconds,
+          { playbackDuration: runtimeMinutes * 60 },
+          { flushLocal: true, preserveUpdatedAt: true }
+        );
+      }).catch(() => {
+        // A watched-time-only label remains useful when TMDB has no runtime.
+      });
+    });
+  }, [movieProgressByKey, paginatedItems]);
+
+  useEffect(() => {
+    if (panel?.type !== "edit" || !activeItem || activeItem.type !== "tv" || !editDraft) {
       return;
     }
+    getSeasonEpisodeCount(activeItem, Number(editDraft.currentSeason || 1));
+  }, [activeItem, editDraft, getSeasonEpisodeCount, panel?.type]);
 
-    previewFetchesRef.current.add(item.id);
+  useEffect(() => {
+    if (!panel) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeButtonRef.current?.focus();
 
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closePanel();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const focusable = panelRef.current?.querySelectorAll(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+      if (!focusable?.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [closePanel, panel]);
+
+  useEffect(() => {
+    if (panel && !activeItem) {
+      closePanel();
+    }
+  }, [activeItem, closePanel, panel]);
+
+  useEffect(() => {
+    if (panel?.focus !== "progress" || activeItem?.type !== "tv") return undefined;
+    const focusFrame = window.requestAnimationFrame(() => progressInputRef.current?.focus());
+    return () => window.cancelAnimationFrame(focusFrame);
+  }, [activeItem?.type, panel]);
+
+  useEffect(() => {
+    const handlePointerDown = (event) => {
+      if (!event.target.closest(".watchlist-overflow")) {
+        closeOverflowMenus();
+      }
+    };
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        closeOverflowMenus();
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [closeOverflowMenus]);
+
+  const openEdit = (item, event, focus = "general") => {
+    const menu = event.currentTarget.closest("details");
+    openerRef.current = menu?.querySelector("summary") || event.currentTarget;
+    closeOverflowMenus();
+    setEditDraft({
+      customSort: item.customSort || "",
+      progressStatus: getDisplayProgressStatus(item),
+      currentSeason: Number(item.currentSeason || 1),
+      currentEpisode: Number(item.currentEpisode || 1),
+    });
+    setPanel({ type: "edit", itemId: item.id, focus });
+  };
+
+  const openPreview = async (item, event) => {
+    const menu = event.currentTarget.closest("details");
+    openerRef.current = menu?.querySelector("summary") || event.currentTarget;
+    closeOverflowMenus();
+    setPreviewPlaying(false);
+    setPanel({ type: "preview", itemId: item.id });
+    if (previewCache[item.id]?.isLoaded) return;
+    setPreviewCache((current) => ({
+      ...current,
+      [item.id]: { isLoading: true, overview: item.overview, backdropPath: item.backdropPath },
+    }));
     try {
       const response = await instance.get(getShowPreview(item.type, item.tmdbID));
       const details = response.data || {};
       const trailer = selectBestTrailer(details.videos?.results);
-      const syncedItems = syncWatchlistItemMetadata(item.id, {
-        tmdbStatus: details.status || null,
-        totalSeasons: details.number_of_seasons || item.totalSeasons,
-        totalEpisodes: details.number_of_episodes || item.totalEpisodes,
-        nextEpisodeDate: details.next_episode_to_air?.air_date || null,
-      });
-
-      setItems(syncedItems);
-      setPreviewCache((currentCache) => ({
-        ...currentCache,
+      setItems(
+        syncWatchlistItemMetadata(item.id, {
+          tmdbStatus: details.status || null,
+          totalSeasons: details.number_of_seasons || item.totalSeasons,
+          totalEpisodes: details.number_of_episodes || item.totalEpisodes,
+          nextEpisodeDate: details.next_episode_to_air?.air_date || null,
+        })
+      );
+      setPreviewCache((current) => ({
+        ...current,
         [item.id]: {
           isLoading: false,
           isLoaded: true,
@@ -401,377 +557,75 @@ const WatchlistPage = () => {
         },
       }));
     } catch {
-      setPreviewCache((currentCache) => ({
-        ...currentCache,
+      setPreviewCache((current) => ({
+        ...current,
         [item.id]: {
-          ...getPreviewFallback(item),
           isLoading: false,
           isLoaded: true,
           overview: item.overview || "Preview unavailable right now.",
+          trailerKey: null,
           backdropPath: item.backdropPath,
         },
       }));
-    } finally {
-      previewFetchesRef.current.delete(item.id);
     }
-  }, [getPreviewFallback]);
+  };
 
-  useEffect(() => {
-    setVisibleCount(WATCHLIST_BATCH_SIZE);
-  }, [sortConfig, statusFilter, titleFilter, typeFilter]);
-
-  useEffect(() => {
-    const sentinel = infiniteScrollRef.current;
-    if (!sentinel || visibleCount >= visibleItems.length) {
-      return undefined;
+  const saveEdit = async () => {
+    if (!activeItem || !editDraft) return;
+    const updates = {
+      customSort: editDraft.customSort.trim(),
+      progressStatus: editDraft.progressStatus,
+    };
+    if (activeItem.type === "tv") {
+      let season = Math.max(1, Number(editDraft.currentSeason) || 1);
+      if (activeItem.totalSeasons) season = Math.min(season, activeItem.totalSeasons);
+      const episodeCount = await getSeasonEpisodeCount(activeItem, season);
+      let episode = Math.max(1, Number(editDraft.currentEpisode) || 1);
+      if (episodeCount) episode = Math.min(episode, episodeCount);
+      updates.currentSeason = season;
+      updates.currentEpisode = episode;
+      if (updates.progressStatus === "Completed") {
+        const finalSeason = Number(activeItem.totalSeasons || season);
+        const finalEpisodeCount = await getSeasonEpisodeCount(activeItem, finalSeason);
+        updates.currentSeason = finalSeason;
+        updates.currentEpisode = finalEpisodeCount || episode;
+      }
     }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) {
-          setVisibleCount((count) => Math.min(count + WATCHLIST_BATCH_SIZE, visibleItems.length));
-        }
-      },
-      { root: tableScrollRef.current, rootMargin: "240px 0px" }
-    );
-
-    observer.observe(sentinel);
-
-    return () => observer.disconnect();
-  }, [visibleCount, visibleItems.length]);
-
-  useEffect(() => {
-    setItems(getWatchlist());
-    setVideoProgressEntries(getVideoProgressEntries());
-    setSyncStatus(getStoredWatchlistSyncStatus(user?.id));
-  }, [user?.id]);
-
-  useEffect(() => {
-    const handleWatchlistSync = (event) => {
-      setItems(event.detail?.items || getWatchlist());
-    };
-
-    const handleWatchlistSyncStatus = (event) => {
-      if (event.detail?.userID && event.detail.userID !== user?.id) {
-        return;
-      }
-
-      setSyncStatus((currentStatus) => ({
-        ...currentStatus,
-        ...event.detail,
-      }));
-    };
-
-    window.addEventListener("cineverse-watchlist-sync", handleWatchlistSync);
-    window.addEventListener("cineverse-watchlist-sync-status", handleWatchlistSyncStatus);
-
-    return () => {
-      window.removeEventListener("cineverse-watchlist-sync", handleWatchlistSync);
-      window.removeEventListener("cineverse-watchlist-sync-status", handleWatchlistSyncStatus);
-    };
-  }, [user?.id]);
-
-  useEffect(() => {
-    const handleVideoProgress = () => {
-      setVideoProgressEntries(getVideoProgressEntries());
-    };
-
-    window.addEventListener("cineverse-video-progress", handleVideoProgress);
-    window.addEventListener("storage", handleVideoProgress);
-
-    return () => {
-      window.removeEventListener("cineverse-video-progress", handleVideoProgress);
-      window.removeEventListener("storage", handleVideoProgress);
-    };
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (previewCloseTimeoutRef.current) {
-        window.clearTimeout(previewCloseTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    paginatedItems.forEach((item) => {
-      if (item.type !== "tv") {
-        return;
-      }
-
-      const currentSeason = Number(item.currentSeason || 1);
-
-      for (let season = 1; season <= currentSeason; season += 1) {
-        const cacheKey = `${item.id}:${season}`;
-        if (!seasonEpisodeCounts[cacheKey]) {
-          getSeasonEpisodeCount(item, season);
-        }
-      }
-    });
-  }, [paginatedItems, seasonEpisodeCounts]);
-
-  useEffect(() => {
-    if (!hoveredItem) {
-      return;
-    }
-
-    fetchPreviewData(hoveredItem);
-  }, [fetchPreviewData, hoveredItem]);
-
-  useEffect(() => {
-    const idleCallback = window.requestIdleCallback || ((callback) => window.setTimeout(callback, 600));
-    const cancelIdleCallback = window.cancelIdleCallback || window.clearTimeout;
-    const timeoutIDs = [];
-
-    const idleID = idleCallback(() => {
-      previewPrefetchItems.forEach((item, index) => {
-        const timeoutID = window.setTimeout(() => {
-          fetchPreviewData(item, { background: true });
-        }, index * 350);
-
-        timeoutIDs.push(timeoutID);
-      });
-    });
-
-    return () => {
-      cancelIdleCallback(idleID);
-      timeoutIDs.forEach((timeoutID) => window.clearTimeout(timeoutID));
-    };
-  }, [fetchPreviewData, previewPrefetchItems]);
+    setItems(updateWatchlistItem(activeItem.id, updates));
+    setMessage(`Saved changes to "${activeItem.title}".`);
+    closePanel();
+  };
 
   const handleSort = (key) => {
-    setSortConfig((currentSort) => ({
+    setSortConfig((current) => ({
       key,
-      direction:
-        currentSort.key === key && currentSort.direction === "asc" ? "desc" : "asc",
+      direction: current.key === key && current.direction === "asc" ? "desc" : "asc",
     }));
   };
 
-  const renderSortIcon = (key) => {
-    if (sortConfig.key !== key) {
-      return "↕";
-    }
-
-    return sortConfig.direction === "asc" ? "↑" : "↓";
-  };
-
-  const renderSortButton = (label, key) => (
+  const sortLabel = (label, key) => (
     <button
       type="button"
-      className="watchlist-header-button"
+      className="watchlist-sort-button"
       onClick={() => handleSort(key)}
-      aria-label={`Sort by ${label}`}
+      aria-label={`${label}, ${sortConfig.key === key ? `sorted ${sortConfig.direction === "asc" ? "ascending" : "descending"}` : "not sorted"}`}
     >
-      <span aria-hidden="true">{renderSortIcon(key)}</span>
+      {label}
+      <span aria-hidden="true">
+        {sortConfig.key === key ? (sortConfig.direction === "asc" ? "↑" : "↓") : "↕"}
+      </span>
     </button>
   );
 
-  const renderHeaderControls = (label, sortKey, menuKey) => (
-    <div className="watchlist-header-controls">
-      <button
-        type="button"
-        className="watchlist-header-menu-button"
-        onClick={() => setOpenHeaderMenu(openHeaderMenu === menuKey ? null : menuKey)}
-      >
-        {label}
-      </button>
-      {renderSortButton(label, sortKey)}
-    </div>
-  );
-
-  const renderSortableHeader = (label, sortKey) => (
-    <div className="watchlist-header-controls">
-      <span className="watchlist-header-label">{label}</span>
-      {renderSortButton(label, sortKey)}
-    </div>
-  );
-
-  const refreshItems = (nextItems) => {
-    setItems(nextItems);
-  };
-
-  const handleUpdate = async (item, updates) => {
-    const nextUpdates = { ...updates };
-
-    if (item.type === "tv" && updates.progressStatus === "Completed") {
-      const finalSeason = item.totalSeasons || item.currentSeason || 1;
-      const finalSeasonEpisodeCount = await getSeasonEpisodeCount(item, finalSeason);
-
-      nextUpdates.currentSeason = finalSeason;
-      nextUpdates.currentEpisode = finalSeasonEpisodeCount || item.currentEpisode || 1;
-    }
-
-    refreshItems(updateWatchlistItem(item.id, nextUpdates));
-  };
-
-  const getSeasonEpisodeCount = async (item, season) => {
-    const cacheKey = `${item.id}:${season}`;
-    if (seasonEpisodeCounts[cacheKey] !== undefined) {
-      return Math.max(0, seasonEpisodeCounts[cacheKey]);
-    }
-
-    try {
-      const response = await instance.get(getSeriesSeasons(item.tmdbID, season));
-      const episodeCount = response.data?.episodes?.length || 0;
-
-      setSeasonEpisodeCounts((currentCounts) => ({
-        ...currentCounts,
-        [cacheKey]: episodeCount || -1,
-      }));
-
-      return episodeCount;
-    } catch {
-      setSeasonEpisodeCounts((currentCounts) => ({
-        ...currentCounts,
-        [cacheKey]: -1,
-      }));
-      return 0;
-    }
-  };
-
-  const handleSeasonChange = async (item, nextSeason) => {
-    const normalizedSeason = Math.max(1, Number(nextSeason) || 1);
-    const totalSeasons = Number(item.totalSeasons || 0);
-    const seasonEpisodeCount = await getSeasonEpisodeCount(item, normalizedSeason);
-    const shouldCompleteSeries =
-      totalSeasons > 0 &&
-      seasonEpisodeCount === 1 &&
-      normalizedSeason === totalSeasons;
-
-    handleUpdate(item, {
-      currentSeason: normalizedSeason,
-      currentEpisode: 1,
-      ...(shouldCompleteSeries ? { progressStatus: "Completed" } : {}),
-      ...(!shouldCompleteSeries && getDisplayProgressStatus(item) === "Planned"
-        ? { progressStatus: "Ongoing" }
-        : {}),
-      ...(!shouldCompleteSeries && getDisplayProgressStatus(item) === "Completed"
-        ? { progressStatus: "Ongoing" }
-        : {}),
-    });
-  };
-
-  const handleEpisodeChange = async (item, nextEpisode) => {
-    const parsedEpisode = Number(nextEpisode);
-    const requestedEpisode = Number.isFinite(parsedEpisode) ? parsedEpisode : 1;
-    const normalizedEpisode = Math.max(1, requestedEpisode);
-    const currentSeason = Number(item.currentSeason || 1);
-    const totalSeasons = Number(item.totalSeasons || 0);
-    const currentSeasonEpisodeCount = await getSeasonEpisodeCount(item, currentSeason);
-
-    if (requestedEpisode < 1 && currentSeason > 1) {
-      const previousSeason = currentSeason - 1;
-      const previousSeasonEpisodeCount = await getSeasonEpisodeCount(item, previousSeason);
-
-      handleUpdate(item, {
-        currentSeason: previousSeason,
-        currentEpisode: previousSeasonEpisodeCount || 1,
-        ...(getDisplayProgressStatus(item) === "Planned" ? { progressStatus: "Ongoing" } : {}),
-        ...(getDisplayProgressStatus(item) === "Completed" ? { progressStatus: "Ongoing" } : {}),
-      });
-      return;
-    }
-
-    if (
-      currentSeasonEpisodeCount > 0 &&
-      normalizedEpisode > currentSeasonEpisodeCount &&
-      (!totalSeasons || currentSeason < totalSeasons)
-    ) {
-      handleUpdate(item, {
-        currentSeason: currentSeason + 1,
-        currentEpisode: 1,
-        ...(getDisplayProgressStatus(item) === "Planned" ? { progressStatus: "Ongoing" } : {}),
-        ...(getDisplayProgressStatus(item) === "Completed" ? { progressStatus: "Ongoing" } : {}),
-      });
-      return;
-    }
-
-    if (currentSeasonEpisodeCount > 0 && normalizedEpisode > currentSeasonEpisodeCount) {
-      const shouldCompleteSeries = totalSeasons > 0 && currentSeason === totalSeasons;
-
-      handleUpdate(item, {
-        currentEpisode: currentSeasonEpisodeCount,
-        ...(shouldCompleteSeries ? { progressStatus: "Completed" } : {}),
-        ...(!shouldCompleteSeries && getDisplayProgressStatus(item) === "Planned"
-          ? { progressStatus: "Ongoing" }
-          : {}),
-      });
-      return;
-    }
-
-    const shouldCompleteSeries =
-      totalSeasons > 0 &&
-      currentSeasonEpisodeCount > 0 &&
-      currentSeason === totalSeasons &&
-      normalizedEpisode >= currentSeasonEpisodeCount;
-
-    handleUpdate(item, {
-      currentEpisode: normalizedEpisode,
-      ...(shouldCompleteSeries ? { progressStatus: "Completed" } : {}),
-      ...(!shouldCompleteSeries && getDisplayProgressStatus(item) === "Planned"
-        ? { progressStatus: "Ongoing" }
-        : {}),
-      ...(!shouldCompleteSeries && getDisplayProgressStatus(item) === "Completed"
-        ? { progressStatus: "Ongoing" }
-        : {}),
-    });
-  };
-
-  const handleRowPreviewOpen = (item, event) => {
-    if (previewCloseTimeoutRef.current) {
-      window.clearTimeout(previewCloseTimeoutRef.current);
-    }
-
-    const cardWidth = Math.min(448, window.innerWidth * 0.72);
-    const cardHeight = 430;
-    const margin = 12;
-    const canOpenRight = event.clientX + cardWidth - 24 < window.innerWidth - margin;
-    const left = canOpenRight
-      ? Math.min(event.clientX - 24, window.innerWidth - cardWidth - margin)
-      : Math.max(margin, event.clientX - cardWidth + 24);
-    const top = Math.max(
-      margin,
-      Math.min(event.clientY - 72, window.innerHeight - cardHeight - margin)
-    );
-
-    setPreviewPosition({ top, left });
-    setPreviewSide(canOpenRight ? "right" : "left");
-    setPreviewCache((currentCache) => currentCache[item.id]
-      ? currentCache
-      : {
-          ...currentCache,
-          [item.id]: getPreviewFallback(item),
-        });
-    setHoveredItemId(item.id);
-  };
-
-  const handlePreviewClose = () => {
-    previewCloseTimeoutRef.current = window.setTimeout(() => {
-      setHoveredItemId(null);
-    }, 180);
-  };
-
   const handleRemove = (item) => {
-    const shouldRemove = window.confirm(
-      `Remove "${item.title}" from your watchlist?`
-    );
-
-    if (!shouldRemove) {
-      return;
-    }
-
-    const id = item.id;
-    refreshItems(removeFromWatchlist(id));
+    if (!window.confirm(`Remove "${item.title}" from your watchlist?`)) return;
+    setItems(removeFromWatchlist(item.id));
     setMessage("Removed from watchlist.");
   };
 
   const handleExport = () => {
-    const blob = new Blob([JSON.stringify(items, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
+    const url = URL.createObjectURL(new Blob([JSON.stringify(items, null, 2)], { type: "application/json" }));
     const link = document.createElement("a");
-
     link.href = url;
     link.download = `cineverse-watchlist-${new Date().toISOString().slice(0, 10)}.json`;
     link.click();
@@ -781,17 +635,11 @@ const WatchlistPage = () => {
 
   const handleImport = async (event) => {
     const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
-
+    if (!file) return;
     try {
       const importedItems = JSON.parse(await file.text());
-      if (!Array.isArray(importedItems)) {
-        throw new Error("Invalid watchlist format.");
-      }
-
-      refreshItems(mergeWatchlist(importedItems));
+      if (!Array.isArray(importedItems)) throw new Error("Invalid watchlist format");
+      setItems(mergeWatchlist(importedItems));
       setMessage("Watchlist imported and merged.");
     } catch {
       setMessage("Import failed. Please choose a valid watchlist JSON file.");
@@ -801,519 +649,279 @@ const WatchlistPage = () => {
   };
 
   const handleManualSync = async () => {
-    if (!user?.id || syncStatus.state === "syncing") {
-      return;
-    }
-
+    if (!user?.id || syncStatus.state === "syncing") return;
     try {
-      await Promise.all([
-        syncWatchlistForUser(user.id),
-        syncVideoProgressForUser(user.id),
-      ]);
+      await Promise.all([syncWatchlistForUser(user.id), syncVideoProgressForUser(user.id)]);
     } catch {
       return;
     }
   };
 
+  const renderProgress = (item) => {
+    const percent = getProgressPercent(item, seasonEpisodeCounts, movieProgressByKey);
+    const status = getDisplayProgressStatus(item);
+    if (item.type === "tv") {
+      return (
+        <div className="watchlist-progress">
+          <strong>{percent === null ? "Progress unknown" : `${Math.round(percent)}%`}</strong>
+          <span>S{item.currentSeason || 1} · E{item.currentEpisode || 1}</span>
+          {percent !== null && (
+            <div className="watchlist-progress-bar" role="progressbar" aria-label={`${item.title} progress`} aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(percent)}>
+              <span style={{ width: `${percent}%` }} />
+            </div>
+          )}
+        </div>
+      );
+    }
+    const movieProgress = getMovieProgress(item, movieProgressByKey);
+    const detail = movieProgress.elapsed
+      ? movieProgress.duration
+        ? `${formatProgressTime(movieProgress.elapsed)} / ${formatProgressTime(movieProgress.duration)}`
+        : `${formatProgressTime(movieProgress.elapsed)} watched`
+      : status === "Completed" ? "Finished" : "Not started";
+    return (
+      <div className="watchlist-progress">
+        <strong>{movieProgress.percent === null ? detail : `${Math.round(movieProgress.percent)}%`}</strong>
+        {movieProgress.percent !== null && <span>{detail}</span>}
+        {movieProgress.percent !== null && (
+          <div className="watchlist-progress-bar" role="progressbar" aria-label={`${item.title} progress`} aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(movieProgress.percent)}>
+            <span style={{ width: `${movieProgress.percent}%` }} />
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderActions = (item) => (
+    <div className="watchlist-actions">
+      <Link className="watchlist-open-action" to={getItemDetailPath(item)}>
+        {getDisplayProgressStatus(item) === "Ongoing" ? <FaPlay aria-hidden="true" /> : <FaArrowUpRightFromSquare aria-hidden="true" />}
+        {getDisplayProgressStatus(item) === "Ongoing" ? "Continue" : "Open"}
+      </Link>
+      <details
+        className="watchlist-overflow"
+        onToggle={(event) => {
+          if (event.currentTarget.open) {
+            document.querySelectorAll(".watchlist-overflow[open]").forEach((menu) => {
+              if (menu !== event.currentTarget) menu.removeAttribute("open");
+            });
+          }
+        }}
+      >
+        <summary aria-label={`More actions for ${item.title}`}><FaEllipsis aria-hidden="true" /></summary>
+        <div className="watchlist-overflow__menu">
+          <button type="button" onClick={(event) => openPreview(item, event)}><FaPlay aria-hidden="true" /> Preview</button>
+          <button type="button" onClick={(event) => openEdit(item, event)}><FaPen aria-hidden="true" /> Edit</button>
+          <button type="button" className="danger" onClick={() => handleRemove(item)}><FaTrash aria-hidden="true" /> Remove</button>
+        </div>
+      </details>
+    </div>
+  );
+
+  const getAriaSort = (key) =>
+    sortConfig.key === key
+      ? sortConfig.direction === "asc" ? "ascending" : "descending"
+      : "none";
+
   if (!isLoggedIn) {
     return (
-      <main className="watchlist-page">
+      <main className="watchlist-page watchlist-page--guest">
         <section className="watchlist-teaser">
-          <p className="watchlist-page__eyebrow">Private watchlist</p>
-          <h1>Build your Cineverse watch hub</h1>
-          <p>
-            Login to unlock your saved movies, series progress, continue-watching links,
-            exports, imports, and status tracking in one dashboard.
-          </p>
+          <div className="watchlist-teaser__beam" aria-hidden="true" />
+          <p className="watchlist-page__eyebrow">Your Cineverse watchlist</p>
+          <h1>Keep every title<br />close at hand.</h1>
+          <p>Sign in to organize movies and series, keep your playback progress, and continue watching where you left off.</p>
           <div className="watchlist-teaser__grid" aria-label="Watchlist benefits">
-            <article>
-              <strong>Track progress</strong>
-              <span>See what is planned, ongoing, completed, or dropped.</span>
-            </article>
-            <article>
-              <strong>Resume faster</strong>
-              <span>Continue movies and episodes from your latest saved progress.</span>
-            </article>
-            <article>
-              <strong>Keep control</strong>
-              <span>Export and import your local watchlist whenever you need.</span>
-            </article>
+            <article><strong>Track status</strong><span>Plan, watch, complete, or set a title aside.</span></article>
+            <article><strong>Continue watching</strong><span>Pick up movies and episodes at your saved progress.</span></article>
+            <article><strong>Keep your collection</strong><span>Move your watchlist with portable JSON backups.</span></article>
           </div>
-          <p className="watchlist-teaser__hint">Use Login in the top navigation to access it.</p>
+          <p className="watchlist-teaser__hint">Use Login in the navigation to open your watchlist.</p>
         </section>
       </main>
     );
   }
 
   return (
-    <main className="watchlist-page">
-      <section className="watchlist-page__header">
-        <div>
-          <p className="watchlist-page__eyebrow">Local tracker</p>
-          <h1>Watchlist</h1>
-          <p>
-            Track movies and series progress locally. Export your JSON backup when
-            you want to save or move the data.
-          </p>
+    <main className={`watchlist-page density-${density}`}>
+      <section
+        className={`watchlist-hero${featureItem?.backdropPath ? " has-artwork" : ""}`}
+        style={featureItem?.backdropPath ? { "--watchlist-backdrop": `url(${TMDB_ASSET_BASEURL}${featureItem.backdropPath})` } : undefined}
+      >
+        <div className="watchlist-hero__topline">
+          <div>
+            <p className="watchlist-page__eyebrow">Your collection · {new Date().getFullYear()}</p>
+            <h1>Watchlist</h1>
+          </div>
+          <div className="watchlist-collection-controls" aria-label="Collection file controls">
+            <span>Collection</span>
+            <button type="button" onClick={() => fileInputRef.current?.click()}><FaFileArrowDown aria-hidden="true" /> Import</button>
+            <button type="button" onClick={handleExport} disabled={!items.length}><FaFileArrowUp aria-hidden="true" /> Export</button>
+            <input ref={fileInputRef} type="file" accept="application/json,.json" onChange={handleImport} />
+          </div>
         </div>
 
-        <div className="watchlist-page__tools">
-          <button type="button" onClick={handleExport} disabled={!items.length}>
-            Export
-          </button>
-          <button type="button" onClick={() => fileInputRef.current?.click()}>
-            Import
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="application/json,.json"
-            onChange={handleImport}
-          />
-        </div>
-      </section>
-
-      {message && <p className="watchlist-page__message">{message}</p>}
-
-      <div className={`watchlist-sync-status ${syncStatus.state}`}>
-        <span>
-          {syncStatus.state === "syncing"
-            ? "Syncing watchlist..."
-            : `Last sync: ${formatSyncDateTime(syncStatus.syncedAt)}`}
-        </span>
-        <button
-          type="button"
-          onClick={handleManualSync}
-          disabled={syncStatus.state === "syncing"}
-          aria-label="Sync watchlist now"
-          title="Sync now"
-        >
-          <FaRotate aria-hidden="true" />
-        </button>
-        {syncStatus.state === "error" && syncStatus.error && (
-          <small>{syncStatus.error}</small>
+        {featureItem ? (
+          <div className="watchlist-feature">
+            <div className="watchlist-feature__index" aria-hidden="true">{featureCanContinue ? <>CONTINUE<br />WATCHING</> : <>FROM YOUR<br />COLLECTION</>}</div>
+            <div className="watchlist-feature__copy">
+               <p className="watchlist-feature__kicker"><FaClockRotateLeft aria-hidden="true" /> {featureCanContinue ? "Continue watching" : "From your collection"}</p>
+              <h2>{featureVideo?.metadata?.title || featureItem.title}</h2>
+              <p className="watchlist-feature__context">
+                 {featureItem.type === "tv" ? `Series · Season ${featureItem.currentSeason || 1}, episode ${featureItem.currentEpisode || 1}` : "Movie"}
+                {featureVideo?.seconds ? ` · ${formatProgressTime(featureVideo.seconds)} watched` : ` · ${getDisplayProgressStatus(featureItem)}`}
+              </p>
+              {featureProgress !== null && (
+                <div className="watchlist-feature__progress">
+                  <div role="progressbar" aria-label={`${featureItem.title} progress`} aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(featureProgress)}>
+                    <span style={{ width: `${featureProgress}%` }} />
+                  </div>
+                  <span>{Math.round(featureProgress)}% complete</span>
+                </div>
+              )}
+               <Link className="watchlist-feature__action" to={featurePath}><FaPlay aria-hidden="true" /> {featureCanContinue ? "Continue" : "Open title"} <FaArrowRight aria-hidden="true" /></Link>
+            </div>
+          </div>
+        ) : (
+          <div className="watchlist-feature watchlist-feature--empty">
+            <div className="watchlist-feature__copy"><p className="watchlist-feature__kicker">Your watchlist</p><h2>Find your next favorite.</h2><p>Add movies and series to bring your current title into focus here.</p></div>
+          </div>
         )}
-      </div>
 
-      <section className="watchlist-dashboard" aria-label="Watchlist dashboard">
-        <article className="watchlist-stat-card">
-          <span>Movies Watched</span>
-          <strong>{dashboardStats.completedMovies}</strong>
-          <p>{dashboardStats.moviesTotal} movies in watchlist</p>
-          <div className="watchlist-stat-bar" aria-hidden="true">
-            <span style={{ width: `${dashboardStats.moviePercent}%` }}></span>
+        <div className="watchlist-rail" aria-label="Collection statistics and sync status">
+          <dl>
+            <div><dt>Total titles</dt><dd>{items.length}</dd></div>
+            <div><dt>Movies complete</dt><dd>{dashboardStats.completedMovies}<small> / {dashboardStats.moviesTotal}</small></dd></div>
+            <div><dt>Series complete</dt><dd>{dashboardStats.completedSeries}<small> / {dashboardStats.seriesTotal}</small></dd></div>
+          </dl>
+          <div className={`watchlist-sync-status ${syncStatus.state}`}>
+            <span className="watchlist-sync-dot" aria-hidden="true" />
+            <span>
+              {syncStatus.state === "syncing"
+                ? "Syncing collection..."
+                : syncStatus.state === "error"
+                  ? "Sync failed"
+                  : syncStatus.syncedAt
+                    ? `Last sync: ${formatSyncDateTime(syncStatus.syncedAt)}`
+                    : "Not synced yet"}
+            </span>
+            <button type="button" onClick={handleManualSync} disabled={syncStatus.state === "syncing"} aria-label="Sync watchlist now" title="Sync now"><FaRotate aria-hidden="true" /></button>
+            {syncStatus.state === "error" && syncStatus.error && <small>{syncStatus.error}</small>}
           </div>
-        </article>
-
-        <article className="watchlist-stat-card">
-          <span>Series Watched</span>
-          <strong>{dashboardStats.completedSeries}</strong>
-          <p>{dashboardStats.seriesTotal} series in watchlist</p>
-          <div className="watchlist-stat-bar" aria-hidden="true">
-            <span style={{ width: `${dashboardStats.seriesPercent}%` }}></span>
-          </div>
-        </article>
-
-        <article className="watchlist-stat-card watchlist-stat-card--wide">
-          <span>Last Video Watched</span>
-          <strong>{dashboardStats.lastVideoWatched?.metadata?.title || "-"}</strong>
-          <p>
-            {dashboardStats.lastVideoWatched
-              ? `${formatProgressTime(dashboardStats.lastVideoWatched.seconds)} watched · ${formatStoredDate(dashboardStats.lastVideoWatched.updatedAt)}`
-              : "Open a movie or episode to show it here."}
-          </p>
-          {dashboardStats.lastVideoWatched?.metadata?.detailPath && (
-            <Link
-              className="watchlist-continue-link"
-              to={dashboardStats.lastVideoWatched.metadata.detailPath}
-            >
-              Continue Watching
-            </Link>
-          )}
-        </article>
+        </div>
       </section>
+
+      {message && <p className="watchlist-page__message" role="status">{message}</p>}
 
       {!items.length ? (
         <section className="watchlist-empty">
-          <h2>No saved titles yet</h2>
-          <p>Add movies or series from their detail page to start tracking.</p>
-          <div>
-            <Link to="/movies">Browse Movies</Link>
-            <Link to="/series">Browse Series</Link>
-          </div>
+          <span className="watchlist-empty__mark" aria-hidden="true"><FaBoxArchive /></span>
+          <p className="watchlist-page__eyebrow">Your collection is empty</p>
+          <h2>Add your first title.</h2>
+          <p>Add a movie or series from its detail page. Progress, release information, and your saved position will appear here.</p>
+          <div><Link to="/movies">Browse movies <FaArrowRight aria-hidden="true" /></Link><Link to="/series">Browse series</Link></div>
         </section>
       ) : (
         <>
-          <section className="watchlist-filter-bar" aria-label="Watchlist filters">
-            <label className="watchlist-search-field">
-              <span>Search watchlist</span>
-              <input
-                type="search"
-                value={titleFilter}
-                placeholder="Search by title"
-                onChange={(event) => setTitleFilter(event.target.value)}
-              />
-            </label>
-
-            <label>
-              <span>Type</span>
-              <select
-                value={typeFilter}
-                onChange={(event) => setTypeFilter(event.target.value)}
-              >
-                <option value="all">All types</option>
-                <option value="movie">Movies</option>
-                <option value="tv">Series</option>
-              </select>
-            </label>
-
-            <label>
-              <span>Status</span>
-              <select
-                value={statusFilter}
-                onChange={(event) => setStatusFilter(event.target.value)}
-              >
-                <option value="all">All statuses</option>
-                {WATCH_STATUS_OPTIONS.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
+          <section className="watchlist-command" aria-label="Watchlist controls">
+            <div className="watchlist-command__primary">
+              <div className="watchlist-search-field">
+                <FaMagnifyingGlass aria-hidden="true" />
+                <label className="sr-only" htmlFor="watchlist-search">Search watchlist</label>
+                <input id="watchlist-search" type="search" value={titleFilter} placeholder="Search your watchlist" onChange={(event) => setTitleFilter(event.target.value)} />
+                {titleFilter && <button type="button" onClick={() => setTitleFilter("")} aria-label="Clear search"><FaXmark aria-hidden="true" /></button>}
+              </div>
+              <div className="watchlist-type-segments" role="group" aria-label="Filter by type">
+                {[["all", "All titles"], ["movie", "Movies"], ["tv", "Series"]].map(([value, label]) => (
+                  <button type="button" key={value} className={typeFilter === value ? "active" : ""} aria-pressed={typeFilter === value} onClick={() => setTypeFilter(value)}>{label}</button>
                 ))}
-              </select>
-            </label>
-
-            <button
-              type="button"
-              onClick={() => {
-                setTitleFilter("");
-                setTypeFilter("all");
-                setStatusFilter("all");
-              }}
-              disabled={!hasActiveFilters}
-            >
-              Clear filters
-            </button>
-
-            <span className="watchlist-filter-count">
-              {visibleItems.length} of {items.length} titles
-            </span>
+              </div>
+              <label className="watchlist-sort-select"><span>Order</span><select value={`${sortConfig.key}:${sortConfig.direction}`} onChange={(event) => { const [key, direction] = event.target.value.split(":"); setSortConfig({ key, direction }); }}><option value="progressStatus:asc">Ongoing first</option><option value="progressStatus:desc">Dropped first</option><option value="title:asc">Title A–Z</option><option value="title:desc">Title Z–A</option><option value="progress:desc">Most progress</option><option value="progress:asc">Least progress</option><option value="nextRelease:asc">Next release</option><option value="nextRelease:desc">Latest release</option><option value="customSort:asc">Custom organization</option><option value="updatedAt:desc">Recently updated</option></select><FaChevronDown aria-hidden="true" /></label>
+            </div>
+            <div className="watchlist-command__secondary">
+              <div className="watchlist-status-chips" role="group" aria-label="Filter by watch status">
+                {["all", ...WATCH_STATUS_OPTIONS].map((value) => <button type="button" key={value} className={statusFilter === value ? "active" : ""} aria-pressed={statusFilter === value} onClick={() => setStatusFilter(value)}>{value === "all" ? "Any status" : value}</button>)}
+              </div>
+              <div className="watchlist-command__summary">
+                <span className="watchlist-filter-count" aria-live="polite">{visibleItems.length} {visibleItems.length === 1 ? "title" : "titles"}{hasActiveFilters ? " found" : " total"}</span>
+                <button className="watchlist-reset" type="button" onClick={() => { setTitleFilter(""); setTypeFilter("all"); setStatusFilter("all"); }} disabled={!hasActiveFilters}>Reset filters</button>
+                <div className="watchlist-density" role="group" aria-label="List density">
+                  <button type="button" className={density === "comfortable" ? "active" : ""} aria-pressed={density === "comfortable"} onClick={() => setDensity("comfortable")} title="Comfortable density"><FaBarsStaggered aria-hidden="true" /><span>Comfortable</span></button>
+                  <button type="button" className={density === "compact" ? "active" : ""} aria-pressed={density === "compact"} onClick={() => setDensity("compact")} title="Compact density"><FaBarsStaggered aria-hidden="true" /><span>Compact</span></button>
+                </div>
+              </div>
+            </div>
           </section>
 
-          <section className="watchlist-table-wrap">
-            <div className="watchlist-table-scroll" ref={tableScrollRef}>
-              <table className="watchlist-table">
-                <thead>
-                <tr>
-                  <th className="watchlist-filter-header title">
-                    {renderHeaderControls("Title", "title", "title")}
-                    {openHeaderMenu === "title" && (
-                      <div className="watchlist-header-menu search">
-                        <label>
-                          Search title
-                          <input
-                            type="search"
-                            value={titleFilter}
-                            placeholder="Search watchlist"
-                            onChange={(event) => setTitleFilter(event.target.value)}
-                            autoFocus
-                          />
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setTitleFilter("");
-                            setOpenHeaderMenu(null);
-                          }}
-                        >
-                          Clear
-                        </button>
-                      </div>
-                    )}
-                  </th>
-                  <th className="watchlist-filter-header">
-                    {renderHeaderControls("Type", "category", "type")}
-                    {openHeaderMenu === "type" && (
-                      <div className="watchlist-header-menu">
-                        {[
-                          ["all", "All"],
-                          ["movie", "Movies"],
-                          ["tv", "Series"],
-                        ].map(([value, label]) => (
-                          <button
-                            type="button"
-                            key={value}
-                            className={typeFilter === value ? "active" : ""}
-                            onClick={() => {
-                              setTypeFilter(value);
-                              setOpenHeaderMenu(null);
-                            }}
-                          >
-                            {label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </th>
-                  <th>{renderSortableHeader("Custom Sort", "customSort")}</th>
-                  <th className="watchlist-filter-header">
-                    {renderHeaderControls("Status", "progressStatus", "status")}
-                    {openHeaderMenu === "status" && (
-                      <div className="watchlist-header-menu">
-                        {["all", ...WATCH_STATUS_OPTIONS].map((value) => (
-                          <button
-                            type="button"
-                            key={value}
-                            className={statusFilter === value ? "active" : ""}
-                            onClick={() => {
-                              setStatusFilter(value);
-                              setOpenHeaderMenu(null);
-                            }}
-                          >
-                            {value === "all" ? "All" : value}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </th>
-                  <th>{renderSortableHeader("Progress", "progress")}</th>
-                  <th>{renderSortableHeader("Release", "tmdbStatus")}</th>
-                  <th>{renderSortableHeader("Next", "nextEpisodeDate")}</th>
-                  <th>{renderSortableHeader("Updated", "updatedAt")}</th>
-                  <th className="watchlist-actions-column" aria-label="Actions"></th>
-                </tr>
-                </thead>
-                <tbody>
+          <section className="watchlist-list" aria-label="Watchlist titles">
+            <table className="watchlist-table">
+              <thead><tr><th aria-sort={getAriaSort("title")}>{sortLabel("Title", "title")}</th><th aria-sort={getAriaSort("progress")}>{sortLabel("Progress", "progress")}</th><th aria-sort={getAriaSort("progressStatus")}>{sortLabel("Status", "progressStatus")}</th><th aria-sort={getAriaSort("nextRelease")}>{sortLabel("Next / release", "nextRelease")}</th><th><span className="sr-only">Actions</span></th></tr></thead>
+              <tbody>
                 {paginatedItems.map((item) => {
-                  const progressPercent = getProgressPercent(
-                    item,
-                    seasonEpisodeCounts,
-                    movieProgressByKey
-                  );
-                  const progressStatus = getDisplayProgressStatus(item);
-                  const seasonEpisodeCount = seasonEpisodeCounts[
-                    `${item.id}:${item.currentSeason || 1}`
-                  ];
-                  const previewData = previewCache[item.id];
-                  const previewBackdropUrl = previewData?.backdropPath
-                    ? `${TMDB_ASSET_BASEURL}${previewData.backdropPath}`
-                    : null;
-                  const trailerUrl = previewData?.trailerKey
-                    ? `https://www.youtube.com/embed/${previewData.trailerKey}?autoplay=1&mute=${previewMuted ? "1" : "0"}&controls=0&loop=1&playlist=${previewData.trailerKey}&playsinline=1&rel=0&modestbranding=1&disablekb=1&fs=0&iv_load_policy=3&cc_load_policy=0&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}`
-                    : null;
-                  const posterUrl = item.posterPath
-                    ? `${TMDB_ASSET_BASEURL}${item.posterPath}`
-                    : null;
-
+                  const status = getDisplayProgressStatus(item);
+                  const posterUrl = item.posterPath ? `${TMDB_ASSET_BASEURL}${item.posterPath}` : null;
                   return (
-                    <tr
-                      key={item.id}
-                      className={`is-${getStatusClassName(progressStatus)}`}
-                    >
-                      <td>
-                        <div className="watchlist-title-cell">
-                          {posterUrl && <img src={posterUrl} alt={item.title} />}
-                          <div>
-                            <span className={`watchlist-title-status-pill ${getStatusClassName(progressStatus)}`}>
-                              {progressStatus}
-                            </span>
-                            <Link
-                              to={getItemDetailPath(item)}
-                              onMouseEnter={(event) => handleRowPreviewOpen(item, event)}
-                              onMouseLeave={handlePreviewClose}
-                            >
-                              {item.title}
-                            </Link>
-                            <span>{formatStoredDate(item.releaseDate)}</span>
-                          </div>
-                        </div>
-                        {hoveredItemId === item.id && (
-                          <aside
-                            className={`watchlist-preview-card ${previewSide}`}
-                            style={{ top: previewPosition.top, left: previewPosition.left }}
-                            aria-label={`${item.title} preview`}
-                            onWheel={(event) => event.stopPropagation()}
-                            onTouchMove={(event) => event.stopPropagation()}
-                            onMouseEnter={() => {
-                              if (previewCloseTimeoutRef.current) {
-                                window.clearTimeout(previewCloseTimeoutRef.current);
-                              }
-                            }}
-                            onMouseLeave={handlePreviewClose}
-                          >
-                            <div className="watchlist-preview-media">
-                              {trailerUrl ? (
-                                <iframe
-                                  src={trailerUrl}
-                                  title={`${item.title} trailer preview`}
-                                  allow="autoplay; encrypted-media; picture-in-picture"
-                                  allowFullScreen
-                                />
-                              ) : previewBackdropUrl ? (
-                                <img src={previewBackdropUrl} alt="" />
-                              ) : (
-                                <div className="watchlist-preview-placeholder">Preview loading</div>
-                              )}
-                              <button
-                                type="button"
-                                className="watchlist-preview-mute"
-                                onClick={(event) => {
-                                  event.preventDefault();
-                                  event.stopPropagation();
-                                  setPreviewMuted((isMuted) => !isMuted);
-                                }}
-                                aria-label={previewMuted ? "Unmute preview" : "Mute preview"}
-                              >
-                                {previewMuted ? (
-                                  <FaVolumeXmark aria-hidden="true" />
-                                ) : (
-                                  <FaVolumeHigh aria-hidden="true" />
-                                )}
-                              </button>
-                            </div>
-                            <div className="watchlist-preview-copy">
-                              <strong>{item.title}</strong>
-                              <p>
-                                {previewData?.isLoading
-                                  ? "Loading preview..."
-                                  : previewData?.overview || "Hover to load this title preview."}
-                              </p>
-                              <Link to={getItemDetailPath(item)}>Watch Now!</Link>
-                            </div>
-                          </aside>
-                        )}
-                      </td>
-                      <td>
-                        <span className={`watchlist-category-pill ${item.type}`}>
-                          {getCategoryLabel(item)}
-                        </span>
-                      </td>
-                      <td>
-                        <input
-                          className="watchlist-custom-sort-input"
-                          type="text"
-                          value={item.customSort || ""}
-                          placeholder="e.g. Marvel"
-                          onChange={(event) =>
-                            handleUpdate(item, { customSort: event.target.value })
-                          }
-                        />
-                      </td>
-                      <td>
-                        <select
-                          className={`watchlist-status-select ${getStatusClassName(progressStatus)}`}
-                          value={progressStatus}
-                          onChange={(event) =>
-                            handleUpdate(item, { progressStatus: event.target.value })
-                          }
-                        >
-                          {WATCH_STATUS_OPTIONS.map((option) => (
-                            <option key={option} value={option}>
-                              {option}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
+                    <tr key={item.id} className={`is-${getStatusClassName(status)}`}>
+                       <td><div className="watchlist-title-cell"><img src={posterUrl || NoImagePlaceholder} alt="" onError={usePlaceholderOnError} /><div><span className="watchlist-row-index" aria-hidden="true">{String(items.indexOf(item) + 1).padStart(2, "0")}</span><Link to={getItemDetailPath(item)}>{item.title}</Link><span>{getCategoryLabel(item)} · {formatStoredDate(item.releaseDate)}{item.customSort ? ` · ${item.customSort}` : ""}</span></div></div></td>
                       <td>
                         {item.type === "tv" ? (
-                          <div className="watchlist-progress-controls">
-                            <div className="watchlist-progress-summary">
-                              <strong>{Math.round(progressPercent)}%</strong>
-                              <span>
-                                Next S{item.currentSeason || 1}
-                                {item.totalSeasons ? `/${item.totalSeasons}` : ""} · E{item.currentEpisode || 1}
-                              </span>
-                            </div>
-                            <div className="watchlist-progress-bar">
-                              <span style={{ width: `${progressPercent}%` }} />
-                            </div>
-                            <div className="watchlist-progress-fields">
-                              <label>
-                                S
-                                <input
-                                  type="number"
-                                  min="1"
-                                  max={item.totalSeasons || undefined}
-                                  value={item.currentSeason || 1}
-                                  onChange={(event) =>
-                                    handleSeasonChange(item, event.target.value)
-                                  }
-                                />
-                              </label>
-                              <label>
-                                E
-                                <input
-                                  type="number"
-                                  value={item.currentEpisode || 1}
-                                  onChange={(event) =>
-                                    handleEpisodeChange(item, event.target.value)
-                                  }
-                                />
-                              </label>
-                            </div>
-                            <span>
-                              {item.totalSeasons
-                                ? `Next season ${item.currentSeason || 1} of ${item.totalSeasons}`
-                                : `Next season ${item.currentSeason || 1}`}
-                              {seasonEpisodeCount
-                                ? ` · episode ${item.currentEpisode || 1} of ${seasonEpisodeCount}`
-                                : ` · episode ${item.currentEpisode || 1}`}
-                            </span>
-                          </div>
-                        ) : (
-                          <div className="watchlist-progress-controls compact">
-                            <div className="watchlist-progress-summary">
-                              <strong>{Math.round(progressPercent)}%</strong>
-                              <span>{progressStatus}</span>
-                            </div>
-                            <div className="watchlist-progress-bar">
-                              <span style={{ width: `${progressPercent}%` }} />
-                            </div>
-                          </div>
-                        )}
-                      </td>
-                      <td>{item.tmdbStatus || "-"}</td>
-                      <td>{item.type === "tv" ? formatStoredDate(item.nextEpisodeDate) : "-"}</td>
-                      <td>{formatStoredDate(item.updatedAt)}</td>
-                      <td className="watchlist-actions-column">
-                        <div className="watchlist-actions">
-                          <Link
-                            className="watchlist-icon-action"
-                            to={getItemDetailPath(item)}
-                            aria-label={`Open ${item.title}`}
-                            title="Open"
-                          >
-                            <FaArrowUpRightFromSquare aria-hidden="true" />
-                          </Link>
                           <button
                             type="button"
-                            className="watchlist-icon-action danger"
-                            onClick={() => handleRemove(item)}
-                            aria-label={`Remove ${item.title}`}
-                            title="Remove"
+                            className="watchlist-progress-shortcut"
+                            onClick={(event) => openEdit(item, event, "progress")}
+                            aria-label={`Edit season and episode progress for ${item.title}`}
+                            title="Edit season and episode"
                           >
-                            <FaTrash aria-hidden="true" />
+                            {renderProgress(item)}
+                            <span className="watchlist-progress-shortcut__hint"><FaPen aria-hidden="true" /> Edit</span>
                           </button>
-                        </div>
+                        ) : renderProgress(item)}
                       </td>
+                      <td><span className={`watchlist-title-status-pill ${getStatusClassName(status)}`}><i aria-hidden="true" />{status}</span></td>
+                      <td><strong className="watchlist-date">{formatRelativeDate(item.type === "tv" ? item.nextEpisodeDate : item.releaseDate, item.type)}</strong><span className="watchlist-release-status">{item.tmdbStatus || (item.type === "tv" ? "Schedule unavailable" : "Release status")}</span></td>
+                      <td>{renderActions(item)}</td>
                     </tr>
                   );
                 })}
-                </tbody>
-              </table>
-              <div ref={infiniteScrollRef} className="watchlist-infinite-sentinel" aria-hidden="true" />
-            </div>
-
-            {!visibleItems.length && (
-              <p className="watchlist-table-empty">No titles match these filters.</p>
-            )}
-
-            <div className="watchlist-table-footer">
-              <span>
-                Showing {paginatedItems.length} of {visibleItems.length}
-              </span>
-            </div>
+              </tbody>
+            </table>
+            {!visibleItems.length && <div className="watchlist-table-empty"><FaMagnifyingGlass aria-hidden="true" /><h2>No titles match.</h2><p>Try another search or clear the active filters to see your full watchlist.</p><button type="button" onClick={() => { setTitleFilter(""); setTypeFilter("all"); setStatusFilter("all"); }}>Show full watchlist</button></div>}
+            {visibleItems.length > 0 && <footer className="watchlist-table-footer"><span aria-live="polite">Showing {paginatedItems.length} of {visibleItems.length}</span>{visibleCount < visibleItems.length && <button type="button" onClick={() => setVisibleCount((count) => count + WATCHLIST_BATCH_SIZE)}>Load {Math.min(WATCHLIST_BATCH_SIZE, visibleItems.length - visibleCount)} more <span>· {visibleItems.length - visibleCount} remaining</span></button>}</footer>}
           </section>
         </>
+      )}
+
+      {panel && activeItem && (
+        <div className="watchlist-panel-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) closePanel(); }}>
+          <aside ref={panelRef} className="watchlist-panel" role="dialog" aria-modal="true" aria-labelledby="watchlist-panel-title">
+            <header className="watchlist-panel__artwork">
+               <img src={activeItem.backdropPath ? `${TMDB_ASSET_BASEURL}${activeItem.backdropPath}` : activeItem.posterPath ? `${TMDB_ASSET_BASEURL}${activeItem.posterPath}` : NoImagePlaceholder} alt="" onError={usePlaceholderOnError} />
+               <div><span>{panel.type === "edit" ? "Edit watchlist title" : "Title preview"}</span><h2 id="watchlist-panel-title">{activeItem.title}</h2><p>{getCategoryLabel(activeItem)} · {formatStoredDate(activeItem.releaseDate)}</p></div>
+              <button ref={closeButtonRef} type="button" className="watchlist-panel-close" onClick={closePanel} aria-label={`Close ${panel.type} panel`}><FaXmark aria-hidden="true" /></button>
+            </header>
+            {panel.type === "edit" && editDraft ? (
+              <form className="watchlist-edit-form" onSubmit={(event) => { event.preventDefault(); saveEdit(); }}>
+                <p className="watchlist-edit-note">Nothing changes until you save this draft.</p>
+                 <fieldset className="watchlist-status-fieldset"><legend>Watch status</legend><div>{WATCH_STATUS_OPTIONS.map((option) => <label key={option} className={getStatusClassName(option)}><input type="radio" name="watch-status" value={option} checked={editDraft.progressStatus === option} onChange={(event) => setEditDraft((draft) => ({ ...draft, progressStatus: event.target.value }))} /><span><i aria-hidden="true" />{option}</span></label>)}</div></fieldset>
+                 {activeItem.type === "tv" && <section className="watchlist-edit-section"><div className="watchlist-edit-section__heading"><span>Playback position</span><small>{activeItem.totalSeasons ? `${activeItem.totalSeasons} seasons` : "Series"}</small></div><div className="watchlist-edit-progress"><label><span>Season</span><input ref={progressInputRef} type="number" min="1" max={activeItem.totalSeasons || undefined} value={editDraft.currentSeason} onChange={(event) => setEditDraft((draft) => ({ ...draft, currentSeason: event.target.value }))} /></label><span aria-hidden="true">/</span><label><span>Episode</span><input type="number" min="1" max={Math.max(0, seasonEpisodeCounts[`${activeItem.id}:${editDraft.currentSeason}`]) || undefined} value={editDraft.currentEpisode} onChange={(event) => setEditDraft((draft) => ({ ...draft, currentEpisode: event.target.value }))} /></label></div><div className="watchlist-panel-progress">{renderProgress({ ...activeItem, ...editDraft })}</div></section>}
+                <section className="watchlist-edit-section"><div className="watchlist-edit-section__heading"><span>Organization</span><small>Optional</small></div><label className="watchlist-custom-sort"><span>Custom sort label</span><input type="text" value={editDraft.customSort} placeholder="e.g. Awards season, Marvel, Sunday" onChange={(event) => setEditDraft((draft) => ({ ...draft, customSort: event.target.value }))} /><small>Groups this title when Custom organization is selected.</small></label></section>
+                 <div className="watchlist-panel-actions"><button type="button" onClick={closePanel}>Discard changes</button><button type="submit" className="primary">Save changes</button></div>
+              </form>
+            ) : (
+              <div className="watchlist-preview">
+                <div className="watchlist-preview-media">
+                  {previewPlaying && activePreview?.trailerKey ? <iframe src={`https://www.youtube.com/embed/${activePreview.trailerKey}?autoplay=1&rel=0&playsinline=1`} title={`${activeItem.title} trailer`} allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen /> : <img src={activePreview?.backdropPath ? `${TMDB_ASSET_BASEURL}${activePreview.backdropPath}` : activeItem.posterPath ? `${TMDB_ASSET_BASEURL}${activeItem.posterPath}` : NoImagePlaceholder} alt="" onError={usePlaceholderOnError} />}
+                  {activePreview?.isLoading && <span className="watchlist-preview-loading">Preparing preview…</span>}
+                  {!previewPlaying && activePreview?.trailerKey && <button type="button" className="watchlist-play-button" onClick={() => setPreviewPlaying(true)}><FaPlay aria-hidden="true" /> Play trailer</button>}
+                </div>
+                <p>{activePreview?.isLoading ? "Loading details..." : activePreview?.overview || "No description available yet."}</p>
+                 <div className="watchlist-preview-meta"><div><span>Watch status</span><strong><i className={getStatusClassName(getDisplayProgressStatus(activeItem))} aria-hidden="true" />{getDisplayProgressStatus(activeItem)}</strong></div><div><span>Release status</span><strong>{activeItem.tmdbStatus || "Unknown"}</strong></div><div><span>Next / release</span><strong>{formatRelativeDate(activeItem.type === "tv" ? activeItem.nextEpisodeDate : activeItem.releaseDate, activeItem.type)}</strong></div></div>
+                <section className="watchlist-preview-progress"><span>Saved position</span>{renderProgress(activeItem)}</section>
+                <div className="watchlist-panel-actions"><button type="button" onClick={closePanel}>Close</button><Link className="primary" to={getItemDetailPath(activeItem)}>{getDisplayProgressStatus(activeItem) === "Ongoing" ? "Continue title" : "Open title"} <FaArrowUpRightFromSquare aria-hidden="true" /></Link></div>
+              </div>
+            )}
+          </aside>
+        </div>
       )}
     </main>
   );

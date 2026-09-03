@@ -94,14 +94,14 @@ const ScrollableRow = ({
             <p>{`Currently, there are no shows available in the "${title}" category on this network. Please check back later or explore other categories.`}</p>
           </div>
         ) : isLoading && (!infiniteScroll || loadedShows.length === 0) ? (
-          <CardSkeleton count={10} layout="row" />
+          <CardSkeleton count={10} layout="row" cardType={cardType} />
         ) : (
           visibleShows?.map((show) => (
             <ShowCard key={show.id} show={show} cardType={cardType} showType={showType} />
           ))
         )}
         {infiniteScroll && isLoading && loadedShows.length > 0 && (
-          <CardSkeleton count={4} layout="row" />
+          <CardSkeleton count={4} layout="row" cardType={cardType} />
         )}
       </div>
       {showPagination && (

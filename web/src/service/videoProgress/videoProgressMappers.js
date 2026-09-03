@@ -9,8 +9,8 @@ export const parseProgressKey = (key) => {
     return {
       contentType: "movie",
       tmdbID: Number(movieMatch[1]),
-      seasonNumber: null,
-      episodeNumber: null,
+      seasonNumber: 0,
+      episodeNumber: 0,
     };
   }
 
@@ -41,11 +41,12 @@ export const buildProgressKey = (row) => {
 
 export const toVideoProgressRow = (userID, entry) => {
   const parsedKey = parseProgressKey(entry?.key);
-  if (!userID || !entry?.seconds || !parsedKey) {
+  const entrySeconds = Number(entry?.seconds);
+  if (!userID || !Number.isFinite(entrySeconds) || entrySeconds < 0 || !parsedKey) {
     return null;
   }
 
-  const seconds = Math.floor(Number(entry.seconds) || 0);
+  const seconds = Math.floor(entrySeconds);
   const duration = Number(entry.metadata?.playbackDuration || entry.metadata?.duration || 0);
   const currentProgress = Number.isFinite(duration) && duration > 0
     ? Math.min(100, Math.max(0, Math.round((seconds / duration) * 100)))
@@ -72,7 +73,8 @@ export const toVideoProgressRow = (userID, entry) => {
 
 export const fromVideoProgressRow = (row) => {
   const key = buildProgressKey(row);
-  if (!key || !row.current_progress) {
+  const currentProgress = Number(row.current_progress);
+  if (!key || !Number.isFinite(currentProgress) || currentProgress < 0) {
     return null;
   }
 
