@@ -1,5 +1,21 @@
 .copyright {
     padding: 1.35rem 1rem 1.6rem;
+    opacity: 0;
+    transform: translateY(0.55rem);
+    transition: opacity 420ms ease 920ms, transform 520ms ease 900ms;
+}
+
+.footer.is-visible .copyright {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .copyright {
+        opacity: 1;
+        transform: none;
+        transition: none;
+    }
 }
 
 .copyright .wrapper {

@@ -522,8 +522,8 @@
 .watchlist-panel-actions .primary { border-color: #ce3824; background: linear-gradient(135deg, #ff5d46, #ce3824); color: #fff; }
 
 /* Signed-out watchlist */
-.watchlist-page--guest { min-height: 100vh; padding-bottom: 2rem; }
-.watchlist-teaser { position: relative; min-height: calc(100vh - 8rem); overflow: hidden; border-radius: 0.9rem; background: radial-gradient(ellipse at 72% 42%, rgba(206, 56, 36, 0.22), transparent 16rem), linear-gradient(120deg, #090a0b 30%, #171717); padding: clamp(2rem, 7vw, 7rem); }
+.watchlist-page--guest { min-height: 0; padding-bottom: 0; }
+.watchlist-teaser { position: relative; min-height: 0; overflow: hidden; border-radius: 0.9rem; background: radial-gradient(ellipse at 72% 42%, rgba(206, 56, 36, 0.22), transparent 16rem), linear-gradient(120deg, #090a0b 30%, #171717); padding: clamp(2rem, 7vw, 7rem); }
 .watchlist-teaser__beam { position: absolute; top: -20%; right: 8%; width: 25rem; height: 120%; background: linear-gradient(100deg, transparent, rgba(255, 179, 168, 0.08), transparent); filter: blur(10px); transform: rotate(12deg); }
 .watchlist-teaser h1 { max-width: 13ch; margin: 1.5rem 0; font-size: clamp(3rem, 8vw, 7rem); font-weight: 800; letter-spacing: -0.06em; line-height: 0.9; }
 .watchlist-teaser > p:not(.watchlist-page__eyebrow) { max-width: 40rem; color: #cfd7e2; line-height: 1.7; }
@@ -603,7 +603,7 @@
   .watchlist-table-footer { padding-right: 0.2rem; padding-left: 0.2rem; }
 
   .watchlist-empty { padding: 2rem 1rem; }
-  .watchlist-teaser { min-height: 100vh; padding: 6rem 1.3rem 3rem; }
+  .watchlist-teaser { min-height: 0; padding: 6rem 1.3rem 3rem; }
   .watchlist-teaser__grid { grid-template-columns: 1fr; }
 
   .watchlist-panel-backdrop { align-items: flex-end; }

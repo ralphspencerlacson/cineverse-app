@@ -43,12 +43,22 @@ const Sitemap = () => {
   return (
     <section className="sitemap">
       <div className="sitemap__bridge" aria-label="Cineverse flow">
-        {footerHighlights.map((highlight, index) => (
-          <span key={highlight}>
-            <strong>{String(index + 1).padStart(2, "0")}</strong>
-            {highlight}
-          </span>
-        ))}
+        <div className="sitemap__bridge-track">
+          {[0, 1].map((copyIndex) => (
+            <div
+              className="sitemap__bridge-set"
+              key={copyIndex}
+              aria-hidden={copyIndex === 1 || undefined}
+            >
+              {footerHighlights.map((highlight, index) => (
+                <span key={`${highlight}-${copyIndex}`}>
+                  <strong>{String(index + 1).padStart(2, "0")}</strong>
+                  {highlight}
+                </span>
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="wrapper">

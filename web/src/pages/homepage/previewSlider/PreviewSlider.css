@@ -75,15 +75,20 @@
 }
 
 .preview-slider__bridge-model {
+    --bridge-glow-one-x: 32%;
+    --bridge-glow-one-y: 24%;
+    --bridge-glow-two-x: 72%;
+    --bridge-glow-two-y: 72%;
     position: relative;
     min-height: clamp(24rem, 52vw, 38rem);
     overflow: hidden;
     border-radius: 1.5rem;
     background:
-        radial-gradient(circle at 32% 24%, rgba(255, 179, 168, 0.3), transparent 14rem),
-        radial-gradient(circle at 72% 72%, rgba(206, 56, 36, 0.28), transparent 18rem),
+        radial-gradient(circle at var(--bridge-glow-one-x) var(--bridge-glow-one-y), rgba(255, 179, 168, 0.3), transparent 14rem),
+        radial-gradient(circle at var(--bridge-glow-two-x) var(--bridge-glow-two-y), rgba(206, 56, 36, 0.28), transparent 18rem),
         linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.035));
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 2rem 5rem rgba(0, 0, 0, 0.28);
+    animation: bridge-glow-drift 12s ease-in-out infinite alternate;
 }
 
 .preview-slider__bridge-model::before {
@@ -96,7 +101,66 @@
     inset: 12%;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 999px;
-    transform: rotate(-18deg);
+    animation: bridge-orbit-drift 16s ease-in-out infinite alternate;
+}
+
+@property --bridge-glow-one-x {
+    syntax: "<percentage>";
+    inherits: false;
+    initial-value: 32%;
+}
+
+@property --bridge-glow-one-y {
+    syntax: "<percentage>";
+    inherits: false;
+    initial-value: 24%;
+}
+
+@property --bridge-glow-two-x {
+    syntax: "<percentage>";
+    inherits: false;
+    initial-value: 72%;
+}
+
+@property --bridge-glow-two-y {
+    syntax: "<percentage>";
+    inherits: false;
+    initial-value: 72%;
+}
+
+@keyframes bridge-glow-drift {
+    0% {
+        --bridge-glow-one-x: 28%;
+        --bridge-glow-one-y: 20%;
+        --bridge-glow-two-x: 76%;
+        --bridge-glow-two-y: 76%;
+    }
+
+    45% {
+        --bridge-glow-one-x: 38%;
+        --bridge-glow-one-y: 29%;
+        --bridge-glow-two-x: 65%;
+        --bridge-glow-two-y: 68%;
+    }
+
+    100% {
+        --bridge-glow-one-x: 25%;
+        --bridge-glow-one-y: 34%;
+        --bridge-glow-two-x: 80%;
+        --bridge-glow-two-y: 60%;
+    }
+}
+
+@keyframes bridge-orbit-drift {
+    from {
+        opacity: 0.58;
+        transform: rotate(-18deg) scale(0.97);
+    }
+
+    to {
+        opacity: 1;
+        transform: rotate(-11deg) scale(1.04);
+    }
 }
 
 .preview-slider__camera-stage {
@@ -247,6 +311,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+    .preview-slider__bridge-model,
+    .preview-slider__bridge-model::before {
+        animation: none;
+    }
+
     .preview-slider__camera-stage {
         transform: none;
     }

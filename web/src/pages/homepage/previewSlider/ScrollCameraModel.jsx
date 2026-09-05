@@ -6,6 +6,7 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 const clamp = (value, min = 0, max = 1) => Math.min(max, Math.max(min, value));
 const lerp = (start, end, progress) => start + (end - start) * progress;
+const detailedSideYaw = (Math.PI * 7) / 8;
 
 const getSectionProgress = (target) => {
   if (!target) {
@@ -70,11 +71,11 @@ const CameraObject = ({ sectionRef, reducedMotion }) => {
       return;
     }
 
-    groupRef.current.rotation.set(-0.08, Math.PI, -0.08);
+    groupRef.current.rotation.set(-0.08, detailedSideYaw, -0.08);
     groupRef.current.position.set(0, 0, 0.25);
   }, []);
 
-  useFrame(() => {
+  useFrame((state, delta) => {
     const group = groupRef.current;
     if (!group) {
       return;
@@ -85,10 +86,10 @@ const CameraObject = ({ sectionRef, reducedMotion }) => {
         dragStateRef.current.yaw,
         dragStateRef.current.targetYaw,
         14,
-        1 / 60
+        delta
       );
       group.position.set(0, 0, 0.25);
-      group.rotation.set(-0.08, 0.18 + dragStateRef.current.yaw, -0.04);
+      group.rotation.set(-0.08, detailedSideYaw + dragStateRef.current.yaw, -0.04);
       return;
     }
 
@@ -97,12 +98,16 @@ const CameraObject = ({ sectionRef, reducedMotion }) => {
       dragStateRef.current.yaw,
       dragStateRef.current.targetYaw,
       14,
-      1 / 60
+      delta
     );
 
-    group.position.set(0, 0, 0.25);
+    const idleTime = state.clock.getElapsedTime();
+    const idleYaw = Math.sin(idleTime * 0.48) * 0.07;
+    const idleLift = Math.sin(idleTime * 0.72) * 0.025;
+
+    group.position.set(0, idleLift, 0.25);
     group.rotation.x = lerp(-0.08, 0.04, progress);
-    group.rotation.y = lerp(Math.PI, 0, progress) + dragStateRef.current.yaw;
+    group.rotation.y = detailedSideYaw + idleYaw + dragStateRef.current.yaw;
     group.rotation.z = lerp(-0.08, 0.08, progress);
   });
 
@@ -126,8 +131,8 @@ const CameraObject = ({ sectionRef, reducedMotion }) => {
     const deltaX = event.clientX - dragStateRef.current.startX;
     dragStateRef.current.targetYaw = clamp(
       dragStateRef.current.startYaw + deltaX * 0.022,
-      -Math.PI * 1.35,
-      Math.PI * 1.35
+      -0.65,
+      0.65
     );
   };
 
@@ -138,6 +143,7 @@ const CameraObject = ({ sectionRef, reducedMotion }) => {
 
     event.stopPropagation();
     dragStateRef.current.isDragging = false;
+    dragStateRef.current.targetYaw = 0;
     event.target.releasePointerCapture?.(event.pointerId);
   };
 
