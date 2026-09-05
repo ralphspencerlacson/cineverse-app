@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
-import { FaBars, FaChevronUp, FaMagnifyingGlass, FaUser, FaXmark } from "react-icons/fa6";
+import { FaBars, FaChevronUp, FaHeart, FaMagnifyingGlass, FaRegHeart, FaUser, FaXmark } from "react-icons/fa6";
 import CineverseLogo from "../../assets/png/cineverse-hd-logo-transparent.png";
 import NoImagePlaceholder from "../../assets/png/no_image_placeholder.png";
 import tmdbInstance from "../../service/tmdb/tmdb";
@@ -29,6 +29,8 @@ const Navbar = () => {
   const location = useLocation();
   const [navbarClass, setNavbarClass] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isSearchRendered, setIsSearchRendered] = useState(false);
+  const [isSearchClosing, setIsSearchClosing] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [loginForm, setLoginForm] = useState({ username: "", password: "" });
   const [loginError, setLoginError] = useState("");
@@ -41,6 +43,8 @@ const Navbar = () => {
   const [searchError, setSearchError] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
+  const [isNavHovered, setIsNavHovered] = useState(false);
+  const [isNavPinned, setIsNavPinned] = useState(false);
   const [isPlayerOpen, setIsPlayerOpen] = useState(false);
   const [chargedNav, setChargedNav] = useState("");
   const [watchlistIDs, setWatchlistIDs] = useState(() => new Set());
@@ -49,8 +53,10 @@ const Navbar = () => {
   const mobileMenuToggleRef = useRef(null);
   const mobileMenuPanelRef = useRef(null);
   const accountRef = useRef(null);
+  const navRef = useRef(null);
   const searchDrawerRef = useRef(null);
   const searchCloseTimeoutRef = useRef(null);
+  const searchExitTimeoutRef = useRef(null);
   const searchPointerTargetsRef = useRef(new Set());
   const chargeTimeoutRef = useRef(null);
 
@@ -60,12 +66,33 @@ const Navbar = () => {
       searchCloseTimeoutRef.current = null;
     }
 
+    if (searchExitTimeoutRef.current) {
+      window.clearTimeout(searchExitTimeoutRef.current);
+    }
+
     setIsSearchOpen(false);
-    setSearchQuery("");
-    setSearchResults([]);
-    setIsSearchExpanded(false);
-    setSearchError(false);
+    setIsSearchClosing(true);
+    searchExitTimeoutRef.current = window.setTimeout(() => {
+      setIsSearchRendered(false);
+      setIsSearchClosing(false);
+      setSearchQuery("");
+      setSearchResults([]);
+      setIsSearchExpanded(false);
+      setSearchError(false);
+      searchExitTimeoutRef.current = null;
+    }, 220);
   }, []);
+
+  const openSearch = () => {
+    if (searchExitTimeoutRef.current) {
+      window.clearTimeout(searchExitTimeoutRef.current);
+      searchExitTimeoutRef.current = null;
+    }
+
+    setIsSearchRendered(true);
+    setIsSearchClosing(false);
+    setIsSearchOpen(true);
+  };
 
   const isInSearchSurface = useCallback((target) => {
     return Boolean(
@@ -108,6 +135,7 @@ const Navbar = () => {
       setNavbarClass(window.scrollY > 100);
     };
 
+    handleScroll();
     window.addEventListener("scroll", handleScroll);
 
     return () => {
@@ -126,6 +154,33 @@ const Navbar = () => {
     setIsMobileMenuOpen(false);
     setIsAccountOpen(false);
   }, [closeSearch, location.hash, location.pathname, location.search]);
+
+  useEffect(() => {
+    if (!isNavPinned) {
+      return undefined;
+    }
+
+    const handlePinnedNavDismiss = (event) => {
+      if (event.type === "keydown" && event.key !== "Escape") {
+        return;
+      }
+
+      if (event.type === "pointerdown" && navRef.current?.contains(event.target)) {
+        return;
+      }
+
+      setIsNavPinned(false);
+      setIsNavHovered(false);
+    };
+
+    document.addEventListener("pointerdown", handlePinnedNavDismiss);
+    document.addEventListener("keydown", handlePinnedNavDismiss);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePinnedNavDismiss);
+      document.removeEventListener("keydown", handlePinnedNavDismiss);
+    };
+  }, [isNavPinned]);
 
   useEffect(() => {
     if (!isAccountOpen) {
@@ -243,6 +298,9 @@ const Navbar = () => {
       }
       if (searchCloseTimeoutRef.current) {
         window.clearTimeout(searchCloseTimeoutRef.current);
+      }
+      if (searchExitTimeoutRef.current) {
+        window.clearTimeout(searchExitTimeoutRef.current);
       }
     };
   }, []);
@@ -458,6 +516,10 @@ const Navbar = () => {
     setIsMobileMenuOpen(false);
     setChargedNav("");
 
+    if (window.matchMedia("(min-width: 1025px)").matches) {
+      setIsNavHovered(true);
+    }
+
     window.requestAnimationFrame(() => {
       setChargedNav(navKey);
     });
@@ -476,15 +538,60 @@ const Navbar = () => {
     return null;
   }
 
+  const isNavExpanded = Boolean(
+    navbarClass ||
+    isNavHovered ||
+    isNavPinned ||
+    isSearchOpen ||
+    isSearchRendered ||
+    isMobileMenuOpen ||
+    isAccountOpen
+  );
+
   return (
     <>
       <nav
-        className={`nav ${navbarClass || isSearchOpen || isMobileMenuOpen || isAccountOpen ? "bg_black" : ""}`}
+        ref={navRef}
+        className={`nav ${isNavExpanded ? "expanded bg_black" : "collapsed"}`}
+        onPointerLeave={() => {
+          if (!isNavPinned && !isSearchRendered && !isAccountOpen && !isMobileMenuOpen) {
+            setIsNavHovered(false);
+          }
+        }}
+        onFocus={() => setIsNavHovered(true)}
+        onBlur={(event) => {
+          if (
+            !event.currentTarget.contains(event.relatedTarget) &&
+            !isNavPinned &&
+            !isSearchRendered &&
+            !isAccountOpen &&
+            !isMobileMenuOpen
+          ) {
+            setIsNavHovered(false);
+          }
+        }}
       >
+        <button
+          type="button"
+          className="nav-reveal"
+          aria-label={isNavPinned ? "Allow navigation to collapse" : isNavExpanded ? "Keep navigation open" : "Open navigation"}
+          aria-expanded={isNavExpanded}
+          onPointerEnter={() => setIsNavHovered(true)}
+          onClick={() => {
+            if (window.matchMedia("(max-width: 1024px)").matches) {
+              setIsMobileMenuOpen(true);
+              return;
+            }
+
+            setIsNavHovered(true);
+            setIsNavPinned((currentValue) => !currentValue);
+          }}
+        >
+          <img src={CineverseLogo} alt="" />
+        </button>
+
         <div className="nav__inner">
-          <Link to={"/"} className="logo-link" onClick={closeSearch} aria-label="Cineverse home">
-            <img className="logo" src={CineverseLogo} alt="" />
-          </Link>
+          <span className="logo-link" aria-hidden="true" />
 
           <div className="links">
             {NAV_ITEMS.map((item) => (
@@ -497,7 +604,12 @@ const Navbar = () => {
               >
                 <h4>{item.label}</h4>
                 {item.key === "watchlist" && watchlistIDs.size > 0 && (
-                  <span className="nav-link__count" aria-label={`${watchlistIDs.size} saved titles`}>
+                  <span
+                    key={watchlistIDs.size}
+                    className="nav-link__count"
+                    data-count={watchlistIDs.size}
+                    aria-label={`${watchlistIDs.size} saved titles`}
+                  >
                     {watchlistIDs.size}
                   </span>
                 )}
@@ -534,7 +646,7 @@ const Navbar = () => {
                 if (isSearchOpen) {
                   closeSearch();
                 } else {
-                  setIsSearchOpen(true);
+                  openSearch();
                 }
               }}
               onPointerEnter={handleSearchPointerEnter}
@@ -616,7 +728,12 @@ const Navbar = () => {
                 >
                   <span>{item.label}</span>
                   {item.key === "watchlist" && watchlistIDs.size > 0 && (
-                    <span className="nav-link__count" aria-label={`${watchlistIDs.size} saved titles`}>
+                    <span
+                      key={watchlistIDs.size}
+                      className="nav-link__count"
+                      data-count={watchlistIDs.size}
+                      aria-label={`${watchlistIDs.size} saved titles`}
+                    >
                       {watchlistIDs.size}
                     </span>
                   )}
@@ -710,11 +827,11 @@ const Navbar = () => {
         </div>
       )}
 
-      {isSearchOpen && (
+      {isSearchRendered && (
         <div
           id="site-search"
           ref={searchDrawerRef}
-          className="search-drawer open"
+          className={`search-drawer ${isSearchClosing ? "closing" : "open"}`}
           onPointerEnter={handleSearchPointerEnter}
           onPointerLeave={handleSearchPointerLeave}
           onFocusCapture={cancelDelayedSearchClose}
@@ -776,8 +893,9 @@ const Navbar = () => {
                       className={`search-result__watchlist ${isSavedToWatchlist ? "saved" : ""}`}
                       onClick={(event) => handleSearchWatchlistClick(event, result)}
                       aria-label={isSavedToWatchlist ? `Remove ${title} from watchlist` : `Add ${title} to watchlist`}
+                      title={isSavedToWatchlist ? "Remove from watchlist" : "Add to watchlist"}
                     >
-                      {isSavedToWatchlist ? "Added" : "Add"}
+                      {isSavedToWatchlist ? <FaHeart aria-hidden="true" /> : <FaRegHeart aria-hidden="true" />}
                     </button>
                   </article>
                 );

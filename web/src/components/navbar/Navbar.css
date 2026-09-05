@@ -5,33 +5,65 @@
     z-index: 100;
     width: 100%;
     height: 72px;
-    border-bottom: 1px solid transparent;
     background: transparent;
-    transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+    pointer-events: none;
+}
+
+.nav::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 4rem;
+    border-bottom: 1px solid rgb(255 255 255 / 0.07);
+    background: rgb(9 10 11 / 0.94);
+    box-shadow: 0 0.5rem 1.75rem rgb(0 0 0 / 0.24);
+    backdrop-filter: blur(14px);
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 3rem, #000 calc(100% - 3rem), transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 3rem, #000 calc(100% - 3rem), transparent);
+    opacity: 0;
+    transform: translateX(-50%);
+    transition:
+        opacity 120ms ease 220ms,
+        width 220ms cubic-bezier(0.65, 0, 0.35, 1) 120ms;
+    will-change: width, opacity;
 }
 
 .nav::after {
     content: "";
     position: absolute;
-    right: 0;
     bottom: -1px;
-    left: 0;
-    height: 1px;
+    left: 50%;
+    width: 0;
+    height: 2px;
     pointer-events: none;
-    background: linear-gradient(90deg, transparent 8%, var(--cv-ember) 50%, transparent 92%);
+    background: linear-gradient(90deg, transparent 2%, var(--cv-ember-bright) 22%, var(--cv-ember) 50%, var(--cv-ember-bright) 78%, transparent 98%);
+    box-shadow: 0 0 0.85rem rgb(206 56 36 / 0.65);
     opacity: 0;
-    transition: opacity 180ms ease;
+    transform: translateX(-50%);
+    transition:
+        opacity 60ms ease 420ms,
+        width 120ms cubic-bezier(0.65, 0, 0.35, 1) 340ms;
+    will-change: width, opacity;
 }
 
 .nav.bg_black {
-    border-color: rgb(255 255 255 / 0.07);
-    background: rgb(9 10 11 / 0.94);
-    box-shadow: 0 0.5rem 1.75rem rgb(0 0 0 / 0.24);
-    backdrop-filter: blur(14px);
+    pointer-events: auto;
+}
+
+.nav.bg_black::before {
+    width: calc(100% + 6rem);
+    opacity: 1;
+    transition-duration: 220ms, 500ms;
+    transition-delay: 300ms, 320ms;
 }
 
 .nav.bg_black::after {
-    opacity: 0.4;
+    width: 100%;
+    opacity: 0.62;
+    transition-duration: 100ms, 240ms;
+    transition-delay: 80ms, 80ms;
 }
 
 .nav__inner {
@@ -42,6 +74,67 @@
     width: min(calc(100% - 3rem), 92rem);
     height: 100%;
     margin: 0 auto;
+    pointer-events: none;
+    visibility: hidden;
+    transition: visibility 0s linear 760ms;
+}
+
+.nav.expanded .nav__inner {
+    pointer-events: auto;
+    visibility: visible;
+    transition-delay: 0s;
+}
+
+.nav-reveal {
+    position: absolute;
+    top: 7px;
+    left: 50%;
+    z-index: 2;
+    display: grid;
+    width: 58px;
+    height: 58px;
+    padding: 0;
+    border: 1px solid rgb(255 255 255 / 0.12);
+    border-radius: 50%;
+    place-items: center;
+    background: rgb(9 10 11 / 0.62);
+    box-shadow: 0 0 1.4rem rgb(206 56 36 / 0.2);
+    cursor: pointer;
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(-50%) scale(1);
+    transition:
+        left 280ms cubic-bezier(0.65, 0, 0.35, 1) 460ms,
+        border-color 180ms ease,
+        background-color 180ms ease,
+        box-shadow 180ms ease,
+        transform 240ms cubic-bezier(0.65, 0, 0.35, 1) 460ms;
+}
+
+.nav-reveal img {
+    display: block;
+    width: 3.35rem;
+    object-fit: contain;
+    filter: drop-shadow(0 0 0.45rem rgb(206 56 36 / 0.6));
+}
+
+.nav-reveal:hover,
+.nav-reveal:focus-visible {
+    border-color: rgb(255 93 70 / 0.72);
+    background: rgb(206 56 36 / 0.14);
+    box-shadow: 0 0 2rem rgb(206 56 36 / 0.45);
+    outline: none;
+    transform: translateX(-50%) scale(1.06);
+}
+
+.nav.expanded .nav-reveal {
+    left: max(3.375rem, calc((100% - 92rem) / 2 + 1.875rem));
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+    transform: translateX(-50%) scale(0.94);
+    transition-duration: 700ms, 180ms, 180ms, 180ms, 600ms;
+    transition-delay: 0s, 0s, 0s, 0s, 0s;
 }
 
 .nav .logo-link {
@@ -53,19 +146,27 @@
     border-radius: var(--cv-radius-pill);
 }
 
-.nav .logo {
-    display: block;
-    width: 3.35rem;
-    object-fit: contain;
-    filter: drop-shadow(0 0 0.45rem rgb(206 56 36 / 0.55));
-}
-
 .nav .links {
     display: flex;
     align-items: stretch;
     align-self: stretch;
     justify-content: center;
     gap: clamp(1.25rem, 2.1vw, 2.5rem);
+    opacity: 0;
+    transform: translateY(-0.45rem);
+    transition:
+        opacity 100ms ease,
+        transform 140ms ease,
+        visibility 0s linear 140ms;
+    visibility: hidden;
+}
+
+.nav.expanded .links {
+    opacity: 1;
+    transform: translateY(0);
+    transition-duration: 320ms, 450ms, 0s;
+    transition-delay: 370ms, 340ms, 0s;
+    visibility: visible;
 }
 
 .nav-link {
@@ -85,25 +186,26 @@
 .nav-link::before {
     content: "";
     position: absolute;
-    right: 12%;
     bottom: -1px;
-    left: 12%;
-    height: 2px;
+    left: 50%;
+    width: 1.1rem;
+    height: 3px;
     border-radius: var(--cv-radius-pill);
-    background: linear-gradient(90deg, transparent, var(--cv-ember-bright), var(--cv-ember), var(--cv-blush), transparent);
-    box-shadow: 0 0 0.65rem rgb(206 56 36 / 0.55);
-    transform: scaleX(0);
+    background: linear-gradient(90deg, transparent, var(--cv-ember-bright) 35%, white 50%, var(--cv-ember-bright) 65%, transparent);
+    box-shadow: 0 0 0.55rem rgb(255 93 70 / 0.9), 0 0 1rem rgb(206 56 36 / 0.55);
+    opacity: 0;
+    transform: translateX(-50%) scaleX(0);
     transform-origin: center;
-    transition: transform 180ms ease;
+    transition: opacity 220ms ease, transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .nav-link::after {
     content: "";
     position: absolute;
-    inset: 0.45rem -0.4rem;
+    inset: 0.35rem -0.65rem 0;
     z-index: -1;
     border-radius: var(--cv-radius-pill);
-    background: radial-gradient(circle, rgb(206 56 36 / 0.16), transparent 68%);
+    background: radial-gradient(ellipse at 50% 100%, rgb(255 93 70 / 0.24), rgb(206 56 36 / 0.08) 42%, transparent 72%);
     opacity: 0;
     transition: opacity 180ms ease;
 }
@@ -114,6 +216,10 @@
     text-shadow: 0 0 0.7rem rgb(206 56 36 / 0.55);
 }
 
+.nav.bg_black .nav-link.active {
+    transition-delay: 1150ms;
+}
+
 .nav-link:hover::after,
 .nav.bg_black .nav-link.active::after,
 .nav-link.charging::after {
@@ -122,7 +228,13 @@
 
 .nav.bg_black .nav-link.active::before,
 .nav-link.charging::before {
-    transform: scaleX(1);
+    opacity: 1;
+    transform: translateX(-50%) scaleX(1);
+}
+
+.nav.bg_black .nav-link.active::before,
+.nav.bg_black .nav-link.active::after {
+    transition-delay: 1150ms;
 }
 
 .nav .links h4 {
@@ -132,6 +244,7 @@
 }
 
 .nav-link__count {
+    position: relative;
     display: inline-grid;
     place-items: center;
     min-width: 1.25rem;
@@ -144,6 +257,58 @@
     font-size: 0.68rem;
     font-weight: 800;
     line-height: 1;
+    transform-style: preserve-3d;
+}
+
+.nav-link__count::before {
+    content: attr(data-count);
+    position: absolute;
+    inset: -1px;
+    display: grid;
+    border: 1px solid rgb(255 93 70 / 0.58);
+    border-radius: inherit;
+    place-items: center;
+    background: linear-gradient(180deg, rgb(255 93 70 / 0.42), rgb(206 56 36 / 0.24));
+    color: var(--cv-text);
+    backface-visibility: hidden;
+    transform-origin: center top;
+}
+
+.nav.expanded .links .nav-link__count {
+    animation: navCountDrop 520ms cubic-bezier(0.16, 1, 0.3, 1) 610ms both;
+}
+
+.nav.expanded .links .nav-link__count::before {
+    animation: navCountPageTurn 480ms cubic-bezier(0.65, 0, 0.35, 1) 760ms both;
+}
+
+@keyframes navCountDrop {
+    from {
+        opacity: 0;
+        transform: perspective(12rem) translateY(-0.75rem) rotateX(-88deg);
+    }
+
+    68% {
+        opacity: 1;
+        transform: perspective(12rem) translateY(0.08rem) rotateX(8deg);
+    }
+
+    to {
+        opacity: 1;
+        transform: perspective(12rem) translateY(0) rotateX(0);
+    }
+}
+
+@keyframes navCountPageTurn {
+    from {
+        opacity: 1;
+        transform: perspective(10rem) rotateX(0);
+    }
+
+    to {
+        opacity: 0;
+        transform: perspective(10rem) rotateX(105deg);
+    }
 }
 
 .nav-actions,
@@ -155,6 +320,21 @@
 .nav-actions {
     justify-self: end;
     gap: 0.5rem;
+    opacity: 0;
+    transform: translateY(-0.45rem);
+    transition:
+        opacity 100ms ease,
+        transform 140ms ease,
+        visibility 0s linear 140ms;
+    visibility: hidden;
+}
+
+.nav.expanded .nav-actions {
+    opacity: 1;
+    transform: translateY(0);
+    transition-duration: 320ms, 450ms, 0s;
+    transition-delay: 450ms, 420ms, 0s;
+    visibility: visible;
 }
 
 .nav-auth {
@@ -303,25 +483,30 @@
     animation: searchDrawerIn 180ms ease-out both;
 }
 
+.search-drawer.closing {
+    pointer-events: none;
+    animation: searchDrawerOut 220ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
 .search-drawer__inner {
     width: min(calc(100% - 3rem), 72rem);
     max-height: calc(100vh - 72px);
     margin: 0 auto;
-    padding: 1.5rem 0;
+    padding: 1.1rem 0;
     overflow-y: auto;
     text-align: left;
 }
 
 .search-drawer__input-wrap {
     display: grid;
-    gap: 0.55rem;
+    gap: 0.4rem;
 }
 
 .search-drawer__input-wrap span,
 .login-mockup__eyebrow,
 .nav-drawer__account > span {
     color: var(--cv-ember-bright);
-    font-size: 0.7rem;
+    font-size: 0.62rem;
     font-weight: 800;
     letter-spacing: 0.14em;
     text-transform: uppercase;
@@ -329,15 +514,15 @@
 
 .search-drawer__input-wrap input {
     width: 100%;
-    min-height: 3.5rem;
-    padding: 0.85rem 1rem;
+    min-height: 2.85rem;
+    padding: 0.62rem 0.85rem;
     border: 1px solid rgb(255 255 255 / 0.15);
     border-radius: var(--cv-radius-md);
     background: var(--cv-surface);
     color: var(--cv-text);
     caret-color: var(--cv-ember-bright);
     font: inherit;
-    font-size: 1.05rem;
+    font-size: 0.88rem;
 }
 
 .search-drawer__input-wrap input::placeholder {
@@ -443,14 +628,19 @@
 }
 
 .search-result__watchlist {
+    display: grid;
+    width: 44px;
+    height: 44px;
     flex: 0 0 auto;
-    padding: 0.55rem 0.72rem;
+    place-items: center;
+    padding: 0;
+    font-size: 1rem;
 }
 
 .search-result__watchlist.saved {
-    border-color: rgb(207 215 226 / 0.42);
-    background: rgb(207 215 226 / 0.12);
-    color: var(--cv-muted);
+    border-color: var(--cv-ember);
+    background: rgb(206 56 36 / 0.2);
+    color: var(--cv-ember-bright);
 }
 
 .search-view-more {
@@ -580,12 +770,21 @@
     to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes searchDrawerOut {
+    from { opacity: 1; transform: translateY(0); }
+    to { opacity: 0; transform: translateY(-0.6rem); }
+}
+
 @keyframes searchResultIn {
     from { opacity: 0; transform: translateY(-0.25rem); }
     to { opacity: 1; transform: translateY(0); }
 }
 
 @media (max-width: 1280px) and (min-width: 1025px) {
+    .nav.expanded .nav-reveal {
+        left: 2.875rem;
+    }
+
     .nav__inner {
         grid-template-columns: auto 1fr auto;
         gap: 1rem;
@@ -602,6 +801,10 @@
 }
 
 @media (max-width: 1024px) {
+    .nav.expanded .nav-reveal {
+        left: 2.875rem;
+    }
+
     .nav__inner {
         grid-template-columns: 1fr auto;
         width: calc(100% - 2rem);
@@ -674,6 +877,12 @@
         right: 1rem;
         bottom: 0.35rem;
         left: 1rem;
+        width: auto;
+        transform: scaleX(0);
+    }
+
+    .nav-drawer__links .nav-link.charging::before {
+        transform: scaleX(1);
     }
 
     .nav-drawer__links .nav-link.active {
@@ -715,6 +924,20 @@
 @media (max-width: 560px) {
     .nav {
         height: 64px;
+    }
+
+    .nav-reveal {
+        top: 5px;
+        width: 54px;
+        height: 54px;
+    }
+
+    .nav-reveal img {
+        width: 3.1rem;
+    }
+
+    .nav.expanded .nav-reveal {
+        left: 2.5rem;
     }
 
     .nav__inner,
@@ -763,11 +986,18 @@
     .search-drawer,
     .search-result,
     .nav-drawer,
-    .nav-drawer__panel {
+    .nav-drawer__panel,
+    .nav.expanded .links .nav-link__count,
+    .nav.expanded .links .nav-link__count::before {
         animation: none;
     }
 
     .nav,
+    .nav::before,
+    .nav__inner,
+    .nav-reveal,
+    .nav .links,
+    .nav-actions,
     .nav-link,
     .nav-link::before,
     .nav-link::after {

@@ -10,7 +10,7 @@
   width: min(96%, 100rem);
   min-height: 100vh;
   margin: 0 auto;
-  padding: 5.25rem 0 4rem;
+  padding: 0 0 4rem;
   color: var(--ledger-paper);
   font-family: "Poppins", Inter, system-ui, sans-serif;
   text-align: left;
@@ -104,7 +104,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 2rem;
-  padding: 2rem 2.5rem 0;
+  padding: 7.25rem 2.5rem 0;
 }
 
 .watchlist-hero__topline h1 {
@@ -559,10 +559,10 @@
 }
 
 @media (max-width: 768px) {
-  .watchlist-page { width: 100%; padding-top: 4.75rem; }
+  .watchlist-page { width: 100%; }
   .watchlist-hero { min-height: 0; }
   .watchlist-hero.has-artwork::before { background: linear-gradient(0deg, #090a0b 5%, rgba(9, 10, 11, 0.62) 63%, rgba(9, 10, 11, 0.35)), var(--watchlist-backdrop) center top / auto 72% no-repeat; }
-  .watchlist-hero__topline { align-items: flex-start; flex-direction: column; gap: 1rem; padding: 1.4rem 1.2rem 0; }
+  .watchlist-hero__topline { align-items: flex-start; flex-direction: column; gap: 1rem; padding: 6.15rem 1.2rem 0; }
   .watchlist-collection-controls { align-self: flex-end; }
   .watchlist-collection-controls > span { display: none; }
   .watchlist-feature { position: relative; right: auto; bottom: auto; left: auto; display: block; min-height: 25rem; padding: clamp(6rem, 23vw, 10rem) 1.2rem 2rem; }
@@ -603,7 +603,7 @@
   .watchlist-table-footer { padding-right: 0.2rem; padding-left: 0.2rem; }
 
   .watchlist-empty { padding: 2rem 1rem; }
-  .watchlist-teaser { min-height: calc(100vh - 6rem); padding: 3rem 1.3rem; }
+  .watchlist-teaser { min-height: 100vh; padding: 6rem 1.3rem 3rem; }
   .watchlist-teaser__grid { grid-template-columns: 1fr; }
 
   .watchlist-panel-backdrop { align-items: flex-end; }
