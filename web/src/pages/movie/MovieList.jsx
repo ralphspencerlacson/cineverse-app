@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useFetchApi } from "../../hooks/useFetchApi";
 import { getGenres, getMovieList, requests } from "../../service/tmdb/requests";
 import { capitalizeFirstLetter } from "../../utils/StringUtils";
@@ -7,20 +7,19 @@ import GridContainer from "../../components/containers/GridContainer";
 import RowContainer from "../../components/containers/RowContainer";
 import ShowDetails from "../../components/showDetails/ShowDetails";
 import Dropdown from "../../components/dropdown/Dropdown";
+import useListingReveal from "../../hooks/useListingReveal";
 import "./MovieList.css";
+import "../ListingTransitions.css";
 
 const MovieList = () => {
   const [genre, setGenre] = useState("");
   const [page, setPage] = useState(1);
   const [bannerShow, setBannerShow] = useState(null);
   const genrePickerRef = useRef(null);
+  const listingRef = useListingReveal();
   const shouldScrollToGenreRef = useRef(false);
 
-  const { // Banner
-    isLoading,
-    hasError,
-    apiData: trendingData,
-  } = useFetchApi(getMovieList(1, null), "tmdb");
+  const { apiData: trendingData } = useFetchApi(getMovieList(1, null), "tmdb");
 
   const { // Genre options
     apiData: genreList,
@@ -67,6 +66,7 @@ const MovieList = () => {
   return (
     <div className="movie-list">
       <Banner
+        key={bannerShow?.id || "movie-banner"}
         imageUrl={bannerShow?.backdrop_path}
         size="sm"
         showType="movie"
@@ -74,17 +74,15 @@ const MovieList = () => {
         allowLinkTitle={true}
       />
 
-      {bannerShow?.id && (
-        <ShowDetails
-          showType="movie"
-          tmdbID={bannerShow?.id}
-          allowLinkTitle={true}
-          showWatchButton={false}
-          variant="hero"
-        />
-      )}
+      <ShowDetails
+        showType="movie"
+        tmdbID={bannerShow?.id}
+        allowLinkTitle={true}
+        showWatchButton={false}
+        variant="hero"
+      />
 
-      <div className="listing">
+      <div ref={listingRef} className="listing catalog-listing">
         <div ref={genrePickerRef}>
           <Dropdown
             options={genreList?.genres}

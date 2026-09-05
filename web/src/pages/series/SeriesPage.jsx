@@ -5,16 +5,17 @@ import ShowDetails from "../../components/showDetails/ShowDetails";
 import SeasonList from "../../components/series/seasons/SeasonList";
 import Credits from "../../components/credits/Credits";
 import Recommended from "../../components/recommended/Recommended";
-import Comments from "../../components/comments/Comments";
 import { DetailPageSkeleton } from "../../components/loading/PageSkeleton";
 // Hooks
 import { useFetchApi } from "../../hooks/useFetchApi";
+import useDetailReveal from "../../hooks/useDetailReveal";
 // Service
 import { getShowDetails, getExternalIds } from "../../service/tmdb/requests";
 // Utils
 import { splitSlug } from "../../utils/StringUtils";
 // CSS
 import "./SeriesPage.css";
+import "../DetailTransitions.css";
 
 const SeriesPage = () => {
   const { slug } = useParams();
@@ -36,6 +37,7 @@ const SeriesPage = () => {
   );
 
   const [recommended, hasRecommended] = useState(true);
+  const detailRef = useDetailReveal(show?.id);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -48,7 +50,7 @@ const SeriesPage = () => {
       ) : isLoading || !show ? (
         <DetailPageSkeleton />
       ) : (
-        <>
+        <div ref={detailRef} className="detail-page__content">
           <Banner
             imageUrl={show?.backdrop_path}
             size="lg"
@@ -93,7 +95,7 @@ const SeriesPage = () => {
           )}
 
           {/* <Comments tmbdID={id} /> */}
-        </>
+        </div>
       )}
     </div>
   );

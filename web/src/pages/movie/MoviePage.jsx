@@ -7,12 +7,14 @@ import Recommended from "../../components/recommended/Recommended";
 import { DetailPageSkeleton } from "../../components/loading/PageSkeleton";
 // Hooks
 import { useFetchApi } from "../../hooks/useFetchApi";
+import useDetailReveal from "../../hooks/useDetailReveal";
 // Service
 import { getShowDetails } from "../../service/tmdb/requests";
 // Utils
 import { splitSlug } from "../../utils/StringUtils";
 // CSS
 import "./MoviePage.css";
+import "../DetailTransitions.css";
 
 const MoviePage = () => {
   const { slug } = useParams();
@@ -27,6 +29,7 @@ const MoviePage = () => {
   } = useFetchApi(getShowDetails("movie", id), "tmdb");
 
   const [recommended, hasRecommended] = useState(true);
+  const detailRef = useDetailReveal(movie?.id);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -39,7 +42,7 @@ const MoviePage = () => {
       ) : isLoading || !movie ? (
         <DetailPageSkeleton />
       ) : (
-        <>
+        <div ref={detailRef} className="detail-page__content">
           <Banner
             imageUrl={movie?.backdrop_path}
             size="lg"
@@ -67,7 +70,7 @@ const MoviePage = () => {
               hasApiResult={hasRecommended}
             />
           )}
-        </>
+        </div>
       )}
     </div>
   );

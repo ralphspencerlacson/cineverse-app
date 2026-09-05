@@ -28,6 +28,10 @@
     position: relative;
 }
 
+.show-details__detail-kicker {
+    margin-bottom: 0.8rem;
+}
+
 .show-details__poster-wrap {
     display: block;
     margin: 0 auto 1rem;
@@ -341,6 +345,8 @@
 
 .show-details--hero {
     max-width: none;
+    min-height: 22rem;
+    box-sizing: border-box;
     padding-inline: 0;
 }
 
@@ -389,6 +395,10 @@
     -webkit-line-clamp: 2;
 }
 
+.show-details--detail .show-details__title-row {
+    margin-top: 0;
+}
+
 .show-details .genre-pills {
     margin: 1.4rem 0;
     display: flex;
@@ -426,7 +436,7 @@
 
     .movie-page .show-details,
     .series-page .show-details {
-        margin: -24rem auto 1rem;
+        margin: calc(-1 * min(42rem, 72vh)) auto 1rem;
     }
 }
 
@@ -489,6 +499,10 @@
     .show-details--hero h1 {
         white-space: nowrap;
     }
+
+    .show-details--hero {
+        min-height: 19rem;
+    }
 }
 
 @media (min-width: 768px) {
@@ -500,8 +514,8 @@
 
     .show-details__poster-wrap {
         flex: 0 0 14rem;
+        width: 14rem;
         margin: 0;
-        width: auto;
     }
 
     .show-details__body {
@@ -522,11 +536,12 @@
 
     .movie-page .show-details,
     .series-page .show-details {
-        margin: -24rem auto 1rem;
+        margin: calc(-1 * min(42rem, 72vh)) auto 1rem;
     }
 
     .show-details__poster-wrap {
         flex: 0 0 16rem;
+        width: 16rem;
     }
 
     .show-details__poster {

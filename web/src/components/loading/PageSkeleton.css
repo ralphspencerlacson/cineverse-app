@@ -232,6 +232,13 @@
     text-align: left;
 }
 
+@media (min-width: 640px) {
+    .movie-page .page-skeleton__details,
+    .series-page .page-skeleton__details {
+        margin-top: calc(-1 * min(42rem, 72vh));
+    }
+}
+
 .page-skeleton__details.compact {
     margin: 0;
     width: 100%;
@@ -249,6 +256,16 @@
     align-content: start;
     gap: 1rem;
     padding-top: 0.4rem;
+}
+
+.page-skeleton__hero-body {
+    width: min(calc(100vw - 2rem), 68rem);
+}
+
+.page-skeleton__hero-eyebrow {
+    width: 9rem;
+    height: 0.75rem;
+    border-radius: 999px;
 }
 
 .page-skeleton__pill,

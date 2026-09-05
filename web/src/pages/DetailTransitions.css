@@ -1,0 +1,113 @@
+.detail-page__content > .detail-reveal {
+    opacity: 0;
+    transition: opacity 700ms ease, transform 900ms cubic-bezier(0.16, 1, 0.3, 1), filter 800ms ease;
+}
+
+.detail-page__content > .detail-reveal.is-revealed {
+    opacity: 1;
+    transform: none;
+    filter: none;
+}
+
+.detail-page__content > .banner.detail-reveal {
+    transform: scale(1.045);
+    filter: brightness(0.48) blur(6px);
+    transition-duration: 1100ms;
+}
+
+.detail-page__content > .show-details.detail-reveal {
+    transform: translateY(2.5rem);
+    filter: blur(4px);
+    transition-delay: 180ms;
+}
+
+.detail-page__content > .series-page__episodes-heading.detail-reveal,
+.detail-page__content > .season-list.detail-reveal,
+.detail-page__content > div.detail-reveal,
+.detail-page__content > .recommended.detail-reveal {
+    transform: translateY(2.75rem);
+    filter: blur(3px);
+}
+
+.detail-page__content > .series-page__episodes-heading.detail-reveal {
+    transform: translateX(-2rem);
+}
+
+.detail-page__content > .banner.detail-reveal.is-revealed,
+.detail-page__content > .show-details.detail-reveal.is-revealed,
+.detail-page__content > .series-page__episodes-heading.detail-reveal.is-revealed,
+.detail-page__content > .season-list.detail-reveal.is-revealed,
+.detail-page__content > div.detail-reveal.is-revealed,
+.detail-page__content > .recommended.detail-reveal.is-revealed {
+    transform: none;
+    filter: none;
+}
+
+.detail-page__content > .show-details.is-revealed .show-details__detail-kicker,
+.detail-page__content > .show-details.is-revealed .show-details__poster-wrap {
+    animation: detail-poster-develop 900ms cubic-bezier(0.16, 1, 0.3, 1) 260ms both;
+}
+
+.detail-page__content > .show-details.is-revealed .show-details__body > * {
+    animation: detail-copy-rise 680ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.detail-page__content > .show-details.is-revealed .show-details__body > :nth-child(1) { animation-delay: 260ms; }
+.detail-page__content > .show-details.is-revealed .show-details__body > :nth-child(2) { animation-delay: 330ms; }
+.detail-page__content > .show-details.is-revealed .show-details__body > :nth-child(3) { animation-delay: 400ms; }
+.detail-page__content > .show-details.is-revealed .show-details__body > :nth-child(4) { animation-delay: 470ms; }
+.detail-page__content > .show-details.is-revealed .show-details__body > :nth-child(5) { animation-delay: 540ms; }
+.detail-page__content > .show-details.is-revealed .show-details__body > :nth-child(n + 6) { animation-delay: 610ms; }
+
+.detail-page__content > .season-list.is-revealed .episode-list__item,
+.detail-page__content > div.is-revealed .cast-card,
+.detail-page__content > .recommended.is-revealed .show-card {
+    animation: detail-card-develop 650ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+.detail-page__content .episode-list__item:nth-child(2),
+.detail-page__content .cast-card:nth-child(2),
+.detail-page__content .recommended .show-card:nth-child(2) { animation-delay: 80ms; }
+.detail-page__content .episode-list__item:nth-child(3),
+.detail-page__content .cast-card:nth-child(3),
+.detail-page__content .recommended .show-card:nth-child(3) { animation-delay: 160ms; }
+.detail-page__content .episode-list__item:nth-child(4),
+.detail-page__content .cast-card:nth-child(4),
+.detail-page__content .recommended .show-card:nth-child(4) { animation-delay: 240ms; }
+.detail-page__content .episode-list__item:nth-child(5),
+.detail-page__content .cast-card:nth-child(5),
+.detail-page__content .recommended .show-card:nth-child(5) { animation-delay: 320ms; }
+.detail-page__content .episode-list__item:nth-child(n + 6),
+.detail-page__content .cast-card:nth-child(n + 6),
+.detail-page__content .recommended .show-card:nth-child(n + 6) { animation-delay: 400ms; }
+
+@keyframes detail-poster-develop {
+    from { opacity: 0; transform: translateX(-2rem) rotateY(8deg) scale(0.94); filter: brightness(0.55) blur(5px); }
+    to { opacity: 1; transform: none; filter: none; }
+}
+
+@keyframes detail-copy-rise {
+    from { opacity: 0; transform: translateY(1.25rem); filter: blur(3px); }
+    to { opacity: 1; transform: none; filter: none; }
+}
+
+@keyframes detail-card-develop {
+    from { opacity: 0; transform: translateY(1.5rem) scale(0.95); filter: brightness(0.55) blur(4px); }
+    to { opacity: 1; transform: none; filter: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .detail-page__content > .detail-reveal,
+    .detail-page__content > .show-details.is-revealed .show-details__detail-kicker,
+    .detail-page__content > .show-details.is-revealed .show-details__poster-wrap,
+    .detail-page__content > .show-details.is-revealed .show-details__body > *,
+    .detail-page__content > .season-list.is-revealed .episode-list__item,
+    .detail-page__content > div.is-revealed .cast-card,
+    .detail-page__content > .recommended.is-revealed .show-card {
+        opacity: 1;
+        animation: none;
+        filter: none;
+        transform: none;
+        transition: none;
+    }
+}

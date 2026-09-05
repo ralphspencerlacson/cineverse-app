@@ -55,7 +55,26 @@ export const DetailPageSkeleton = () => {
   );
 };
 
-export const ShowDetailsSkeleton = () => {
+export const ShowDetailsSkeleton = ({ variant = "detail" }) => {
+  if (variant === "hero") {
+    return (
+      <section className="show-details show-details--hero show-details--loading" aria-label="Loading featured title">
+        <div className="show-details__layout">
+          <div className="show-details__body page-skeleton__hero-body">
+            <div className="page-skeleton__hero-eyebrow shimmer" />
+            <div className="page-skeleton__title shimmer" />
+            <div className="page-skeleton__actions">
+              <div className="page-skeleton__button shimmer" />
+              <div className="page-skeleton__button shimmer" />
+            </div>
+            <div className="page-skeleton__meta shimmer" />
+            <div className="page-skeleton__line short shimmer" />
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="show-details show-details--loading" aria-label="Loading show details">
       <div className="page-skeleton__details compact">

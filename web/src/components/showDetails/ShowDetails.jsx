@@ -249,11 +249,28 @@ const ShowDetails = ({
   }, [show, networkLength]);
 
   if (isShowLoading || !show) {
-    return <ShowDetailsSkeleton />;
+    return <ShowDetailsSkeleton variant={variant} />;
   }
 
   return (
     <section className={`show-details show-details--${variant}`}>
+      {!isHeroVariant && (
+        <div className="show-details__detail-kicker">
+          <p className="show-details__eyebrow">{pageTypeLabel}</p>
+
+          {networkLogoUrl && (
+            <div className="show-details__network-badge" aria-label={`Available on ${network?.name}`}>
+              <span>Available on</span>
+              <img
+                src={networkLogoUrl}
+                alt={network?.name}
+                className="show-details__network-logo"
+              />
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="show-details__layout">
         {!isHeroVariant && posterUrl && (
           <div className="show-details__poster-wrap">
@@ -269,19 +286,8 @@ const ShowDetails = ({
         )}
 
         <div className="show-details__body">
-          <p className="show-details__eyebrow">
-            {isHeroVariant ? `Featured ${pageTypeLabel}` : pageTypeLabel}
-          </p>
-
-          {!isHeroVariant && networkLogoUrl && (
-            <div className="show-details__network-badge" aria-label={`Available on ${network?.name}`}>
-              <span>Available on</span>
-              <img
-                src={networkLogoUrl}
-                alt={network?.name}
-                className="show-details__network-logo"
-              />
-            </div>
+          {isHeroVariant && (
+            <p className="show-details__eyebrow">Featured {pageTypeLabel}</p>
           )}
 
           <div className="show-details__title-row">

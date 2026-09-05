@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 // Hooks
 import { useFetchApi } from "../../hooks/useFetchApi";
 // Service
@@ -8,14 +9,15 @@ import "./YoutubeTrailer.css";
 
 const YoutubeTrailer = ({ showType, tmdbID, title, label = "Trailer" }) => {
   const [showTrailer, setShowTrailer] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
   const iframeRef = useRef(null);
   const isPausedRef = useRef(false);
+  const closeTimeoutRef = useRef(null);
 
-  const {
-    isLoading,
-    hasError,
-    apiData: trailer,
-  } = useFetchApi(getSeriesTrailers(showType, tmdbID), "tmdb");
+  const { apiData: trailer } = useFetchApi(
+    getSeriesTrailers(showType, tmdbID),
+    "tmdb"
+  );
 
   const getTrailer = () => {
     const trailerVideo = trailer?.results.find(
@@ -26,6 +28,24 @@ const YoutubeTrailer = ({ showType, tmdbID, title, label = "Trailer" }) => {
 
   const trailerKey = getTrailer()?.key;
 
+  const openTrailer = () => {
+    window.clearTimeout(closeTimeoutRef.current);
+    setIsClosing(false);
+    setShowTrailer(true);
+  };
+
+  const closeTrailer = useCallback(() => {
+    if (!showTrailer || isClosing) {
+      return;
+    }
+
+    setIsClosing(true);
+    closeTimeoutRef.current = window.setTimeout(() => {
+      setShowTrailer(false);
+      setIsClosing(false);
+    }, 820);
+  }, [isClosing, showTrailer]);
+
   useEffect(() => {
     if (!showTrailer) {
       return undefined;
@@ -34,6 +54,11 @@ const YoutubeTrailer = ({ showType, tmdbID, title, label = "Trailer" }) => {
     isPausedRef.current = false;
 
     const handleKeyDown = (event) => {
+      if (event.code === "Escape") {
+        closeTrailer();
+        return;
+      }
+
       if (event.code !== "Space" || event.repeat) {
         return;
       }
@@ -55,20 +80,62 @@ const YoutubeTrailer = ({ showType, tmdbID, title, label = "Trailer" }) => {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
+  }, [closeTrailer, showTrailer]);
+
+  useEffect(() => {
+    if (!showTrailer) {
+      return undefined;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.dispatchEvent(
+      new CustomEvent("cineverse-trailer-state", { detail: { isOpen: true } })
+    );
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.dispatchEvent(
+        new CustomEvent("cineverse-trailer-state", { detail: { isOpen: false } })
+      );
+    };
   }, [showTrailer]);
+
+  useEffect(() => {
+    return () => window.clearTimeout(closeTimeoutRef.current);
+  }, []);
 
   return (
     <>
-      <a
+      <button
+        type="button"
         className="btn btn-trailer"
-        onClick={() => setShowTrailer(!showTrailer)}
+        onClick={openTrailer}
+        aria-haspopup="dialog"
+        aria-expanded={showTrailer}
       >
         {label}
-      </a>
+      </button>
 
-      {showTrailer && (
-        <div className="trailer" onClick={() => setShowTrailer(false)}>
-          <div className="container">
+      {showTrailer && createPortal(
+        <div
+          className={`trailer ${isClosing ? "is-closing" : "is-opening"}`}
+          onClick={closeTrailer}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${title} trailer`}
+        >
+          <div className="trailer__spotlight" aria-hidden="true"><i /></div>
+          <div className="trailer__container" onClick={(event) => event.stopPropagation()}>
+            <button
+              type="button"
+              className="trailer__close"
+              onClick={closeTrailer}
+              aria-label="Close trailer"
+            >
+              <span />
+              <span />
+            </button>
             {trailerKey && (
               <iframe
                 ref={iframeRef}
@@ -76,10 +143,11 @@ const YoutubeTrailer = ({ showType, tmdbID, title, label = "Trailer" }) => {
                 title={title}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share autoplay"
                 allowFullScreen
-              ></iframe>
+              />
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

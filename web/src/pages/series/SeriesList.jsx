@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 // Utils
 import { capitalizeFirstLetter } from "../../utils/StringUtils";
 // Service
@@ -12,6 +12,8 @@ import RowContainer from "../../components/containers/RowContainer";
 // CSS
 import "./SeriesList.css";
 import Dropdown from "../../components/dropdown/Dropdown";
+import useListingReveal from "../../hooks/useListingReveal";
+import "../ListingTransitions.css";
 
 const SeriesList = () => {
   const [bannerShow, setBannerShow] = useState(null);
@@ -19,12 +21,9 @@ const SeriesList = () => {
   const [genre, setGenre] = useState({ id: 80, name: "Crime" });
   const [networkPage, setNetworkPage] = useState(1);
   const [genrePage, setGenrePage] = useState(1);
+  const listingRef = useListingReveal();
 
-  const { // Banner
-    isLoading,
-    hasError,
-    apiData: trendingData,
-  } = useFetchApi(getSeriesList(1, network, "popularity", "desc"), "tmdb");
+  const { apiData: trendingData } = useFetchApi(getSeriesList(1, network, "popularity", "desc"), "tmdb");
 
   const { // Genre options
     apiData: genreList,
@@ -52,6 +51,7 @@ const SeriesList = () => {
   return (
     <div className="series-list">
       <Banner
+        key={bannerShow?.id || "series-banner"}
         imageUrl={bannerShow?.backdrop_path}
         size="sm"
         showType="tv"
@@ -59,17 +59,15 @@ const SeriesList = () => {
         allowLinkTitle={true}
       />
 
-      {bannerShow?.id && (
-        <ShowDetails
-          showType="tv"
-          tmdbID={bannerShow?.id}
-          allowLinkTitle={true}
-          showWatchButton={false}
-          variant="hero"
-        />
-      )}
+      <ShowDetails
+        showType="tv"
+        tmdbID={bannerShow?.id}
+        allowLinkTitle={true}
+        showWatchButton={false}
+        variant="hero"
+      />
 
-      <div className="listing">
+      <div ref={listingRef} className="listing catalog-listing">
         <Networks currentNetwork={network} setNetwork={handleNetworkChange} />
         <RowContainer
           title={`${network} Shows`}

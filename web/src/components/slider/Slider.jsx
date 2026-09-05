@@ -11,12 +11,23 @@ const Slider = ({ slideData, delay = 5000, isMobile = false }) => {
   const [slideIndex, setSlideIndex] = useState(0);
   const [isDrag, setIsDrag] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [isTrailerOpen, setIsTrailerOpen] = useState(false);
   const [progressElapsed, setProgressElapsed] = useState(0);
   const slideDataLength = (slideData?.length || 0) - 1;
   const dragX = useMotionValue(0);
+  const isPlaybackPaused = isPaused || isTrailerOpen;
 
   useEffect(() => {
-    if (slideDataLength < 1 || isPaused) {
+    const handleTrailerState = (event) => {
+      setIsTrailerOpen(Boolean(event.detail?.isOpen));
+    };
+
+    window.addEventListener("cineverse-trailer-state", handleTrailerState);
+    return () => window.removeEventListener("cineverse-trailer-state", handleTrailerState);
+  }, []);
+
+  useEffect(() => {
+    if (slideDataLength < 1 || isPlaybackPaused) {
       return;
     }
 
@@ -34,7 +45,7 @@ const Slider = ({ slideData, delay = 5000, isMobile = false }) => {
     }, 250);
 
     return () => window.clearInterval(interval);
-  }, [delay, isPaused, slideDataLength]);
+  }, [delay, isPlaybackPaused, slideDataLength]);
 
   const remainingSeconds = Math.ceil(Math.max(0, delay - progressElapsed) / 1000);
   const progressScale = Math.max(0, (delay - progressElapsed) / delay);
@@ -71,7 +82,7 @@ const Slider = ({ slideData, delay = 5000, isMobile = false }) => {
 
   return (
     <div
-      className={`slider-frame ${isPaused ? "paused" : ""}`}
+      className={`slider-frame ${isPlaybackPaused ? "paused" : ""}`}
       onPointerDown={() => setIsPaused(true)}
       onPointerUp={() => setIsPaused(false)}
       onPointerCancel={() => setIsPaused(false)}
@@ -98,7 +109,7 @@ const Slider = ({ slideData, delay = 5000, isMobile = false }) => {
             key={`${data?.mediaType || "tv"}-${data?.id}`}
             data={data}
             isActive={index === slideIndex}
-            shouldLoadVideo={!isMobile && index === slideIndex}
+            shouldLoadVideo={!isMobile && index === slideIndex && !isTrailerOpen}
             useFixedBackground={!isMobile}
           />
         ))}
@@ -122,7 +133,7 @@ const Slider = ({ slideData, delay = 5000, isMobile = false }) => {
       {slideDataLength > 0 && (
         <div className="slider-timer" aria-live="polite">
           <span className="sr-only">
-            {isPaused ? "Slider paused" : `Next in ${remainingSeconds}s`}
+            {isPlaybackPaused ? "Slider paused" : `Next in ${remainingSeconds}s`}
           </span>
           <div className="slider-timer__track" aria-hidden="true">
             <span

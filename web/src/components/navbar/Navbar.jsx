@@ -6,6 +6,7 @@ import NoImagePlaceholder from "../../assets/png/no_image_placeholder.png";
 import tmdbInstance from "../../service/tmdb/tmdb";
 import { convertToSlug } from "../../utils/StringUtils";
 import { useAuth } from "../../context/AuthContext";
+import { CineverseLoader } from "../loading/PageSkeleton";
 import {
   addToWatchlist,
   getWatchlist,
@@ -32,6 +33,8 @@ const Navbar = () => {
   const [isSearchRendered, setIsSearchRendered] = useState(false);
   const [isSearchClosing, setIsSearchClosing] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isLoginClosing, setIsLoginClosing] = useState(false);
+  const [isLoginSuccess, setIsLoginSuccess] = useState(false);
   const [loginForm, setLoginForm] = useState({ username: "", password: "" });
   const [loginError, setLoginError] = useState("");
   const [isLoggingIn, setIsLoggingIn] = useState(false);
@@ -46,6 +49,7 @@ const Navbar = () => {
   const [isNavHovered, setIsNavHovered] = useState(false);
   const [isNavPinned, setIsNavPinned] = useState(false);
   const [isPlayerOpen, setIsPlayerOpen] = useState(false);
+  const [isTrailerProjectionOpen, setIsTrailerProjectionOpen] = useState(false);
   const [chargedNav, setChargedNav] = useState("");
   const [watchlistIDs, setWatchlistIDs] = useState(() => new Set());
   const searchInputRef = useRef(null);
@@ -59,6 +63,11 @@ const Navbar = () => {
   const searchExitTimeoutRef = useRef(null);
   const searchPointerTargetsRef = useRef(new Set());
   const chargeTimeoutRef = useRef(null);
+  const loginExitTimeoutRef = useRef(null);
+  const loginSuccessTimeoutRef = useRef(null);
+  const loginStateRef = useRef({ isOpen: false, isClosing: false });
+  const navCollapseTimeoutRef = useRef(null);
+  loginStateRef.current = { isOpen: isLoginOpen, isClosing: isLoginClosing };
 
   const closeSearch = useCallback(() => {
     if (searchCloseTimeoutRef.current) {
@@ -118,6 +127,21 @@ const Navbar = () => {
         closeSearch();
       }
     }, 180);
+  };
+
+  const cancelNavCollapse = () => {
+    if (navCollapseTimeoutRef.current) {
+      window.clearTimeout(navCollapseTimeoutRef.current);
+      navCollapseTimeoutRef.current = null;
+    }
+  };
+
+  const scheduleNavCollapse = () => {
+    cancelNavCollapse();
+    navCollapseTimeoutRef.current = window.setTimeout(() => {
+      setIsNavHovered(false);
+      navCollapseTimeoutRef.current = null;
+    }, 3000);
   };
 
   const handleSearchPointerEnter = (event) => {
@@ -327,7 +351,12 @@ const Navbar = () => {
   useEffect(() => {
     const handleLoginRequest = (event) => {
       closeSearch();
+      window.clearTimeout(loginExitTimeoutRef.current);
+      window.clearTimeout(loginSuccessTimeoutRef.current);
+      window.clearTimeout(navCollapseTimeoutRef.current);
       setLoginPrompt(event.detail || null);
+      setIsLoginClosing(false);
+      setIsLoginSuccess(false);
       setIsLoginOpen(true);
     };
 
@@ -356,6 +385,15 @@ const Navbar = () => {
       window.removeEventListener("cineverse-player-state", handlePlayerState);
     };
   }, [closeSearch]);
+
+  useEffect(() => {
+    const handleTrailerState = (event) => {
+      setIsTrailerProjectionOpen(Boolean(event.detail?.isOpen));
+    };
+
+    window.addEventListener("cineverse-trailer-state", handleTrailerState);
+    return () => window.removeEventListener("cineverse-trailer-state", handleTrailerState);
+  }, []);
 
   useEffect(() => {
     const query = searchQuery.trim();
@@ -409,15 +447,35 @@ const Navbar = () => {
   const openLogin = () => {
     closeSearch();
     setIsMobileMenuOpen(false);
+    if (isLoginOpen) {
+      closeLogin();
+      return;
+    }
+
+    window.clearTimeout(loginExitTimeoutRef.current);
+    window.clearTimeout(loginSuccessTimeoutRef.current);
     setLoginPrompt(null);
-    setIsLoginOpen((currentValue) => !currentValue);
+    setIsLoginClosing(false);
+    setIsLoginSuccess(false);
+    setIsLoginOpen(true);
   };
 
   const closeLogin = () => {
-    setIsLoginOpen(false);
-    setLoginForm({ username: "", password: "" });
-    setLoginError("");
-    setLoginPrompt(null);
+    if (!loginStateRef.current.isOpen || loginStateRef.current.isClosing) {
+      return;
+    }
+
+    window.clearTimeout(loginSuccessTimeoutRef.current);
+    setIsLoginClosing(true);
+    loginExitTimeoutRef.current = window.setTimeout(() => {
+      setIsLoginOpen(false);
+      setIsLoginClosing(false);
+      setIsLoginSuccess(false);
+      setLoginForm({ username: "", password: "" });
+      setLoginError("");
+      setLoginPrompt(null);
+      loginExitTimeoutRef.current = null;
+    }, 820);
   };
 
   const handleLoginSubmit = async (event) => {
@@ -433,8 +491,37 @@ const Navbar = () => {
       return;
     }
 
-    closeLogin();
+    setIsLoginSuccess(true);
+    loginSuccessTimeoutRef.current = window.setTimeout(closeLogin, 1800);
   };
+
+  useEffect(() => {
+    if (!isLoginOpen) {
+      return undefined;
+    }
+
+    const handleLoginKeyDown = (event) => {
+      if (event.key === "Escape") {
+        closeLogin();
+      }
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleLoginKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleLoginKeyDown);
+    };
+  }, [isLoginClosing, isLoginOpen]);
+
+  useEffect(() => {
+    return () => {
+      window.clearTimeout(loginExitTimeoutRef.current);
+      window.clearTimeout(loginSuccessTimeoutRef.current);
+      window.clearTimeout(navCollapseTimeoutRef.current);
+    };
+  }, []);
 
   const getResultTitle = (result) => {
     return result.title || result.name || result.original_title || result.original_name;
@@ -538,7 +625,8 @@ const Navbar = () => {
     return null;
   }
 
-  const isNavExpanded = Boolean(
+  const isProjectionActive = isLoginOpen || isTrailerProjectionOpen;
+  const isNavExpanded = !isProjectionActive && Boolean(
     navbarClass ||
     isNavHovered ||
     isNavPinned ||
@@ -552,13 +640,17 @@ const Navbar = () => {
     <>
       <nav
         ref={navRef}
-        className={`nav ${isNavExpanded ? "expanded bg_black" : "collapsed"}`}
+        className={`nav ${isNavExpanded ? "expanded bg_black" : "collapsed"} ${isProjectionActive ? "projection-active" : ""}`}
+        onPointerEnter={cancelNavCollapse}
         onPointerLeave={() => {
           if (!isNavPinned && !isSearchRendered && !isAccountOpen && !isMobileMenuOpen) {
-            setIsNavHovered(false);
+            scheduleNavCollapse();
           }
         }}
-        onFocus={() => setIsNavHovered(true)}
+        onFocus={() => {
+          cancelNavCollapse();
+          setIsNavHovered(true);
+        }}
         onBlur={(event) => {
           if (
             !event.currentTarget.contains(event.relatedTarget) &&
@@ -762,15 +854,23 @@ const Navbar = () => {
         </div>
       )}
 
-      {isLoginOpen && !isLoggedIn && (
+      {isLoginOpen && (
         <div
-          className="login-mockup"
+          className={`login-mockup ${isLoginClosing ? "is-closing" : isLoginSuccess ? "is-success" : "is-opening"}`}
           role="dialog"
           aria-modal="true"
           aria-labelledby="login-title"
           onMouseMove={handleLoginMouseMove}
+          onClick={closeLogin}
         >
-          <form className="login-mockup__panel" onSubmit={handleLoginSubmit}>
+          <div className="login-mockup__spotlight" aria-hidden="true">
+            <i />
+          </div>
+          <form
+            className="login-mockup__panel"
+            onSubmit={handleLoginSubmit}
+            onClick={(event) => event.stopPropagation()}
+          >
             <button
               type="button"
               className="login-mockup__close"
@@ -779,50 +879,73 @@ const Navbar = () => {
             >
               <FaXmark aria-hidden="true" />
             </button>
-            <p className="login-mockup__eyebrow">Members only</p>
-            <h2 id="login-title">Login to watch</h2>
-            <p>
-              {loginPrompt?.message || "Sign in with your Cineverse account to unlock video playback and your full watchlist dashboard."}
-            </p>
-            <div className="login-mockup__features">
-              <strong>When logged in, you can:</strong>
-              <span>Watch movies and series episodes.</span>
-              <span>Add titles to your watchlist.</span>
-              <span>Track progress and continue watching later.</span>
-              {loginPrompt?.feature && <span>{loginPrompt.feature}</span>}
-            </div>
-            <label>
-              Email
-              <input
-                type="email"
-                value={loginForm.username}
-                onChange={(event) =>
-                  setLoginForm((currentValue) => ({
-                    ...currentValue,
-                    username: event.target.value,
-                  }))
-                }
-                autoComplete="email"
-              />
-            </label>
-            <label>
-              Password
-              <input
-                type="password"
-                value={loginForm.password}
-                onChange={(event) =>
-                  setLoginForm((currentValue) => ({
-                    ...currentValue,
-                    password: event.target.value,
-                  }))
-                }
-                autoComplete="current-password"
-              />
-            </label>
-            {loginError && <p className="login-mockup__error">{loginError}</p>}
-            <button type="submit" disabled={isLoggingIn}>
-              {isLoggingIn ? "Signing in..." : "Enter Cineverse"}
-            </button>
+            {isLoginSuccess ? (
+              <div className="login-mockup__success" role="status" aria-live="polite">
+                <span className="login-mockup__success-mark" aria-hidden="true"><i /></span>
+                <p className="login-mockup__eyebrow">Access granted</p>
+                <h2 id="login-title">Welcome to Cineverse</h2>
+                <p>Login successful. Your watchlist and viewing progress are ready.</p>
+              </div>
+            ) : (
+              <>
+                <div className="login-mockup__briefing">
+                  <p className="login-mockup__eyebrow">Members screening room</p>
+                  <h2 id="login-title">Your next scene is waiting.</h2>
+                  <p className="login-mockup__deck">One account keeps every story, save, and unfinished episode in frame.</p>
+
+                  <CineverseLoader className="login-mockup__signal" label="Signal ready" />
+
+                  <div className="login-mockup__features">
+                    <span><i>01</i> Watch without interruption</span>
+                    <span><i>02</i> Build your private watchlist</span>
+                    <span><i>03</i> Continue from the last frame</span>
+                    {loginPrompt?.feature && <span><i>04</i> {loginPrompt.feature}</span>}
+                  </div>
+                </div>
+
+                <div className="login-mockup__credentials">
+                  <p className="login-mockup__eyebrow">Secure entry / 01</p>
+                  <h3>Member access</h3>
+                  <p>{loginPrompt?.message || "Sign in to unlock playback and your personal Cineverse dashboard."}</p>
+                  <label>
+                    <span>Email address</span>
+                    <input
+                      type="email"
+                      value={loginForm.username}
+                      onChange={(event) =>
+                        setLoginForm((currentValue) => ({
+                          ...currentValue,
+                          username: event.target.value,
+                        }))
+                      }
+                      placeholder="you@example.com"
+                      autoComplete="email"
+                    />
+                  </label>
+                  <label>
+                    <span>Password</span>
+                    <input
+                      type="password"
+                      value={loginForm.password}
+                      onChange={(event) =>
+                        setLoginForm((currentValue) => ({
+                          ...currentValue,
+                          password: event.target.value,
+                        }))
+                      }
+                      placeholder="Enter your password"
+                      autoComplete="current-password"
+                    />
+                  </label>
+                  {loginError && <p className="login-mockup__error">{loginError}</p>}
+                  <button type="submit" disabled={isLoggingIn}>
+                    <span>{isLoggingIn ? "Opening the room..." : "Enter Cineverse"}</span>
+                    <i aria-hidden="true">&#8594;</i>
+                  </button>
+                  <small className="login-mockup__privacy">Encrypted access / Your viewing data stays private</small>
+                </div>
+              </>
+            )}
           </form>
         </div>
       )}

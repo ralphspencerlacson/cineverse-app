@@ -1,0 +1,51 @@
+.route-stage {
+    position: relative;
+    isolation: isolate;
+    min-height: 100vh;
+}
+
+.route-stage::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: -32vw;
+    z-index: 90;
+    width: 28vw;
+    min-width: 16rem;
+    background: linear-gradient(90deg, transparent, rgb(206 56 36 / 0.08) 38%, rgb(255 93 70 / 0.2) 72%, rgb(255 179 168 / 0.42) 96%, transparent);
+    filter: blur(8px);
+    mix-blend-mode: screen;
+    pointer-events: none;
+    transform: skewX(-8deg);
+    animation: route-projector-sweep 780ms cubic-bezier(0.65, 0, 0.35, 1) both;
+}
+
+@keyframes route-projector-sweep {
+    0% {
+        opacity: 0;
+        transform: translateX(0) skewX(-8deg);
+    }
+
+    18% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+        transform: translateX(140vw) skewX(-8deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .route-stage {
+        opacity: 1 !important;
+        filter: none !important;
+        transform: none !important;
+    }
+
+    .route-stage::before {
+        display: none;
+        animation: none;
+    }
+}

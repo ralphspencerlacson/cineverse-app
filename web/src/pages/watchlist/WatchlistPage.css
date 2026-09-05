@@ -310,7 +310,18 @@
 }
 
 /* Search, filter, and arrangement controls */
-.watchlist-command { border-bottom: 1px solid var(--ledger-line); padding: 1.35rem 0 1rem; }
+.watchlist-command {
+  position: sticky;
+  z-index: 40;
+  top: 72px;
+  border-bottom: 1px solid var(--ledger-line);
+  background:
+    radial-gradient(circle at 72% 0, rgba(206, 56, 36, 0.11), transparent 24rem),
+    rgba(9, 10, 11, 0.96);
+  box-shadow: 0 1rem 2.2rem rgba(0, 0, 0, 0.32);
+  padding: 1.35rem 0 1rem;
+  backdrop-filter: blur(16px);
+}
 .watchlist-command__primary,
 .watchlist-command__secondary,
 .watchlist-command__summary,
@@ -333,7 +344,8 @@
 }
 
 .watchlist-search-field > svg { flex: 0 0 auto; color: var(--ledger-ember-bright); font-size: 1.3rem; }
-.watchlist-search-field input { width: 100%; border: 0; outline: 0; background: transparent; color: var(--ledger-paper); font-size: clamp(1rem, 2vw, 1.25rem); }
+.watchlist-search-field input { width: 100%; border: 0; outline: 0; background: transparent; color: var(--ledger-paper); font-size: clamp(0.82rem, 1.25vw, 0.95rem); }
+.watchlist-search-field input::-webkit-search-cancel-button { display: none; appearance: none; }
 .watchlist-search-field input::placeholder { color: rgba(207, 215, 226, 0.5); }
 .watchlist-search-field button { border: 0; background: transparent; cursor: pointer; color: var(--ledger-muted); padding: 0.4rem; }
 
@@ -522,9 +534,9 @@
 .watchlist-panel-actions .primary { border-color: #ce3824; background: linear-gradient(135deg, #ff5d46, #ce3824); color: #fff; }
 
 /* Signed-out watchlist */
-.watchlist-page--guest { min-height: 0; padding-bottom: 0; }
-.watchlist-teaser { position: relative; min-height: 0; overflow: hidden; border-radius: 0.9rem; background: radial-gradient(ellipse at 72% 42%, rgba(206, 56, 36, 0.22), transparent 16rem), linear-gradient(120deg, #090a0b 30%, #171717); padding: clamp(2rem, 7vw, 7rem); }
-.watchlist-teaser__beam { position: absolute; top: -20%; right: 8%; width: 25rem; height: 120%; background: linear-gradient(100deg, transparent, rgba(255, 179, 168, 0.08), transparent); filter: blur(10px); transform: rotate(12deg); }
+.watchlist-page--guest { width: 100%; min-height: 100vh; padding-bottom: 0; }
+.watchlist-teaser { position: relative; display: grid; min-height: 100vh; align-content: center; overflow: hidden; border-radius: 0; box-sizing: border-box; background: radial-gradient(ellipse at 72% 42%, rgba(206, 56, 36, 0.22), transparent 16rem), linear-gradient(120deg, #090a0b 30%, #171717); padding: clamp(6rem, 9vh, 8rem) clamp(2rem, 7vw, 7rem); animation: watchlist-guest-scene-in 700ms ease-out both; }
+.watchlist-teaser__beam { position: absolute; top: -20%; right: 8%; width: 25rem; height: 120%; background: linear-gradient(100deg, transparent, rgba(255, 179, 168, 0.08), transparent); filter: blur(10px); transform: rotate(12deg); animation: watchlist-guest-beam-in 1400ms cubic-bezier(0.16, 1, 0.3, 1) 180ms both, watchlist-guest-beam-breathe 5s ease-in-out 1600ms infinite alternate; }
 .watchlist-teaser h1 { max-width: 13ch; margin: 1.5rem 0; font-size: clamp(3rem, 8vw, 7rem); font-weight: 800; letter-spacing: -0.06em; line-height: 0.9; }
 .watchlist-teaser > p:not(.watchlist-page__eyebrow) { max-width: 40rem; color: #cfd7e2; line-height: 1.7; }
 .watchlist-teaser__grid { display: grid; max-width: 64rem; grid-template-columns: repeat(3, 1fr); gap: 1px; margin-top: 3rem; background: var(--ledger-line); }
@@ -532,6 +544,47 @@
 .watchlist-teaser__grid strong { color: #ff5d46; font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; }
 .watchlist-teaser__grid span { color: #cfd7e2; font-size: 0.8rem; line-height: 1.5; }
 .watchlist-teaser__hint { font-size: 0.75rem; font-weight: 800; }
+
+.watchlist-teaser > .watchlist-page__eyebrow { animation: watchlist-guest-copy-in 520ms ease-out 180ms both; }
+.watchlist-teaser > h1 { animation: watchlist-guest-copy-in 720ms cubic-bezier(0.16, 1, 0.3, 1) 280ms both; }
+.watchlist-teaser > p:not(.watchlist-page__eyebrow):not(.watchlist-teaser__hint) { animation: watchlist-guest-copy-in 620ms ease-out 460ms both; }
+.watchlist-teaser__grid { animation: watchlist-guest-rail-in 720ms cubic-bezier(0.16, 1, 0.3, 1) 620ms both; }
+.watchlist-teaser__grid article { animation: watchlist-guest-cell-in 520ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+.watchlist-teaser__grid article:nth-child(1) { animation-delay: 760ms; }
+.watchlist-teaser__grid article:nth-child(2) { animation-delay: 880ms; }
+.watchlist-teaser__grid article:nth-child(3) { animation-delay: 1000ms; }
+.watchlist-teaser__hint { animation: watchlist-guest-copy-in 500ms ease-out 1140ms both; }
+
+@keyframes watchlist-guest-scene-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes watchlist-guest-copy-in {
+  from { opacity: 0; transform: translateY(1.25rem); filter: blur(4px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+@keyframes watchlist-guest-rail-in {
+  from { opacity: 0; transform: translateY(1.5rem) scaleX(0.9); }
+  to { opacity: 1; transform: translateY(0) scaleX(1); }
+}
+
+@keyframes watchlist-guest-cell-in {
+  from { opacity: 0; transform: scale(0.88); }
+  70% { opacity: 1; transform: scale(1.025); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes watchlist-guest-beam-in {
+  from { opacity: 0; transform: translateX(5rem) rotate(18deg) scaleX(0.5); }
+  to { opacity: 1; transform: translateX(0) rotate(12deg) scaleX(1); }
+}
+
+@keyframes watchlist-guest-beam-breathe {
+  from { opacity: 0.62; filter: blur(10px); }
+  to { opacity: 1; filter: blur(15px); }
+}
 
 /* Tablet uses one horizontal media-card language rather than generated labels. */
 @media (max-width: 1024px) {
@@ -603,7 +656,8 @@
   .watchlist-table-footer { padding-right: 0.2rem; padding-left: 0.2rem; }
 
   .watchlist-empty { padding: 2rem 1rem; }
-  .watchlist-teaser { min-height: 0; padding: 6rem 1.3rem 3rem; }
+  .watchlist-page--guest { width: 100%; min-height: 100svh; }
+  .watchlist-teaser { min-height: 100svh; padding: 6rem 1.3rem 3rem; }
   .watchlist-teaser__grid { grid-template-columns: 1fr; }
 
   .watchlist-panel-backdrop { align-items: flex-end; }
@@ -651,7 +705,15 @@
   .watchlist-panel-actions > * { flex: 1; justify-content: center; }
 }
 
+@media (max-width: 560px) {
+  .watchlist-command { top: 64px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .watchlist-panel,
-  .watchlist-table tbody tr { animation: none; transition: none; }
+  .watchlist-table tbody tr,
+  .watchlist-teaser,
+  .watchlist-teaser__beam,
+  .watchlist-teaser > *,
+  .watchlist-teaser__grid article { animation: none; transition: none; }
 }

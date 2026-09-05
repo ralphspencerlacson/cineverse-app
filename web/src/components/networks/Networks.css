@@ -1,163 +1,386 @@
 .network-picker {
-    width: min(100%, 72rem);
-    margin: 2.5rem auto 1.25rem;
-    padding: 1.2rem;
-    box-sizing: border-box;
+    position: relative;
+    width: 100%;
+    margin: 3rem auto 1.75rem;
+    overflow: hidden;
     border: 0;
-    border-radius: 1.2rem;
+    border-radius: 1.35rem;
+    box-sizing: border-box;
     background:
-        radial-gradient(circle at top right, rgba(206, 56, 36, 0.22), transparent 32rem),
-        rgba(12, 12, 12, 0.82);
-    box-shadow: 0 1.2rem 3rem rgba(0, 0, 0, 0.28);
+        linear-gradient(90deg, rgb(206 56 36 / 0.08) 1px, transparent 1px) 0 0 / 4.5rem 100%,
+        radial-gradient(circle at 88% 18%, rgb(206 56 36 / 0.24), transparent 28rem),
+        linear-gradient(135deg, rgb(15 15 15 / 0.98), rgb(7 7 7 / 0.98));
+    box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 0.34);
+    padding: clamp(1.5rem, 3vw, 2.5rem);
+}
+
+.network-picker::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 8%;
+    left: 8%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgb(255 93 70 / 0.78), rgb(255 179 168 / 0.4), transparent);
+    box-shadow: 0 0 1.2rem rgb(206 56 36 / 0.55);
+    pointer-events: none;
 }
 
 .network-picker__header {
+    position: relative;
+    z-index: 1;
     display: flex;
+    align-items: end;
     justify-content: space-between;
-    gap: 1rem;
-    align-items: flex-end;
-    margin-bottom: 1rem;
+    gap: 2rem;
+    margin-bottom: 1.7rem;
     text-align: left;
 }
 
+.network-picker__eyebrow,
+.network-picker__lede,
+.network-picker__header h2 {
+    margin: 0;
+}
+
 .network-picker__eyebrow {
-    margin: 0 0 0.25rem;
-    color: #ce3824;
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.16em;
+    color: #ff5d46;
+    font-size: 0.68rem;
+    font-weight: 900;
+    letter-spacing: 0.2em;
     text-transform: uppercase;
 }
 
 .network-picker__header h2 {
-    margin: 0;
-    color: rgba(255, 255, 255, 0.96);
-    font-size: clamp(1.35rem, 3vw, 2rem);
-    line-height: 1.1;
+    margin-top: 0.35rem;
+    color: #fff;
+    font-size: clamp(1.65rem, 3vw, 2.65rem);
+    letter-spacing: -0.045em;
+    line-height: 1;
+}
+
+.network-picker__lede {
+    margin-top: 0.7rem;
+    color: rgb(207 215 226 / 0.58);
+    font-size: 0.82rem;
 }
 
 .network-picker__current {
-    flex: 0 0 auto;
-    color: rgba(255, 255, 255, 0.68);
-    font-size: 0.85rem;
-    font-weight: 600;
+    display: grid;
+    min-width: 12rem;
+    justify-items: end;
+    border-right: 2px solid #ff5d46;
+    padding-right: 1rem;
+    text-align: right;
+}
+
+.network-picker__current span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: rgb(207 215 226 / 0.58);
+    font-size: 0.58rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.network-picker__current span i {
+    width: 0.42rem;
+    height: 0.42rem;
+    border-radius: 50%;
+    background: #ff5d46;
+    box-shadow: 0 0 0.8rem rgb(206 56 36 / 0.9);
+    animation: network-live-pulse 1.5s ease-in-out infinite alternate;
+}
+
+.network-picker__current strong {
+    margin-top: 0.25rem;
+    color: #fff;
+    font-size: 1rem;
+}
+
+.network-picker__current small {
+    margin-top: 0.15rem;
+    color: #ffb3a8;
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
 }
 
 .network-picker__rail {
-    display: flex;
-    justify-content: flex-start;
-    gap: 0.65rem;
-    overflow-x: auto;
-    overflow-y: hidden;
-    overscroll-behavior-x: contain;
-    padding: 0.15rem 0 0.35rem;
-    scroll-padding-inline: 1rem;
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-}
-
-.network-picker__rail::-webkit-scrollbar {
-    display: none;
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0;
+    overflow: hidden;
+    border: 1px solid rgb(255 255 255 / 0.1);
+    border-radius: 1rem;
+    background: rgb(255 255 255 / 0.035);
 }
 
 .network-picker__chip {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.7rem;
-    flex: 0 0 auto;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 1rem;
-    background-color: rgba(255, 255, 255, 0.07);
-    color: rgba(255, 255, 255, 0.86);
+    position: relative;
+    isolation: isolate;
+    display: grid;
+    min-width: 0;
+    min-height: 8.2rem;
+    align-content: center;
+    justify-items: center;
+    gap: 0.65rem;
+    overflow: hidden;
+    border: 0;
+    border-right: 1px solid rgb(255 255 255 / 0.1);
+    background: transparent;
+    color: rgb(207 215 226 / 0.72);
     cursor: pointer;
-    font-size: 0.9rem;
-    font-weight: 700;
-    min-height: 6.6rem;
-    min-width: 8.4rem;
-    padding: 0.95rem 1rem;
-    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
-    white-space: nowrap;
+    padding: 1.2rem 0.75rem 0.9rem;
+    transition: background-color 220ms ease, color 220ms ease, transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.network-picker__chip:last-child {
+    border-right: 0;
+}
+
+.network-picker__chip::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(180deg, rgb(255 93 70 / 0.25), rgb(206 56 36 / 0.08) 55%, transparent);
+    opacity: 0;
+    transform: translateY(-35%);
+    transition: opacity 220ms ease, transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.network-picker__chip::after {
+    content: "";
+    position: absolute;
+    right: 18%;
+    bottom: 0;
+    left: 18%;
+    height: 2px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, transparent, #ff5d46, #ffb3a8, #ff5d46, transparent);
+    box-shadow: 0 0 0.8rem rgb(206 56 36 / 0.85);
+    opacity: 0;
+    transform: scaleX(0);
+    transition: opacity 180ms ease, transform 360ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.network-picker__index {
+    position: absolute;
+    top: 0.65rem;
+    left: 0.7rem;
+    color: rgb(255 255 255 / 0.28);
+    font-size: 0.55rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
 }
 
 .network-picker__logo-wrap {
+    position: relative;
+    isolation: isolate;
     display: grid;
+    width: min(5.8rem, 90%);
+    height: 2.65rem;
     place-items: center;
-    width: 5.7rem;
-    height: 2.8rem;
-    border-radius: 0.8rem;
-    background-color: rgba(255, 255, 255, 0.92);
-    padding: 0.45rem;
+    overflow: hidden;
+    border: 1px solid rgb(255 255 255 / 0.13);
+    border-radius: 0.75rem;
+    box-sizing: border-box;
+    background:
+        linear-gradient(135deg, rgb(184 190 202 / 0.2), rgb(74 78 87 / 0.1)),
+        rgb(18 19 22 / 0.72);
+    box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 0.1),
+        inset 0 -1px 0 rgb(0 0 0 / 0.35),
+        0 0.5rem 1.2rem rgb(0 0 0 / 0.24);
+    padding: 0.42rem;
+    backdrop-filter: blur(0.65rem);
+    transition: border-color 220ms ease, transform 320ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 220ms ease;
+}
+
+.network-picker__logo-wrap::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(105deg, transparent 20%, rgb(255 255 255 / 0.09) 50%, transparent 80%);
+    transform: translateX(-110%);
+    transition: transform 500ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .network-picker__logo {
     display: block;
     max-width: 100%;
     max-height: 100%;
+    filter: saturate(0.9) brightness(1.12) drop-shadow(0 1px 0.2rem rgb(0 0 0 / 0.45));
     object-fit: contain;
 }
 
+.network-picker__chip[data-network="Disney+"] .network-picker__logo {
+    max-width: 82%;
+    max-height: 82%;
+}
+
 .network-picker__fallback-logo {
-    color: #161616;
+    color: rgb(255 255 255 / 0.82);
     font-size: 1rem;
-    font-weight: 800;
+    font-weight: 900;
     letter-spacing: 0.08em;
     text-transform: uppercase;
 }
 
 .network-picker__name {
+    overflow: hidden;
+    max-width: 100%;
+    font-size: 0.76rem;
+    font-weight: 800;
     line-height: 1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
+
+.network-picker__signal {
+    display: flex;
+    align-items: end;
+    gap: 2px;
+    height: 0.65rem;
+}
+
+.network-picker__signal i {
+    width: 2px;
+    height: 35%;
+    border-radius: 1px;
+    background: currentColor;
+    opacity: 0.28;
+}
+
+.network-picker__signal i:nth-child(2) { height: 65%; }
+.network-picker__signal i:nth-child(3) { height: 100%; }
 
 .network-picker__chip:hover,
 .network-picker__chip:focus-visible {
-    border-color: rgba(206, 56, 36, 0.72);
-    background-color: rgba(206, 56, 36, 0.2);
-    color: #ffffff;
+    background: rgb(255 255 255 / 0.055);
+    color: #fff;
     outline: none;
-    transform: translateY(-1px);
+}
+
+.network-picker__chip:hover .network-picker__logo-wrap,
+.network-picker__chip:focus-visible .network-picker__logo-wrap {
+    border-color: rgb(255 255 255 / 0.25);
+    transform: translateY(-0.2rem) scale(1.03);
+}
+
+.network-picker__chip:hover .network-picker__logo-wrap::before,
+.network-picker__chip:focus-visible .network-picker__logo-wrap::before {
+    transform: translateX(110%);
 }
 
 .network-picker__chip.active {
-    border-color: #ce3824;
-    background-color: #ce3824;
-    color: #ffffff;
-    box-shadow: 0 0.7rem 1.6rem rgba(206, 56, 36, 0.25);
+    background: rgb(206 56 36 / 0.13);
+    color: #fff;
+    animation: network-channel-tune 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.network-picker__chip.active::before,
+.network-picker__chip.active::after {
+    opacity: 1;
+    transform: translateY(0) scaleX(1);
+}
+
+.network-picker__chip.active .network-picker__logo-wrap {
+    border-color: rgb(255 93 70 / 0.5);
+    box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 0.12),
+        0 0 0 1px rgb(255 93 70 / 0.2),
+        0 0.8rem 2rem rgb(206 56 36 / 0.28);
+    transform: scale(1.07);
+}
+
+.network-picker__chip.active .network-picker__index {
+    color: #ffb3a8;
+}
+
+.network-picker__chip.active .network-picker__signal i {
+    background: #ff5d46;
+    box-shadow: 0 0 0.4rem rgb(206 56 36 / 0.8);
+    opacity: 1;
+    animation: network-signal 700ms ease-in-out infinite alternate;
+}
+
+.network-picker__chip.active .network-picker__signal i:nth-child(2) { animation-delay: 120ms; }
+.network-picker__chip.active .network-picker__signal i:nth-child(3) { animation-delay: 240ms; }
+
+@keyframes network-channel-tune {
+    0% { filter: brightness(0.65); }
+    38% { filter: brightness(1.5); }
+    100% { filter: brightness(1); }
+}
+
+@keyframes network-live-pulse {
+    to { opacity: 0.45; transform: scale(0.72); }
+}
+
+@keyframes network-signal {
+    to { transform: scaleY(0.45); }
+}
+
+@media (max-width: 1100px) {
+    .network-picker__rail {
+        display: flex;
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+        scroll-padding-inline: 1rem;
+        scrollbar-width: none;
+    }
+
+    .network-picker__rail::-webkit-scrollbar {
+        display: none;
+    }
+
+    .network-picker__chip {
+        min-width: 8.6rem;
+    }
 }
 
 @media (max-width: 640px) {
     .network-picker {
         margin-top: 1.5rem;
-        padding: 1rem;
         border-radius: 1rem;
+        padding: 1.2rem 0.8rem;
     }
 
     .network-picker__header {
-        display: block;
-        text-align: center;
+        align-items: start;
+        flex-direction: column;
+        padding: 0 0.35rem;
     }
 
     .network-picker__current {
-        display: inline-block;
-        margin-top: 0.45rem;
+        width: 100%;
+        min-width: 0;
+        justify-items: start;
+        border-right: 0;
+        border-left: 2px solid #ff5d46;
+        box-sizing: border-box;
+        padding: 0.3rem 0 0.3rem 0.8rem;
+        text-align: left;
     }
 
     .network-picker__chip {
-        font-size: 0.82rem;
-        min-height: 5.8rem;
-        min-width: auto;
-        padding: 0.7rem 0.9rem;
-    }
-
-    .network-picker__logo-wrap {
-        width: 4.9rem;
-        height: 2.35rem;
+        min-width: 7.5rem;
+        min-height: 7.5rem;
     }
 }
 
-@media (min-width: 1024px) {
-    .network-picker__rail {
-        justify-content: center;
+@media (prefers-reduced-motion: reduce) {
+    .network-picker__current span i,
+    .network-picker__chip,
+    .network-picker__chip.active .network-picker__signal i {
+        animation: none;
     }
 }
