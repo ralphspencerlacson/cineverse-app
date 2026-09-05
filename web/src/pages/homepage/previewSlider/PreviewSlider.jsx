@@ -18,20 +18,12 @@ const getRandomResult = (results = []) => {
 const PreviewSlider = () => {
   const [slideData, setSlideData] = useState([]);
   const [isMobile, setIsMobile] = useState(false);
+  const [isBridgeVisible, setIsBridgeVisible] = useState(false);
   const bridgeRef = useRef(null);
   const headlineRef = useRef(null);
-  const isHeadlineHoveredRef = useRef(false);
+  const isPointerActiveRef = useRef(false);
   const glowPositionRef = useRef({ x: 50, y: 50 });
   const glowTargetRef = useRef({ x: 50, y: 50 });
-
-  const handleIntroMouseMove = (event) => {
-    const bounds = event.currentTarget.getBoundingClientRect();
-
-    glowTargetRef.current = {
-      x: event.clientX - bounds.left,
-      y: event.clientY - bounds.top,
-    };
-  };
 
   useEffect(() => {
     const canAnimateGlow = window.matchMedia(
@@ -44,12 +36,31 @@ const PreviewSlider = () => {
 
     let animationFrameId;
     const startedAt = performance.now();
+    const handlePointerMove = (event) => {
+      const headline = headlineRef.current;
+      if (!headline) {
+        return;
+      }
+
+      const bounds = headline.getBoundingClientRect();
+      const viewportWidth = window.innerWidth || 1;
+      const viewportHeight = window.innerHeight || 1;
+
+      isPointerActiveRef.current = true;
+      glowTargetRef.current = {
+        x: bounds.width * Math.min(1, Math.max(0, event.clientX / viewportWidth)),
+        y: bounds.height * Math.min(1, Math.max(0, event.clientY / viewportHeight)),
+      };
+    };
+    const clearPointer = () => {
+      isPointerActiveRef.current = false;
+    };
 
     const animateGlow = (timestamp) => {
       const headline = headlineRef.current;
 
       if (headline) {
-        if (!isHeadlineHoveredRef.current) {
+        if (!isPointerActiveRef.current) {
           const elapsed = (timestamp - startedAt) / 1000;
           const bounds = headline.getBoundingClientRect();
 
@@ -71,9 +82,15 @@ const PreviewSlider = () => {
       animationFrameId = window.requestAnimationFrame(animateGlow);
     };
 
+    window.addEventListener("pointermove", handlePointerMove, { passive: true });
+    window.addEventListener("blur", clearPointer);
+    document.documentElement.addEventListener("mouseleave", clearPointer);
     animationFrameId = window.requestAnimationFrame(animateGlow);
 
     return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("blur", clearPointer);
+      document.documentElement.removeEventListener("mouseleave", clearPointer);
       window.cancelAnimationFrame(animationFrameId);
     };
   }, []);
@@ -88,6 +105,28 @@ const PreviewSlider = () => {
     return () => {
       mediaQuery.removeEventListener?.("change", updateIsMobile);
     };
+  }, []);
+
+  useEffect(() => {
+    const bridge = bridgeRef.current;
+    if (!bridge || !("IntersectionObserver" in window)) {
+      setIsBridgeVisible(true);
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsBridgeVisible(true);
+        } else {
+          setIsBridgeVisible(false);
+        }
+      },
+      { rootMargin: "0px 0px -12%", threshold: 0.18 }
+    );
+
+    observer.observe(bridge);
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
@@ -141,16 +180,7 @@ const PreviewSlider = () => {
     <div className="preview-slider">
       <div className="preview-slider__intro">
         <p>Movies and series in one orbit</p>
-        <h2
-          ref={headlineRef}
-          onMouseEnter={() => {
-            isHeadlineHoveredRef.current = true;
-          }}
-          onMouseLeave={() => {
-            isHeadlineHoveredRef.current = false;
-          }}
-          onMouseMove={handleIntroMouseMove}
-        >
+        <h2 ref={headlineRef}>
           Discover what to watch before you even search.
         </h2>
       </div>
@@ -159,7 +189,11 @@ const PreviewSlider = () => {
 
       <Newsletter />
 
-      <section ref={bridgeRef} className="preview-slider__bridge" aria-label="Cineverse benefits">
+      <section
+        ref={bridgeRef}
+        className={`preview-slider__bridge ${isBridgeVisible ? "is-visible" : ""}`}
+        aria-label="Cineverse benefits"
+      >
         <div className="preview-slider__bridge-model">
           {isMobile ? (
             <div className="preview-slider__camera-fallback" aria-hidden="true"><span /><span /><span /></div>

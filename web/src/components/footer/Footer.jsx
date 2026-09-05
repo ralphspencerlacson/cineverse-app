@@ -6,6 +6,7 @@ import "./Footer.css";
 const Footer = () => {
   const footerRef = useRef(null);
   const [isVisible, setIsVisible] = useState(false);
+  const [hasRevealed, setHasRevealed] = useState(false);
 
   useEffect(() => {
     const footer = footerRef.current;
@@ -17,8 +18,10 @@ const Footer = () => {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
+          setHasRevealed(true);
           setIsVisible(true);
-          observer.disconnect();
+        } else {
+          setIsVisible(false);
         }
       },
       { rootMargin: "0px 0px -12%", threshold: 0.08 }
@@ -37,7 +40,7 @@ const Footer = () => {
   return (
     <footer
       ref={footerRef}
-      className={`footer ${isVisible ? "is-visible" : ""}`}
+      className={`footer ${isVisible ? "is-visible" : hasRevealed ? "is-exiting" : ""}`}
       onPointerMove={handlePointerMove}
       onPointerLeave={(event) => {
         event.currentTarget.style.setProperty("--footer-glow-x", "18%");

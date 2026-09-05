@@ -88,7 +88,36 @@
         radial-gradient(circle at var(--bridge-glow-two-x) var(--bridge-glow-two-y), rgba(206, 56, 36, 0.28), transparent 18rem),
         linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.035));
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 2rem 5rem rgba(0, 0, 0, 0.28);
+    opacity: 0;
+    transform: scale(0.82);
     animation: bridge-glow-drift 12s ease-in-out infinite alternate;
+}
+
+.preview-slider__bridge.is-visible .preview-slider__bridge-model {
+    animation:
+        bridge-model-pop 720ms cubic-bezier(0.16, 1, 0.3, 1) both,
+        bridge-glow-drift 12s ease-in-out 720ms infinite alternate;
+}
+
+@keyframes bridge-model-pop {
+    0% {
+        opacity: 0;
+        transform: scale(0.82);
+    }
+
+    64% {
+        opacity: 1;
+        transform: scale(1.035);
+    }
+
+    82% {
+        transform: scale(0.985);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 .preview-slider__bridge-model::before {
@@ -99,9 +128,32 @@
 
 .preview-slider__bridge-model::before {
     inset: 12%;
+    z-index: 0;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 999px;
     animation: bridge-orbit-drift 16s ease-in-out infinite alternate;
+}
+
+.preview-slider__bridge-model::after {
+    content: "";
+    position: absolute;
+    z-index: 0;
+    width: 0.48rem;
+    height: 0.48rem;
+    border-radius: 50%;
+    background: var(--cv-ember-bright);
+    box-shadow: 0 0 0.55rem rgba(255, 93, 70, 0.95), 0 0 1.2rem rgba(206, 56, 36, 0.72);
+    offset-path: ellipse(38% 36% at 50% 50%);
+    offset-rotate: 0deg;
+    pointer-events: none;
+}
+
+.preview-slider__bridge.is-visible .preview-slider__bridge-model::after {
+    animation: bridge-orbit-marker 9s linear 720ms infinite;
+}
+
+@keyframes bridge-orbit-marker {
+    to { offset-distance: 100%; }
 }
 
 @property --bridge-glow-one-x {
@@ -221,6 +273,24 @@
 .preview-slider__bridge-content {
     position: relative;
     z-index: 2;
+    opacity: 0;
+    transform: translateX(clamp(2.5rem, 7vw, 6rem));
+}
+
+.preview-slider__bridge.is-visible .preview-slider__bridge-content {
+    animation: bridge-content-slide 760ms cubic-bezier(0.16, 1, 0.3, 1) 380ms both;
+}
+
+@keyframes bridge-content-slide {
+    from {
+        opacity: 0;
+        transform: translateX(clamp(2.5rem, 7vw, 6rem));
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
 }
 
 .preview-slider__bridge-eyebrow,
@@ -261,13 +331,111 @@
 }
 
 .preview-slider__bridge-grid article {
+    --bridge-spot-delay: 1200ms;
+    position: relative;
     display: grid;
     align-content: start;
+    justify-items: center;
     gap: 0.65rem;
     min-height: 10rem;
-    border-top: 1px solid rgba(206, 56, 36, 0.42);
+    border-top: 1px solid transparent;
     background: transparent;
     padding: 1rem 0 0;
+    text-align: center;
+}
+
+.preview-slider__bridge-grid article:nth-child(2) {
+    --bridge-spot-delay: 1400ms;
+}
+
+.preview-slider__bridge-grid article:nth-child(3) {
+    --bridge-spot-delay: 1600ms;
+}
+
+.preview-slider__bridge-grid article::before {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: 50%;
+    z-index: 0;
+    width: 130%;
+    height: 9rem;
+    background: linear-gradient(180deg, rgba(255, 93, 70, 0.24), rgba(206, 56, 36, 0.08) 48%, transparent 92%);
+    clip-path: polygon(47% 0, 53% 0, 88% 100%, 12% 100%);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-50%) scaleY(0.08);
+    transform-origin: center top;
+}
+
+.preview-slider__bridge.is-visible .preview-slider__bridge-grid article {
+    animation: bridge-spotlight-rail 780ms ease-out var(--bridge-spot-delay) both;
+}
+
+.preview-slider__bridge.is-visible .preview-slider__bridge-grid article::before {
+    animation: bridge-spotlight-beam 900ms cubic-bezier(0.16, 1, 0.3, 1) var(--bridge-spot-delay) both;
+}
+
+.preview-slider__bridge-grid article > * {
+    position: relative;
+    z-index: 1;
+    opacity: 0;
+    transform: translateY(0.55rem);
+}
+
+.preview-slider__bridge.is-visible .preview-slider__bridge-grid article > * {
+    animation: bridge-spotlight-copy 520ms ease-out calc(var(--bridge-spot-delay) + 240ms) both;
+}
+
+.preview-slider__bridge.is-visible .preview-slider__bridge-grid article > span {
+    animation-delay: calc(var(--bridge-spot-delay) + 330ms);
+}
+
+@keyframes bridge-spotlight-rail {
+    0% {
+        border-color: transparent;
+        box-shadow: 0 -1px 0 rgba(255, 93, 70, 0);
+    }
+
+    38% {
+        border-color: rgba(255, 179, 168, 0.95);
+        box-shadow: 0 -1px 0 rgba(255, 93, 70, 0.85), 0 -0.2rem 1rem rgba(206, 56, 36, 0.55);
+    }
+
+    100% {
+        border-color: rgba(206, 56, 36, 0.42);
+        box-shadow: none;
+    }
+}
+
+@keyframes bridge-spotlight-beam {
+    0% {
+        opacity: 0;
+        transform: translateX(-50%) scaleY(0.08);
+    }
+
+    42% {
+        opacity: 0.72;
+    }
+
+    100% {
+        opacity: 0.13;
+        transform: translateX(-50%) scaleY(1);
+    }
+}
+
+@keyframes bridge-spotlight-copy {
+    from {
+        opacity: 0;
+        transform: translateY(0.55rem);
+        filter: blur(3px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+        filter: blur(0);
+    }
 }
 
 .preview-slider__bridge-grid strong {
@@ -312,8 +480,39 @@
 
 @media (prefers-reduced-motion: reduce) {
     .preview-slider__bridge-model,
-    .preview-slider__bridge-model::before {
+    .preview-slider__bridge-model::before,
+    .preview-slider__bridge-model::after,
+    .preview-slider__bridge.is-visible .preview-slider__bridge-model,
+    .preview-slider__bridge.is-visible .preview-slider__bridge-content,
+    .preview-slider__bridge.is-visible .preview-slider__bridge-grid article,
+    .preview-slider__bridge.is-visible .preview-slider__bridge-grid article::before,
+    .preview-slider__bridge.is-visible .preview-slider__bridge-grid article > * {
         animation: none;
+    }
+
+    .preview-slider__bridge-model,
+    .preview-slider__bridge-content {
+        opacity: 1;
+        transform: none;
+    }
+
+    .preview-slider__bridge-grid article {
+        border-top-color: rgba(206, 56, 36, 0.42);
+    }
+
+    .preview-slider__bridge-grid article::before {
+        opacity: 0.13;
+        transform: translateX(-50%) scaleY(1);
+    }
+
+    .preview-slider__bridge-grid article > * {
+        opacity: 1;
+        filter: none;
+        transform: none;
+    }
+
+    .preview-slider__bridge-model::after {
+        display: none;
     }
 
     .preview-slider__camera-stage {

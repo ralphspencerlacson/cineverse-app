@@ -27,7 +27,7 @@ const selectBestTrailer = (videos = []) => {
   return youtubeVideos[0];
 };
 
-const SlideItem = ({ showType, data, shouldLoadVideo = true, useFixedBackground = true }) => {
+const SlideItem = ({ showType, data, isActive = false, shouldLoadVideo = true, useFixedBackground = true }) => {
   const [isVideoReady, setIsVideoReady] = useState(false);
   const iframeRef = useRef(null);
   const { apiData: trailer } = useFetchApi(
@@ -96,7 +96,7 @@ const SlideItem = ({ showType, data, shouldLoadVideo = true, useFixedBackground 
       {data && (
         <div
           key={data?.id}
-          className={`slide `}
+          className={`slide ${isActive ? "is-current" : ""}`}
           style={{
             backgroundImage: `url(${TMDB_ASSET_BASEURL}${data?.backdrop_path})`,
             backgroundPosition: "center",

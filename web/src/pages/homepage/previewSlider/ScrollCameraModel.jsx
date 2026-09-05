@@ -28,6 +28,10 @@ const CameraObject = ({ sectionRef, reducedMotion }) => {
     yaw: 0,
     targetYaw: 0,
     startYaw: 0,
+    hoverYaw: 0,
+    targetHoverYaw: 0,
+    hoverPitch: 0,
+    targetHoverPitch: 0,
   });
   const gltf = useLoader(GLTFLoader, "/models/camera.glb", (loader) => {
     const dracoLoader = new DRACOLoader();
@@ -100,14 +104,26 @@ const CameraObject = ({ sectionRef, reducedMotion }) => {
       14,
       delta
     );
+    dragStateRef.current.hoverYaw = THREE.MathUtils.damp(
+      dragStateRef.current.hoverYaw,
+      dragStateRef.current.targetHoverYaw,
+      5,
+      delta
+    );
+    dragStateRef.current.hoverPitch = THREE.MathUtils.damp(
+      dragStateRef.current.hoverPitch,
+      dragStateRef.current.targetHoverPitch,
+      5,
+      delta
+    );
 
     const idleTime = state.clock.getElapsedTime();
-    const idleYaw = Math.sin(idleTime * 0.48) * 0.07;
+    const idleYaw = Math.sin(idleTime * 0.48) * 0.085;
     const idleLift = Math.sin(idleTime * 0.72) * 0.025;
 
     group.position.set(0, idleLift, 0.25);
-    group.rotation.x = lerp(-0.08, 0.04, progress);
-    group.rotation.y = detailedSideYaw + idleYaw + dragStateRef.current.yaw;
+    group.rotation.x = lerp(-0.08, 0.04, progress) + dragStateRef.current.hoverPitch;
+    group.rotation.y = detailedSideYaw + idleYaw + dragStateRef.current.hoverYaw + dragStateRef.current.yaw;
     group.rotation.z = lerp(-0.08, 0.08, progress);
   });
 
@@ -123,6 +139,11 @@ const CameraObject = ({ sectionRef, reducedMotion }) => {
   };
 
   const handlePointerMove = (event) => {
+    if (event.uv) {
+      dragStateRef.current.targetHoverYaw = (event.uv.x - 0.5) * 0.24;
+      dragStateRef.current.targetHoverPitch = (event.uv.y - 0.5) * 0.1;
+    }
+
     if (!dragStateRef.current.isDragging) {
       return;
     }
@@ -147,6 +168,12 @@ const CameraObject = ({ sectionRef, reducedMotion }) => {
     event.target.releasePointerCapture?.(event.pointerId);
   };
 
+  const handlePointerLeave = (event) => {
+    dragStateRef.current.targetHoverYaw = 0;
+    dragStateRef.current.targetHoverPitch = 0;
+    handlePointerUp(event);
+  };
+
   return (
     <>
       <mesh
@@ -155,7 +182,7 @@ const CameraObject = ({ sectionRef, reducedMotion }) => {
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
-        onPointerLeave={handlePointerUp}
+        onPointerLeave={handlePointerLeave}
       >
         <planeGeometry args={[18, 18]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />

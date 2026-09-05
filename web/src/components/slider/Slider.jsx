@@ -97,6 +97,7 @@ const Slider = ({ slideData, delay = 5000, isMobile = false }) => {
             showType={data?.mediaType || "tv"}
             key={`${data?.mediaType || "tv"}-${data?.id}`}
             data={data}
+            isActive={index === slideIndex}
             shouldLoadVideo={!isMobile && index === slideIndex}
             useFixedBackground={!isMobile}
           />

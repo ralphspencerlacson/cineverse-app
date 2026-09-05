@@ -14,38 +14,40 @@
     position: absolute;
     top: 0;
     bottom: 0;
-    left: 50%;
-    width: 4rem;
+    right: calc(50% - 2rem);
+    left: calc(50% - 2rem);
     border-bottom: 1px solid rgb(255 255 255 / 0.07);
+    border-radius: 2rem;
     background: rgb(9 10 11 / 0.94);
     box-shadow: 0 0.5rem 1.75rem rgb(0 0 0 / 0.24);
     backdrop-filter: blur(14px);
-    -webkit-mask-image: linear-gradient(90deg, transparent, #000 3rem, #000 calc(100% - 3rem), transparent);
-    mask-image: linear-gradient(90deg, transparent, #000 3rem, #000 calc(100% - 3rem), transparent);
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
     opacity: 0;
-    transform: translateX(-50%);
     transition:
         opacity 120ms ease 220ms,
-        width 220ms cubic-bezier(0.65, 0, 0.35, 1) 120ms;
-    will-change: width, opacity;
+        left 300ms cubic-bezier(0.65, 0, 0.35, 1),
+        right 300ms cubic-bezier(0.65, 0, 0.35, 1),
+        border-radius 220ms ease;
+    will-change: left, right, opacity, border-radius;
 }
 
 .nav::after {
     content: "";
     position: absolute;
     bottom: -1px;
+    right: 50%;
     left: 50%;
-    width: 0;
     height: 2px;
     pointer-events: none;
     background: linear-gradient(90deg, transparent 2%, var(--cv-ember-bright) 22%, var(--cv-ember) 50%, var(--cv-ember-bright) 78%, transparent 98%);
     box-shadow: 0 0 0.85rem rgb(206 56 36 / 0.65);
     opacity: 0;
-    transform: translateX(-50%);
     transition:
-        opacity 60ms ease 420ms,
-        width 120ms cubic-bezier(0.65, 0, 0.35, 1) 340ms;
-    will-change: width, opacity;
+        opacity 80ms ease 180ms,
+        left 260ms cubic-bezier(0.65, 0, 0.35, 1),
+        right 260ms cubic-bezier(0.65, 0, 0.35, 1);
+    will-change: left, right, opacity;
 }
 
 .nav.bg_black {
@@ -53,17 +55,20 @@
 }
 
 .nav.bg_black::before {
-    width: calc(100% + 6rem);
+    right: -3rem;
+    left: -3rem;
+    border-radius: 0;
     opacity: 1;
-    transition-duration: 220ms, 500ms;
-    transition-delay: 300ms, 320ms;
+    transition-duration: 160ms, 680ms, 680ms, 520ms;
+    transition-delay: 40ms, 100ms, 100ms, 100ms;
 }
 
 .nav.bg_black::after {
-    width: 100%;
+    right: 0;
+    left: 0;
     opacity: 0.62;
-    transition-duration: 100ms, 240ms;
-    transition-delay: 80ms, 80ms;
+    transition-duration: 100ms, 650ms, 650ms;
+    transition-delay: 120ms, 130ms, 130ms;
 }
 
 .nav__inner {
@@ -104,11 +109,11 @@
     pointer-events: auto;
     transform: translateX(-50%) scale(1);
     transition:
-        left 280ms cubic-bezier(0.65, 0, 0.35, 1) 460ms,
+        left 300ms cubic-bezier(0.65, 0, 0.35, 1),
         border-color 180ms ease,
         background-color 180ms ease,
         box-shadow 180ms ease,
-        transform 240ms cubic-bezier(0.65, 0, 0.35, 1) 460ms;
+        transform 260ms cubic-bezier(0.65, 0, 0.35, 1);
 }
 
 .nav-reveal img {
@@ -116,6 +121,25 @@
     width: 3.35rem;
     object-fit: contain;
     filter: drop-shadow(0 0 0.45rem rgb(206 56 36 / 0.6));
+    transform-origin: center;
+}
+
+.nav.expanded .nav-reveal img {
+    animation: nav-logo-unfold 1200ms cubic-bezier(0.65, 0, 0.35, 1) 100ms both;
+}
+
+@keyframes nav-logo-unfold {
+    0% {
+        transform: rotate(0deg) scale(1);
+    }
+
+    68% {
+        transform: rotate(-300deg) scale(1.08);
+    }
+
+    100% {
+        transform: rotate(-360deg) scale(1);
+    }
 }
 
 .nav-reveal:hover,
@@ -133,8 +157,35 @@
     background: transparent;
     box-shadow: none;
     transform: translateX(-50%) scale(0.94);
-    transition-duration: 700ms, 180ms, 180ms, 180ms, 600ms;
-    transition-delay: 0s, 0s, 0s, 0s, 0s;
+    animation: nav-source-travel 800ms ease both;
+    transition-duration: 680ms, 180ms, 180ms, 680ms, 600ms;
+    transition-delay: 100ms, 0s, 0s, 100ms, 100ms;
+}
+
+@keyframes nav-source-travel {
+    0% {
+        border-color: rgb(255 255 255 / 0.12);
+        background: rgb(9 10 11 / 0.62);
+        box-shadow: 0 0 1.4rem rgb(206 56 36 / 0.2);
+    }
+
+    18% {
+        border-color: rgb(255 93 70 / 0.9);
+        background: rgb(9 10 11 / 0.72);
+        box-shadow: 0 0 0 1px rgb(255 93 70 / 0.2), 0 0 2.2rem rgb(206 56 36 / 0.62);
+    }
+
+    72% {
+        border-color: rgb(255 93 70 / 0.38);
+        background: rgb(9 10 11 / 0.28);
+        box-shadow: 0 0 1.35rem rgb(206 56 36 / 0.34);
+    }
+
+    100% {
+        border-color: transparent;
+        background: transparent;
+        box-shadow: none;
+    }
 }
 
 .nav .logo-link {
@@ -164,8 +215,8 @@
 .nav.expanded .links {
     opacity: 1;
     transform: translateY(0);
-    transition-duration: 320ms, 450ms, 0s;
-    transition-delay: 370ms, 340ms, 0s;
+    transition-duration: 120ms, 320ms, 0s;
+    transition-delay: 640ms, 620ms, 0s;
     visibility: visible;
 }
 
@@ -181,6 +232,38 @@
     isolation: isolate;
     letter-spacing: 0.025em;
     transition: color 160ms ease, text-shadow 160ms ease;
+}
+
+.nav.expanded .links > .nav-link {
+    animation: nav-label-bubble 650ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.nav.expanded .links > .nav-link:nth-child(1) { animation-delay: 700ms; }
+.nav.expanded .links > .nav-link:nth-child(2) { animation-delay: 820ms; }
+.nav.expanded .links > .nav-link:nth-child(3) { animation-delay: 940ms; }
+.nav.expanded .links > .nav-link:nth-child(4) { animation-delay: 1060ms; }
+.nav.expanded .links > .nav-link:nth-child(5) { animation-delay: 1180ms; }
+.nav.expanded .links > .nav-link:nth-child(6) { animation-delay: 1300ms; }
+
+@keyframes nav-label-bubble {
+    0% {
+        opacity: 0;
+        transform: translateY(-0.45rem) scale(0.58);
+    }
+
+    58% {
+        opacity: 1;
+        transform: translateY(0.08rem) scale(1.12);
+    }
+
+    78% {
+        transform: translateY(0) scale(0.96);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 .nav-link::before {
@@ -217,7 +300,7 @@
 }
 
 .nav.bg_black .nav-link.active {
-    transition-delay: 1150ms;
+    transition-delay: 2020ms;
 }
 
 .nav-link:hover::after,
@@ -234,7 +317,7 @@
 
 .nav.bg_black .nav-link.active::before,
 .nav.bg_black .nav-link.active::after {
-    transition-delay: 1150ms;
+    transition-delay: 2020ms;
 }
 
 .nav .links h4 {
@@ -275,11 +358,11 @@
 }
 
 .nav.expanded .links .nav-link__count {
-    animation: navCountDrop 520ms cubic-bezier(0.16, 1, 0.3, 1) 610ms both;
+    animation: navCountDrop 520ms cubic-bezier(0.16, 1, 0.3, 1) 1260ms both;
 }
 
 .nav.expanded .links .nav-link__count::before {
-    animation: navCountPageTurn 480ms cubic-bezier(0.65, 0, 0.35, 1) 760ms both;
+    animation: navCountPageTurn 480ms cubic-bezier(0.65, 0, 0.35, 1) 1410ms both;
 }
 
 @keyframes navCountDrop {
@@ -323,9 +406,9 @@
     opacity: 0;
     transform: translateY(-0.45rem);
     transition:
-        opacity 100ms ease,
-        transform 140ms ease,
-        visibility 0s linear 140ms;
+        opacity 120ms ease 240ms,
+        transform 180ms ease 220ms,
+        visibility 0s linear 360ms;
     visibility: hidden;
 }
 
@@ -333,8 +416,38 @@
     opacity: 1;
     transform: translateY(0);
     transition-duration: 320ms, 450ms, 0s;
-    transition-delay: 450ms, 420ms, 0s;
+    transition-delay: 730ms, 700ms, 0s;
     visibility: visible;
+}
+
+.nav.expanded .nav-auth > .nav-auth__login,
+.nav.expanded .nav-auth > .nav-account__trigger {
+    animation: nav-action-bubble 520ms cubic-bezier(0.16, 1, 0.3, 1) 760ms both;
+}
+
+.nav.expanded .nav-search-toggle {
+    animation: nav-action-bubble 520ms cubic-bezier(0.16, 1, 0.3, 1) 920ms both;
+}
+
+@keyframes nav-action-bubble {
+    0% {
+        opacity: 0;
+        transform: scale(0.2);
+    }
+
+    58% {
+        opacity: 1;
+        transform: scale(1.16);
+    }
+
+    78% {
+        transform: scale(0.94);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 .nav-auth {
@@ -463,6 +576,31 @@
 .nav-menu-toggle.active {
     border-color: rgb(255 93 70 / 0.72);
     background: rgb(206 56 36 / 0.18);
+}
+
+.nav .nav-auth > .nav-auth__login,
+.nav .nav-auth > .nav-account__trigger,
+.nav .nav-search-toggle {
+    opacity: 0;
+    transform: scale(0.2);
+    transform-origin: center;
+    transition:
+        opacity 180ms ease,
+        transform 280ms cubic-bezier(0.4, 0, 1, 1),
+        border-color 160ms ease,
+        background-color 160ms ease;
+}
+
+.nav .nav-auth > .nav-auth__login,
+.nav .nav-auth > .nav-account__trigger {
+    transition-delay: 80ms, 80ms, 0s, 0s;
+}
+
+.nav.expanded .nav-auth > .nav-auth__login,
+.nav.expanded .nav-auth > .nav-account__trigger,
+.nav.expanded .nav-search-toggle {
+    opacity: 1;
+    transform: scale(1);
 }
 
 .nav-menu-toggle {
@@ -987,6 +1125,12 @@
     .search-result,
     .nav-drawer,
     .nav-drawer__panel,
+    .nav.expanded .nav-reveal,
+    .nav.expanded .nav-reveal img,
+    .nav.expanded .nav-auth > .nav-auth__login,
+    .nav.expanded .nav-auth > .nav-account__trigger,
+    .nav.expanded .nav-search-toggle,
+    .nav.expanded .links > .nav-link,
     .nav.expanded .links .nav-link__count,
     .nav.expanded .links .nav-link__count::before {
         animation: none;
@@ -998,6 +1142,9 @@
     .nav-reveal,
     .nav .links,
     .nav-actions,
+    .nav .nav-auth > .nav-auth__login,
+    .nav .nav-auth > .nav-account__trigger,
+    .nav .nav-search-toggle,
     .nav-link,
     .nav-link::before,
     .nav-link::after {

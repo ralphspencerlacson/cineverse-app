@@ -50,6 +50,17 @@
     opacity: 0.72;
 }
 
+.footer.is-exiting::after {
+    transition-duration: 360ms, 120ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 1, 1), ease;
+}
+
 .footer:hover::before {
     opacity: 0.9;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .footer::after {
+        transition: none;
+    }
 }
