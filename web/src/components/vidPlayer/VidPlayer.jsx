@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { getEmbedUrl as getZxcstreamEmbedUrl } from "../../service/zxcstream/requests";
 import { getEmbedUrl as getVideasyEmbedUrl } from "../../service/videasy/requests";
 import { getEmbedUrl as getVidapiEmbedUrl } from "../../service/vidapi/requests";
@@ -649,9 +650,28 @@ const VidPlayer = ({
   }, [clearControlsIdleTimeout, revealControls, showPlayer]);
 
   useEffect(() => {
+    if (!showPlayer) {
+      window.dispatchEvent(
+        new CustomEvent("cineverse-player-state", { detail: { isOpen: false } })
+      );
+      return undefined;
+    }
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousRootOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
     window.dispatchEvent(
-      new CustomEvent("cineverse-player-state", { detail: { isOpen: showPlayer } })
+      new CustomEvent("cineverse-player-state", { detail: { isOpen: true } })
     );
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousRootOverflow;
+      window.dispatchEvent(
+        new CustomEvent("cineverse-player-state", { detail: { isOpen: false } })
+      );
+    };
   }, [showPlayer]);
 
   useEffect(() => {
@@ -779,7 +799,7 @@ const VidPlayer = ({
         </button>
       )}
 
-      {showPlayer && (
+      {showPlayer && createPortal(
         <div className="vid-player" onClick={handleClose}>
           <div
             className="vid-player__shell"
@@ -830,7 +850,8 @@ const VidPlayer = ({
               ></iframe>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

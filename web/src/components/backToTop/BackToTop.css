@@ -1,24 +1,132 @@
 .backToTop {
-    display: none;
     position: fixed;
-    right: 2rem;
-    bottom: 2rem;
-
-    z-index: 10;
-    transition: opacity 0.5s ease-in-out;
+    right: 1.6rem;
+    bottom: 1.6rem;
+    z-index: 80;
+    display: grid;
+    width: 3.7rem;
+    height: 3.7rem;
+    place-items: center;
+    border: 1px solid rgb(255 255 255 / 0.18);
+    border-radius: 50%;
+    background:
+        radial-gradient(circle at 50% 30%, rgb(206 56 36 / 0.22), transparent 52%),
+        rgb(9 10 11 / 0.9);
+    color: #fff;
+    box-shadow: 0 0.8rem 2rem rgb(0 0 0 / 0.4), inset 0 1px 0 rgb(255 255 255 / 0.08);
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(1rem) scale(0.72);
+    transition: opacity 240ms ease, transform 420ms cubic-bezier(0.16, 1, 0.3, 1), border-color 180ms ease, box-shadow 180ms ease;
+    visibility: hidden;
 }
 
 .backToTop.visible {
-    display: block;
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+    visibility: visible;
+    animation: back-to-top-arrive 620ms cubic-bezier(0.16, 1.25, 0.3, 1) both;
+}
+
+.backToTop.exiting {
+    pointer-events: none;
+    visibility: visible;
+    animation: back-to-top-depart 520ms cubic-bezier(0.7, 0, 0.84, 0) both;
 }
 
 .backToTop svg {
-    width: 3rem;
-    height: 3rem;
-    border-radius: 10px;
-    cursor: pointer;
+    position: relative;
+    z-index: 2;
+    font-size: 1.1rem;
+    filter: drop-shadow(0 0 0.5rem rgb(255 93 70 / 0.7));
+    transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.backToTop svg:hover {
-    background-color: #ffffff60;
+.backToTop small {
+    position: absolute;
+    bottom: 0.35rem;
+    color: rgb(255 179 168 / 0.76);
+    font-size: 0.42rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    line-height: 1;
+    text-transform: uppercase;
+}
+
+.backToTop__orbit {
+    position: absolute;
+    inset: 0.28rem;
+    border: 1px dashed rgb(255 93 70 / 0.42);
+    border-radius: 50%;
+    animation: back-to-top-orbit 8s linear infinite;
+}
+
+.backToTop__beam {
+    position: absolute;
+    top: -1.25rem;
+    left: 50%;
+    width: 1.5rem;
+    height: 1.5rem;
+    clip-path: polygon(42% 100%, 58% 100%, 100% 0, 0 0);
+    background: linear-gradient(90deg, transparent, rgb(255 93 70 / 0.45), transparent);
+    opacity: 0;
+    transform: translateX(-50%) scaleY(0);
+    transform-origin: bottom;
+    transition: opacity 180ms ease, transform 260ms ease;
+}
+
+.backToTop:hover,
+.backToTop:focus-visible {
+    border-color: rgb(255 93 70 / 0.72);
+    box-shadow: 0 0.8rem 2rem rgb(0 0 0 / 0.45), 0 0 1.8rem rgb(206 56 36 / 0.34);
+    outline: none;
+    transform: translateY(-0.2rem);
+}
+
+.backToTop:hover svg,
+.backToTop:focus-visible svg {
+    transform: translateY(-0.18rem);
+}
+
+.backToTop:hover .backToTop__beam,
+.backToTop:focus-visible .backToTop__beam {
+    opacity: 1;
+    transform: translateX(-50%) scaleY(1);
+}
+
+@keyframes back-to-top-orbit {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes back-to-top-arrive {
+    0% { opacity: 0; transform: translateY(2.2rem) rotate(-24deg) scale(0.45); filter: blur(5px) brightness(1.8); }
+    68% { opacity: 1; transform: translateY(-0.25rem) rotate(4deg) scale(1.08); filter: blur(0) brightness(1.15); }
+    100% { opacity: 1; transform: none; filter: none; }
+}
+
+@keyframes back-to-top-depart {
+    0% { opacity: 1; transform: none; filter: none; }
+    32% { opacity: 1; transform: translateY(0.2rem) scale(1.1); filter: brightness(1.35); }
+    100% { opacity: 0; transform: translateY(-3rem) rotate(18deg) scale(0.45); filter: blur(6px) brightness(1.9); }
+}
+
+@media (max-width: 640px) {
+    .backToTop {
+        right: 0.8rem;
+        bottom: 0.8rem;
+        width: 3.25rem;
+        height: 3.25rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .backToTop,
+    .backToTop svg,
+    .backToTop__beam,
+    .backToTop__orbit {
+        animation: none;
+        transition-duration: 1ms;
+    }
 }
