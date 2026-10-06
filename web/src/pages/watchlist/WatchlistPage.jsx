@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import {
   FaArrowRight,
@@ -446,7 +447,9 @@ const WatchlistPage = () => {
   useEffect(() => {
     if (!panel) return undefined;
     const previousOverflow = document.body.style.overflow;
+    const previousRootOverflow = document.documentElement.style.overflow;
     document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
     closeButtonRef.current?.focus();
 
     const handleKeyDown = (event) => {
@@ -474,6 +477,7 @@ const WatchlistPage = () => {
     document.addEventListener("keydown", handleKeyDown);
     return () => {
       document.body.style.overflow = previousOverflow;
+      document.documentElement.style.overflow = previousRootOverflow;
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [closePanel, panel]);
@@ -891,7 +895,7 @@ const WatchlistPage = () => {
         </>
       )}
 
-      {panel && activeItem && (
+      {panel && activeItem && createPortal(
         <div className="watchlist-panel-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) closePanel(); }}>
           <aside ref={panelRef} className="watchlist-panel" role="dialog" aria-modal="true" aria-labelledby="watchlist-panel-title">
             <header className="watchlist-panel__artwork">
@@ -901,14 +905,17 @@ const WatchlistPage = () => {
             </header>
             {panel.type === "edit" && editDraft ? (
               <form className="watchlist-edit-form" onSubmit={(event) => { event.preventDefault(); saveEdit(); }}>
+                <div className="watchlist-panel-content">
                 <p className="watchlist-edit-note">Nothing changes until you save this draft.</p>
                  <fieldset className="watchlist-status-fieldset"><legend>Watch status</legend><div>{WATCH_STATUS_OPTIONS.map((option) => <label key={option} className={getStatusClassName(option)}><input type="radio" name="watch-status" value={option} checked={editDraft.progressStatus === option} onChange={(event) => setEditDraft((draft) => ({ ...draft, progressStatus: event.target.value }))} /><span><i aria-hidden="true" />{option}</span></label>)}</div></fieldset>
                  {activeItem.type === "tv" && <section className="watchlist-edit-section"><div className="watchlist-edit-section__heading"><span>Playback position</span><small>{activeItem.totalSeasons ? `${activeItem.totalSeasons} seasons` : "Series"}</small></div><div className="watchlist-edit-progress"><label><span>Season</span><input ref={progressInputRef} type="number" min="1" max={activeItem.totalSeasons || undefined} value={editDraft.currentSeason} onChange={(event) => setEditDraft((draft) => ({ ...draft, currentSeason: event.target.value }))} /></label><span aria-hidden="true">/</span><label><span>Episode</span><input type="number" min="1" max={Math.max(0, seasonEpisodeCounts[`${activeItem.id}:${editDraft.currentSeason}`]) || undefined} value={editDraft.currentEpisode} onChange={(event) => setEditDraft((draft) => ({ ...draft, currentEpisode: event.target.value }))} /></label></div><div className="watchlist-panel-progress">{renderProgress({ ...activeItem, ...editDraft })}</div></section>}
                 <section className="watchlist-edit-section"><div className="watchlist-edit-section__heading"><span>Organization</span><small>Optional</small></div><label className="watchlist-custom-sort"><span>Custom sort label</span><input type="text" value={editDraft.customSort} placeholder="e.g. Awards season, Marvel, Sunday" onChange={(event) => setEditDraft((draft) => ({ ...draft, customSort: event.target.value }))} /><small>Groups this title when Custom organization is selected.</small></label></section>
+                </div>
                  <div className="watchlist-panel-actions"><button type="button" onClick={closePanel}>Discard changes</button><button type="submit" className="primary">Save changes</button></div>
               </form>
             ) : (
               <div className="watchlist-preview">
+                <div className="watchlist-panel-content">
                 <div className="watchlist-preview-media">
                   {previewPlaying && activePreview?.trailerKey ? <iframe src={`https://www.youtube.com/embed/${activePreview.trailerKey}?autoplay=1&rel=0&playsinline=1`} title={`${activeItem.title} trailer`} allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen /> : <img src={activePreview?.backdropPath ? `${TMDB_ASSET_BASEURL}${activePreview.backdropPath}` : activeItem.posterPath ? `${TMDB_ASSET_BASEURL}${activeItem.posterPath}` : NoImagePlaceholder} alt="" onError={usePlaceholderOnError} />}
                   {activePreview?.isLoading && <span className="watchlist-preview-loading">Preparing preview…</span>}
@@ -917,11 +924,13 @@ const WatchlistPage = () => {
                 <p>{activePreview?.isLoading ? "Loading details..." : activePreview?.overview || "No description available yet."}</p>
                  <div className="watchlist-preview-meta"><div><span>Watch status</span><strong><i className={getStatusClassName(getDisplayProgressStatus(activeItem))} aria-hidden="true" />{getDisplayProgressStatus(activeItem)}</strong></div><div><span>Release status</span><strong>{activeItem.tmdbStatus || "Unknown"}</strong></div><div><span>Next / release</span><strong>{formatRelativeDate(activeItem.type === "tv" ? activeItem.nextEpisodeDate : activeItem.releaseDate, activeItem.type)}</strong></div></div>
                 <section className="watchlist-preview-progress"><span>Saved position</span>{renderProgress(activeItem)}</section>
+                </div>
                 <div className="watchlist-panel-actions"><button type="button" onClick={closePanel}>Close</button><Link className="primary" to={getItemDetailPath(activeItem)}>{getDisplayProgressStatus(activeItem) === "Ongoing" ? "Continue title" : "Open title"} <FaArrowUpRightFromSquare aria-hidden="true" /></Link></div>
               </div>
             )}
           </aside>
-        </div>
+        </div>,
+        document.body
       )}
     </main>
   );

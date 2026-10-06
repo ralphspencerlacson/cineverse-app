@@ -1,4 +1,5 @@
-.watchlist-page {
+.watchlist-page,
+.watchlist-panel-backdrop {
   --ledger-bg: #090a0b;
   --ledger-panel: #111111;
   --ledger-line: rgba(255, 255, 255, 0.16);
@@ -7,6 +8,12 @@
   --ledger-muted: #cfd7e2;
   --ledger-ember: #ce3824;
   --ledger-ember-bright: #ff5d46;
+  color: var(--ledger-paper);
+  font-family: "Poppins", Inter, system-ui, sans-serif;
+  text-align: left;
+}
+
+.watchlist-page {
   width: min(96%, 100rem);
   min-height: 100vh;
   margin: 0 auto;
@@ -27,17 +34,11 @@
   pointer-events: none;
 }
 
-.watchlist-page a { color: inherit; }
-.watchlist-page button,
-.watchlist-page input,
-.watchlist-page select { font: inherit; }
-.watchlist-page button { color: inherit; }
-.watchlist-page button:disabled { cursor: not-allowed; opacity: 0.42; }
-.watchlist-page button:focus-visible,
-.watchlist-page a:focus-visible,
-.watchlist-page input:focus-visible,
-.watchlist-page select:focus-visible,
-.watchlist-page summary:focus-visible { outline: 2px solid var(--ledger-ember-bright); outline-offset: 3px; }
+:is(.watchlist-page, .watchlist-panel-backdrop) a { color: inherit; }
+:is(.watchlist-page, .watchlist-panel-backdrop) :is(button, input, select) { font: inherit; }
+:is(.watchlist-page, .watchlist-panel-backdrop) button { color: inherit; }
+:is(.watchlist-page, .watchlist-panel-backdrop) button:disabled { cursor: not-allowed; opacity: 0.42; }
+:is(.watchlist-page, .watchlist-panel-backdrop) :is(button, a, input, select, summary):focus-visible { outline: 2px solid var(--ledger-ember-bright); outline-offset: 3px; }
 
 .sr-only {
   position: absolute;
@@ -469,8 +470,8 @@
 .watchlist-empty a:first-child { border-color: #ce3824; background: linear-gradient(135deg, #ff5d46, #ce3824); color: #ffffff; }
 
 /* Preview and edit drawer */
-.watchlist-panel-backdrop { position: fixed; z-index: 1000; inset: 0; display: flex; justify-content: flex-end; background: rgba(0, 0, 0, 0.76); backdrop-filter: blur(3px); }
-.watchlist-panel { display: flex; width: min(34rem, 94vw); height: 100%; overflow-y: auto; flex-direction: column; border-left: 1px solid var(--ledger-line); background: #111111; box-shadow: -2rem 0 5rem rgba(0, 0, 0, 0.6); animation: watchlist-panel-in 180ms ease-out; }
+.watchlist-panel-backdrop { position: fixed; z-index: 10000; inset: 0; width: 100vw; height: 100dvh; min-height: 100svh; display: flex; align-items: stretch; justify-content: flex-end; overflow: hidden; isolation: isolate; background: rgba(0, 0, 0, 0.76); backdrop-filter: blur(3px); }
+.watchlist-panel { display: flex; width: min(34rem, 94vw); height: 100%; min-height: 0; max-height: 100dvh; overflow: hidden; box-sizing: border-box; flex: 0 0 min(34rem, 94vw); flex-direction: column; border-left: 1px solid var(--ledger-line); background: #111111; box-shadow: -2rem 0 5rem rgba(0, 0, 0, 0.6); animation: watchlist-panel-in 180ms ease-out; }
 @keyframes watchlist-panel-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
 
 .watchlist-panel__artwork { position: relative; min-height: 13rem; flex: 0 0 auto; overflow: hidden; background: #171717; }
@@ -483,9 +484,11 @@
 .watchlist-panel-close { position: absolute; z-index: 2; top: 1rem; right: 1rem; display: grid; width: 2.3rem; height: 2.3rem; border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 50%; place-items: center; background: rgba(0, 0, 0, 0.55); cursor: pointer; padding: 0; }
 
 .watchlist-edit-form,
-.watchlist-preview { display: flex; min-height: 0; flex: 1; flex-direction: column; gap: 1.35rem; padding: 1.35rem 1.4rem 0; }
+.watchlist-preview { display: flex; min-height: 0; flex: 1; flex-direction: column; }
+.watchlist-panel-content { display: flex; min-height: 0; flex: 1; flex-direction: column; gap: 1.35rem; overflow-y: auto; overscroll-behavior-y: contain; padding: 1.35rem 1.4rem; }
+.watchlist-panel-content > * { flex-shrink: 0; }
 .watchlist-edit-note,
-.watchlist-preview > p { margin: 0; color: #cfd7e2; font-size: 0.82rem; line-height: 1.65; }
+.watchlist-preview .watchlist-panel-content > p { margin: 0; color: #cfd7e2; font-size: 0.82rem; line-height: 1.65; }
 .watchlist-status-fieldset { margin: 0; border: 0; padding: 0; }
 .watchlist-status-fieldset legend,
 .watchlist-edit-section__heading > span,
@@ -529,7 +532,7 @@
 .watchlist-preview-meta strong { display: flex; min-width: 0; align-items: center; gap: 0.35rem; margin-top: 0.4rem; color: #ffffff; font-size: 0.68rem; line-height: 1.35; }
 .watchlist-preview-progress { display: grid; gap: 0.25rem; }
 
-.watchlist-panel-actions { position: sticky; bottom: 0; z-index: 3; display: flex; justify-content: flex-end; gap: 0.6rem; margin: auto -1.4rem 0; border-top: 1px solid var(--ledger-line); background: #111111; padding: 1rem 1.4rem; }
+.watchlist-panel-actions { position: relative; flex: 0 0 auto; z-index: 3; display: flex; justify-content: flex-end; gap: 0.6rem; border-top: 1px solid var(--ledger-line); background: #111111; padding: 1rem 1.4rem max(1rem, env(safe-area-inset-bottom)); }
 .watchlist-panel-actions > * { display: inline-flex; align-items: center; gap: 0.5rem; border: 1px solid rgba(255, 255, 255, 0.22); border-radius: 0.7rem; background: rgba(255, 255, 255, 0.08); cursor: pointer; color: var(--ledger-paper); font-size: 0.72rem; font-weight: 900; padding: 0.72rem 0.9rem; }
 .watchlist-panel-actions .primary { border-color: #ce3824; background: linear-gradient(135deg, #ff5d46, #ce3824); color: #fff; }
 
@@ -661,9 +664,9 @@
   .watchlist-teaser__grid { grid-template-columns: 1fr; }
 
   .watchlist-panel-backdrop { align-items: flex-end; }
-  .watchlist-panel { width: 100%; height: auto; max-height: 91vh; border-top: 1px solid var(--ledger-line); border-left: 0; border-radius: 1rem 1rem 0 0; animation-name: watchlist-sheet-in; }
+  .watchlist-panel { width: 100%; height: 91%; flex-basis: 100%; border-top: 1px solid var(--ledger-line); border-left: 0; border-radius: 1rem 1rem 0 0; animation-name: watchlist-sheet-in; }
   .watchlist-panel::before { width: 3rem; height: 3px; flex: 0 0 auto; align-self: center; border-radius: 2px; background: rgba(207, 215, 226, 0.42); content: ""; margin: 0.5rem 0 -0.5rem; }
-  .watchlist-panel__artwork { min-height: 10.5rem; }
+  .watchlist-panel__artwork { min-height: min(10.5rem, 30dvh); }
   @keyframes watchlist-sheet-in { from { transform: translateY(100%); } to { transform: translateY(0); } }
 }
 
