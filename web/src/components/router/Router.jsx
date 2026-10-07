@@ -12,6 +12,7 @@ const SeriesList = lazy(() => import("../../pages/series/SeriesList"));
 const SeriesPage = lazy(() => import("../../pages/series/SeriesPage"));
 const WatchlistPage = lazy(() => import("../../pages/watchlist/WatchlistPage"));
 const NotFound = lazy(() => import("../../pages/notfound/NotFound"));
+const PlayerSourcesPage = lazy(() => import("../../pages/playerSources/PlayerSourcesPage"));
 
 const Router = () => {
   return (
@@ -24,6 +25,7 @@ const Router = () => {
           <Route path="/series" element={<SeriesList />} />
           <Route path="/series/:slug" element={<SeriesPage />} />
           <Route path="/watchlist" element={<WatchlistPage />} />
+          <Route path="/settings/player-sources" element={<PlayerSourcesPage />} />
           {/* 404 */}
           <Route path="*" element={<NotFound />} />
         </Route>

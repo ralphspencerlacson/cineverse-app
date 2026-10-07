@@ -799,6 +799,7 @@ const Navbar = ({ isRouteLoading = false }) => {
                       {user.email && user.email !== user.username && (
                         <span className="nav-account__email">{user.email}</span>
                       )}
+                      {user.email?.toLowerCase() === "admin@memoire.com" && <Link to="/settings/player-sources" onClick={() => setIsAccountOpen(false)}>Player sources</Link>}
                       <button
                         type="button"
                         className="nav-account__logout"

@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { getEmbedUrl as getZxcstreamEmbedUrl } from "../../service/zxcstream/requests";
-import { getEmbedUrl as getVideasyEmbedUrl } from "../../service/videasy/requests";
-import { getEmbedUrl as getVidapiEmbedUrl } from "../../service/vidapi/requests";
+import { buildPlayerUrl, getConfiguredPlayerUrl, getPlayerSources } from "../../service/playerSources/playerSources";
 import {
   flushStoredVideoProgress,
   getVideoProgressSession,
@@ -23,32 +21,26 @@ const PLAYER_PROVIDERS = [
   {
     key: "zxcstream",
     label: "ZXCStream",
-    getEmbedUrl: getZxcstreamEmbedUrl,
+    getEmbedUrl: getConfiguredPlayerUrl,
     supportsResume: false,
-  },
-  {
-    key: "videasy",
-    label: "Videasy",
-    getEmbedUrl: getVideasyEmbedUrl,
-    supportsResume: true,
   },
   {
     key: "vidapi",
     label: "VidAPI",
-    getEmbedUrl: getVidapiEmbedUrl,
+    getEmbedUrl: getConfiguredPlayerUrl,
     supportsResume: true,
   },
 ];
 
 const PROVIDER_ORDER_BY_TYPE = {
-  movie: ["videasy", "vidapi", "zxcstream"],
-  tv: ["vidapi", "videasy", "zxcstream"],
+  movie: ["vidapi", "zxcstream"],
+  tv: ["vidapi", "zxcstream"],
 };
 
 const getOrderedProviders = (type) => {
   const providerOrder = PROVIDER_ORDER_BY_TYPE[type] || [];
 
-  return [...PLAYER_PROVIDERS].sort((providerA, providerB) => {
+  return PLAYER_PROVIDERS.filter((provider) => providerOrder.includes(provider.key)).sort((providerA, providerB) => {
     const providerAIndex = providerOrder.indexOf(providerA.key);
     const providerBIndex = providerOrder.indexOf(providerB.key);
 
@@ -107,6 +99,7 @@ const VidPlayer = ({
   const [areControlsVisible, setAreControlsVisible] = useState(true);
   const [isPlaybackPaused, setIsPlaybackPaused] = useState(false);
   const [playerRevision, setPlayerRevision] = useState(0);
+  const [cmsSources, setCmsSources] = useState(null);
   const progressKeys = useMemo(
     () =>
       buildProgressKeys({
@@ -147,9 +140,26 @@ const VidPlayer = ({
   const progressMetadataRef = useRef(progressMetadata);
   progressMetadataRef.current = progressMetadata;
 
+  useEffect(() => {
+    let active = true;
+    getPlayerSources()
+      .then((sources) => { if (active) setCmsSources(sources); })
+      .catch(() => { if (active) setCmsSources([]); });
+    return () => { active = false; };
+  }, []);
+
   const isControlled = typeof isOpen === "boolean";
   const requestedShowPlayer = isControlled ? isOpen : internalShowPlayer;
   const showPlayer = isLoggedIn && requestedShowPlayer;
+
+  useEffect(() => {
+    if (!showPlayer) return undefined;
+    let active = true;
+    getPlayerSources()
+      .then((sources) => { if (active) setCmsSources(sources); })
+      .catch(() => { if (active) setCmsSources([]); });
+    return () => { active = false; };
+  }, [showPlayer]);
 
   if (
     showPlayer &&
@@ -173,9 +183,30 @@ const VidPlayer = ({
   const resumeAt = resumeAtRef.current;
 
   const playerOptions = useMemo(() => {
+    if (cmsSources?.length) {
+      const configuredProviders = cmsSources
+        .filter((source) => (type === "movie" ? source.movie_url_template : source.tv_url_template))
+        .map((source) => ({
+          key: source.slug,
+          label: source.name,
+          supportsResume: false,
+          source,
+          embedUrl: buildPlayerUrl(type === "movie" ? source.movie_url_template : source.tv_url_template, {
+            type,
+            id: source.id_type === "imdb" ? imdbID : tmdbID || imdbID,
+            tmdb_id: tmdbID,
+            imdb_id: imdbID,
+            season,
+            episode,
+          }),
+        }))
+        .filter((provider) => provider.embedUrl);
+      if (configuredProviders.length) return configuredProviders;
+    }
     return getOrderedProviders(type).map((provider) => ({
       ...provider,
       embedUrl: provider.getEmbedUrl({
+        slug: provider.key,
         type,
         tmdbID,
         imdbID,
@@ -819,7 +850,7 @@ const VidPlayer = ({
                   </label>
                 )}
               </div>
-              <iframe
+              {activeProvider ? <iframe
                 key={`${activeProvider.key}:${playerRevision}`}
                 src={activeProvider.embedUrl}
                 loading="lazy"
@@ -829,7 +860,7 @@ const VidPlayer = ({
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 referrerPolicy="strict-origin"
                 allowFullScreen
-              ></iframe>
+              ></iframe> : <div className="vid-player__unavailable">No player source is available for this title.</div>}
             </div>
           </div>
         </div>,
