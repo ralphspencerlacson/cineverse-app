@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { buildPlayerUrl, getConfiguredPlayerUrl, getPlayerSources } from "../../service/playerSources/playerSources";
+import { buildPlayerUrl, getPlayerSources } from "../../service/playerSources/playerSources";
 import {
   flushStoredVideoProgress,
   getVideoProgressSession,
@@ -11,44 +11,11 @@ import { useAuth } from "../../context/AuthContext";
 import useDialogFocus from "../../hooks/useDialogFocus";
 import "./VidPlayer.css";
 
-const RESUME_BACKTRACK_SECONDS = 5;
 const DEFAULT_COMPLETION_THRESHOLD = 0.9;
 const PLAYER_LOAD_TIMEOUT_MS = 9000;
 const CONTROLS_IDLE_TIMEOUT_MS = 3000;
 const SEEK_EVENT_GUARD_MS = 5000;
 const MAX_REASONABLE_DURATION_SECONDS = 24 * 60 * 60;
-const PLAYER_PROVIDERS = [
-  {
-    key: "zxcstream",
-    label: "ZXCStream",
-    getEmbedUrl: getConfiguredPlayerUrl,
-    supportsResume: false,
-  },
-  {
-    key: "vidapi",
-    label: "VidAPI",
-    getEmbedUrl: getConfiguredPlayerUrl,
-    supportsResume: true,
-  },
-];
-
-const PROVIDER_ORDER_BY_TYPE = {
-  movie: ["vidapi", "zxcstream"],
-  tv: ["vidapi", "zxcstream"],
-};
-
-const getOrderedProviders = (type) => {
-  const providerOrder = PROVIDER_ORDER_BY_TYPE[type] || [];
-
-  return PLAYER_PROVIDERS.filter((provider) => providerOrder.includes(provider.key)).sort((providerA, providerB) => {
-    const providerAIndex = providerOrder.indexOf(providerA.key);
-    const providerBIndex = providerOrder.indexOf(providerB.key);
-
-    return (providerAIndex === -1 ? PLAYER_PROVIDERS.length : providerAIndex) -
-      (providerBIndex === -1 ? PLAYER_PROVIDERS.length : providerBIndex);
-  });
-};
-
 const buildProgressKeys = ({ type, tmdbID, imdbID, season, episode }) => {
   const ids = [];
 
@@ -128,7 +95,6 @@ const VidPlayer = ({
   const dialogRef = useRef(null);
   const providerProgressRef = useRef({ seconds: null, duration: 0 });
   const isPlaybackPausedRef = useRef(false);
-  const resumeAtRef = useRef(0);
   const canonicalCheckpointRef = useRef(0);
   const knownDurationRef = useRef(runtimeSeconds);
   const lastProviderProgressRef = useRef(null);
@@ -172,7 +138,6 @@ const VidPlayer = ({
 
     canonicalCheckpointRef.current = checkpoint;
     baseProgressRef.current = checkpoint;
-    resumeAtRef.current = Math.max(0, checkpoint - RESUME_BACKTRACK_SECONDS);
     knownDurationRef.current =
       (Number.isFinite(storedDuration) && storedDuration > 0 && storedDuration) ||
       runtimeSeconds;
@@ -180,11 +145,10 @@ const VidPlayer = ({
   wasShowingPlayerRef.current = showPlayer;
   activeProgressKeyRef.current = progressKeySignature;
 
-  const resumeAt = resumeAtRef.current;
-
   const playerOptions = useMemo(() => {
     if (cmsSources?.length) {
       const configuredProviders = cmsSources
+        .filter((source) => source.supported_types?.includes(type))
         .filter((source) => (type === "movie" ? source.movie_url_template : source.tv_url_template))
         .map((source) => ({
           key: source.slug,
@@ -203,19 +167,8 @@ const VidPlayer = ({
         .filter((provider) => provider.embedUrl);
       if (configuredProviders.length) return configuredProviders;
     }
-    return getOrderedProviders(type).map((provider) => ({
-      ...provider,
-      embedUrl: provider.getEmbedUrl({
-        slug: provider.key,
-        type,
-        tmdbID,
-        imdbID,
-        season,
-        episode,
-        resumeAt: provider.supportsResume ? resumeAt : 0,
-      }),
-    })).filter((provider) => provider.embedUrl);
-  }, [episode, imdbID, resumeAt, season, tmdbID, type]);
+    return [];
+  }, [cmsSources, episode, imdbID, season, tmdbID, type]);
 
   const activeProvider =
     playerOptions[activeProviderIndex] || playerOptions[0] || null;
@@ -485,7 +438,6 @@ const VidPlayer = ({
     const storedDuration = Number(storedEntry?.metadata?.playbackDuration);
     canonicalCheckpointRef.current = checkpoint;
     baseProgressRef.current = checkpoint;
-    resumeAtRef.current = Math.max(0, checkpoint - RESUME_BACKTRACK_SECONDS);
     knownDurationRef.current =
       (Number.isFinite(storedDuration) && storedDuration > 0 && storedDuration) ||
       knownDurationRef.current ||
@@ -789,10 +741,6 @@ const VidPlayer = ({
       );
     };
   }, [activeProvider, getPlayedSeconds, maybeMarkComplete, progressKeys, saveProgress, showPlayer]);
-
-  if (!activeProvider) {
-    return null;
-  }
 
   return (
     <>

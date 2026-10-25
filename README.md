@@ -14,7 +14,7 @@ Required environment variables:
 - `VITE_OMDB_BASEURL`, `VITE_OMDB_TOKEN`
 - `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`
 
-Optional player overrides: `VITE_VIDEASY_BASEURL`, `VITE_VIDAPI_BASEURL`, `VITE_ZXCSTREAM_BASEURL`.
+Player links are managed in Supabase `cineverse.player_sources`. Only enabled sources supporting the selected media type are used; there are no built-in fallback sources.
 
 Supabase uses the `cineverse` schema and the `watchlist_items` and `video_progress` tables. The configured key is a browser publishable key; access control must be enforced by the database's existing row policies.
 

@@ -167,7 +167,7 @@ test("player waiting and stale telemetry do not advance progress or complete a t
   const frame = { contentWindow: { postMessage() {} } };
   const jsx = (type, props) => { if (type === "iframe") props.ref.current = frame; return { type, props }; };
   const mocks = {
-    react: { useState: (value) => [value, () => {}], useRef: (current) => ({ current }), useMemo: (fn) => fn(), useCallback: (fn) => fn, useEffect: (fn) => effects.push(fn) },
+    react: { useState: (value) => [value === null ? [{ slug: "test", name: "Test", supported_types: ["movie"], movie_url_template: "https://player.test/{id}" }] : value, () => {}], useRef: (current) => ({ current }), useMemo: (fn) => fn(), useCallback: (fn) => fn, useEffect: (fn) => effects.push(fn) },
     "react/jsx-runtime": { jsx, jsxs: jsx, Fragment: "fragment" },
     "react-dom": { createPortal: (element) => element },
     [path.join(root, "context/AuthContext.js")]: { useAuth: () => ({ isLoggedIn: true }) },
@@ -178,6 +178,10 @@ test("player waiting and stale telemetry do not advance progress or complete a t
       setStoredVideoProgress: (keys, seconds) => saves.push(seconds),
       flushStoredVideoProgress: () => {},
     },
+  };
+  mocks[path.join(root, "service/playerSources/playerSources.js")] = {
+    getPlayerSources: async () => [],
+    buildPlayerUrl: () => "https://player.test/watch",
   };
   for (const provider of ["videasy", "vidapi", "zxcstream"]) mocks[path.join(root, `service/${provider}/requests.js`)] = { getEmbedUrl: () => "https://player.test/watch" };
   const h = await harness(mocks);
@@ -200,6 +204,66 @@ test("player waiting and stale telemetry do not advance progress or complete a t
   report(58);
   h.intervals.forEach((fn) => fn());
   assert.equal(saves.length, count);
+});
+
+test("series player waits for Supabase sources and updates episode links", async () => {
+  const pending = deferred();
+  const states = [];
+  const memos = [];
+  let stateIndex = 0;
+  let memoIndex = 0;
+  let effects = [];
+  const jsx = (type, props) => ({ type, props });
+  const h = await harness({
+    react: {
+      useState: (initial) => {
+        const index = stateIndex++;
+        if (!(index in states)) states[index] = initial;
+        return [states[index], (value) => { states[index] = value; }];
+      },
+      useMemo: (fn, deps) => {
+        const index = memoIndex++;
+        if (!memos[index] || deps.some((value, i) => value !== memos[index].deps[i])) {
+          memos[index] = { deps, value: fn() };
+        }
+        return memos[index].value;
+      },
+      useRef: (current) => ({ current }), useCallback: (fn) => fn,
+      useEffect: (fn) => effects.push(fn),
+    },
+    "react/jsx-runtime": { jsx, jsxs: jsx, Fragment: "fragment" },
+    "react-dom": { createPortal: (element) => element },
+    [path.join(root, "context/AuthContext.js")]: { useAuth: () => ({ isLoggedIn: true }) },
+    [path.join(root, "hooks/useDialogFocus.js")]: { default: () => {} },
+    [path.join(root, "service/videoProgress/videoProgressStorage.js")]: {
+      getVideoProgressSession: () => "A:1", getStoredVideoProgressEntry: () => null,
+      setStoredVideoProgress: () => {}, flushStoredVideoProgress: () => {},
+    },
+    [path.join(root, "service/playerSources/playerSources.js")]: {
+      getPlayerSources: () => pending.promise,
+      buildPlayerUrl: (template, values) => template.replace(/\{(\w+)\}/g, (_, token) => values[token]),
+    },
+  });
+  const { default: Player } = await h.import("components/vidPlayer/VidPlayer.jsx");
+  const render = (episode) => {
+    stateIndex = 0; memoIndex = 0; effects = [];
+    return Player({ type: "tv", tmdbID: 123, season: 2, episode, isOpen: true });
+  };
+  const findFrame = (node) => {
+    if (!node || typeof node !== "object") return null;
+    if (node.type === "iframe") return node;
+    return [node.props?.children].flat().map(findFrame).find(Boolean);
+  };
+  assert.equal(findFrame(render(3)), undefined);
+  effects[0]();
+  pending.resolve([
+    { slug: "movies-only", name: "Movies", supported_types: ["movie"], tv_url_template: "https://wrong.test/{id}/{season}/{episode}" },
+    { slug: "custom", name: "Custom", supported_types: ["tv"], id_type: "tmdb", tv_url_template: "https://custom.test/{id}/{season}/{episode}" },
+  ]);
+  await pending.promise;
+  await Promise.resolve();
+  assert.equal(findFrame(render(3)).props.src, "https://custom.test/123/2/3");
+  assert.equal(findFrame(render(4)).props.src, "https://custom.test/123/2/4");
 });
 
 test("remote writes serialize bulk sync before a newer edit", async () => {

@@ -3,13 +3,6 @@ import { supabase } from "../supabase/client";
 const TOKENS = new Set(["id", "tmdb_id", "imdb_id", "season", "episode"]);
 const TOKEN_PATTERN = /\{([a-z_]+)\}/g;
 
-export const PLAYER_SOURCE_DEFAULTS = [
-  { slug: "cinesrc", name: "CineSrc", enabled: true, priority: 10, supported_types: ["movie", "tv"] },
-  { slug: "vidapi", name: "VidAPI", enabled: true, priority: 20, supported_types: ["movie", "tv"] },
-  { slug: "viduki", name: "Viduki", enabled: true, priority: 30, supported_types: ["movie", "tv"] },
-  { slug: "zxcstream", name: "ZXCStream", enabled: true, priority: 40, supported_types: ["movie", "tv"] },
-];
-
 export const validatePlayerTemplate = (template, type) => {
   if (!template || typeof template !== "string") return "Enter a player link.";
   let parsed;
@@ -38,23 +31,3 @@ export const getPlayerSources = async () => {
   return data || [];
 };
 
-// Temporary built-in fallback while the CMS table is being populated.
-export const getConfiguredPlayerUrl = ({ slug, key, type, tmdbID, imdbID, season, episode, resumeAt }) => {
-  slug = slug || key;
-  const base = {
-    zxcstream: import.meta.env.VITE_ZXCSTREAM_BASEURL || "https://zxcstream.xyz",
-    videasy: import.meta.env.VITE_VIDEASY_BASEURL || "https://videasy.net",
-    vidapi: import.meta.env.VITE_VIDAPI_BASEURL || "https://vaplayer.ru",
-  }[slug]?.replace(/\/+$/, "");
-  if (!base) return null;
-  const id = imdbID || tmdbID;
-  if (!id) return null;
-  let url = slug === "zxcstream"
-    ? (type === "movie" ? `${base}/player/movie/${tmdbID}` : `${base}/player/tv/${tmdbID}/${season}/${episode}`)
-    : (type === "movie" ? `${base}/embed/movie/${id}` : `${base}/embed/tv/${id}/${season}/${episode}`);
-  if (slug === "videasy") url += `?color=CE3824${type === "tv" ? "&nextEpisode=true&autoplayNextEpisode=true&episodeSelector=true&overlay=true" : ""}`;
-  if (slug === "vidapi") url += `${url.includes("?") ? "&" : "?"}autoplay=1`;
-  const numericResume = Number(resumeAt);
-  if (numericResume > 0 && (slug === "videasy" || slug === "vidapi")) url += `&${slug === "videasy" ? "progress" : "resumeAt"}=${Math.floor(numericResume)}`;
-  return url;
-};
